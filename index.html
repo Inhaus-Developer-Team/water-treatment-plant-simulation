@@ -1,0 +1,2709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Municipal Water Treatment Facility — Guided Process Tour & Simulation</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      overflow: hidden;
+      background: #080c10;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #e6edf3;
+      user-select: none;
+    }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* Glass HUD Panels */
+    .hud-card {
+      position: absolute;
+      background: rgba(13, 17, 23, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(88, 166, 255, 0.22);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #c9d1d9;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+      z-index: 10;
+      pointer-events: auto;
+    }
+
+    .hud-header {
+      top: 16px;
+      left: 16px;
+      max-width: 440px;
+    }
+    .hud-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #58a6ff;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hud-desc {
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: #8b949e;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+    }
+    .badge.flow {
+      background: rgba(56, 189, 248, 0.2);
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .badge.dirty {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+    .badge.clean {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+    .badge.tour {
+      background: rgba(168, 85, 247, 0.2);
+      color: #c084fc;
+      border-color: rgba(168, 85, 247, 0.4);
+    }
+
+    /* Bottom Control Bar */
+    .hud-controls {
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      background: rgba(33, 38, 45, 0.95);
+      border: 1px solid rgba(240, 246, 252, 0.15);
+      color: #c9d1d9;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover {
+      background: rgba(56, 139, 253, 0.22);
+      border-color: #58a6ff;
+      color: #fff;
+    }
+    .btn.active {
+      background: #1f6feb;
+      border-color: #58a6ff;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(31, 111, 235, 0.55);
+    }
+    .btn.tour-btn {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-color: #a855f7;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(168, 85, 247, 0.5);
+    }
+    .btn.tour-btn.tour-active {
+      animation: pulse-tour 2s infinite ease-in-out;
+    }
+    @keyframes pulse-tour {
+      0%, 100% { box-shadow: 0 0 12px rgba(168, 85, 247, 0.5); }
+      50% { box-shadow: 0 0 22px rgba(168, 85, 247, 0.9); }
+    }
+    .btn.wireframe-active {
+      background: #0ea5e9;
+      border-color: #38bdf8;
+      color: #030712;
+      font-weight: 700;
+    }
+    .btn.toggle-on {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: #10b981;
+      color: #a7f3d0;
+    }
+    .control-separator {
+      width: 1px;
+      height: 20px;
+      background: rgba(240, 246, 252, 0.15);
+      margin: 0 4px;
+    }
+
+    /* Guided Tour Drawer (Top Center) */
+    .tour-drawer {
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 520px;
+      max-width: 90vw;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(168, 85, 247, 0.45);
+      box-shadow: 0 12px 38px rgba(0, 0, 0, 0.65), 0 0 20px rgba(168, 85, 247, 0.2);
+      display: none;
+    }
+    .tour-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .tour-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 4px;
+    }
+    .tour-desc {
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: #cbd5e1;
+      margin-bottom: 10px;
+    }
+    .tour-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+    }
+    .tour-metric-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .tour-metric-lbl {
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+    .tour-metric-val {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+    .tour-metric-val.dirty-val { color: #fbbf24; }
+    .tour-metric-val.clean-val { color: #34d399; }
+
+    .tour-progress-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .tour-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #38bdf8, #a855f7, #34d399);
+      width: 16.66%;
+      transition: width 0.4s ease;
+    }
+    .tour-nav-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Top Right Stats Panel */
+    .stats-panel {
+      top: 16px;
+      right: 16px;
+      min-width: 250px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 10.5px;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      color: #8b949e;
+    }
+    .stat-val {
+      color: #58a6ff;
+      font-weight: 700;
+    }
+    .fps-good { color: #3fb950; }
+
+    /* Interactive Subsystem Inspector Card */
+    .inspector-panel {
+      bottom: 84px;
+      left: 16px;
+      width: 320px;
+      display: none;
+    }
+    .inspector-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 4px;
+    }
+    .inspector-sub {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .inspector-detail-row {
+      font-size: 10px;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 3px 0;
+    }
+    .inspector-val {
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    /* 3D World Space Text Labels */
+    #annotations-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .annotation-pin {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translate(-50%, -100%);
+      transition: opacity 0.15s ease;
+      cursor: pointer;
+    }
+    .pin-pill {
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      border-radius: 12px;
+      padding: 3px 9px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #f1f5f9;
+      white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .pin-badge {
+      background: #0284c7;
+      color: #fff;
+      font-size: 8px;
+      padding: 1px 4px;
+      border-radius: 4px;
+      line-height: 1;
+    }
+    .pin-stem {
+      width: 1.5px;
+      height: 20px;
+      background: linear-gradient(to bottom, #38bdf8, rgba(56, 189, 248, 0.1));
+    }
+    .pin-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div id="annotations-layer"></div>
+
+  <!-- Header HUD -->
+  <div class="hud-card hud-header">
+    <div class="hud-title">
+      <span>Municipal Wastewater Facility</span>
+      <span class="badge flow" id="render-mode-badge">PROCESS SIMULATION</span>
+    </div>
+    <div class="hud-desc">
+      Engineered photorealistic reconstruction with natural industrial spacing. Demonstrates raw sewage influent intake, fine-bubble biological aeration, dual secondary clarification, clean effluent outfall cascade into wetlands, procedural cloud dome, and low-cut instanced grass.
+    </div>
+  </div>
+
+  <!-- Bottom Navigation & Controls -->
+  <div class="hud-card hud-controls">
+    <button class="btn tour-btn" id="btn-start-tour">✨ Guided Process Tour</button>
+    <div class="control-separator"></div>
+    <button class="btn active" id="btn-cam-overview">Aerial Drone</button>
+    <button class="btn" id="btn-cam-influent">1. Raw Influent</button>
+    <button class="btn" id="btn-cam-aeration">2. Aeration Basins</button>
+    <button class="btn" id="btn-cam-clarifier">3. Clarifiers</button>
+    <button class="btn" id="btn-cam-tertiary">4. Tertiary & UV</button>
+    <button class="btn" id="btn-cam-outfall">5. Clean Outfall</button>
+    <button class="btn" id="btn-cam-digesters">6. Digesters & Flare</button>
+    <button class="btn" id="btn-cam-ground">👁️ Ground Eye Level</button>
+    
+    <div class="control-separator"></div>
+
+    <button class="btn" id="btn-wireframe" title="Toggle Clean CAD Blueprint Wireframe">📐 CAD Wireframe</button>
+    <button class="btn toggle-on" id="btn-text-labels" title="Toggle 3D Text & Annotations">🏷️ Text Pins: ON</button>
+    <button class="btn" id="btn-debug-toggle" title="Toggle Debug Telemetry & Helpers">🛠️ Debug HUD</button>
+    <button class="btn" id="btn-animate">Pause Motion</button>
+  </div>
+
+  <!-- Guided Tour Drawer (Top Center) -->
+  <div class="hud-card tour-drawer" id="tour-drawer">
+    <div class="tour-header">
+      <div class="tour-step-tag">
+        <span class="badge tour" id="tour-badge-stage">STAGE 01 / 06</span>
+        <span id="tour-stage-status" class="badge dirty">DIRTY WATER INLET</span>
+      </div>
+      <button class="btn" id="btn-tour-close" style="padding:2px 8px; font-size:11px;">✕ Exit</button>
+    </div>
+    <div class="tour-title" id="tour-title">1. Raw Sewage Influent & Mechanical Headworks</div>
+    <div class="tour-desc" id="tour-desc">
+      Raw untreated municipal wastewater arrives through the 600mm main sewer line. Mechanical bar screens rake out large debris and rags, while vortex grit chambers settle dense sand before pumping to biological treatment.
+    </div>
+
+    <!-- Live Process Chemistry Telemetry -->
+    <div class="tour-metrics">
+      <div class="tour-metric-col">
+        <span class="tour-metric-lbl">Turbidity</span>
+        <span class="tour-metric-val dirty-val" id="tour-val-turb">340 NTU (Murky)</span>
+      </div>
+      <div class="tour-metric-col">
+        <span class="tour-metric-lbl">BOD5 / Organics</span>
+        <span class="tour-metric-val dirty-val" id="tour-val-bod">260 mg/L</span>
+      </div>
+      <div class="tour-metric-col">
+        <span class="tour-metric-lbl">Purification Eff.</span>
+        <span class="tour-metric-val" id="tour-val-eff" style="color:#60a5fa;">0% (Raw Influent)</span>
+      </div>
+    </div>
+
+    <div class="tour-progress-track">
+      <div class="tour-progress-bar" id="tour-progress-bar"></div>
+    </div>
+
+    <div class="tour-nav-row">
+      <button class="btn" id="btn-tour-prev" style="padding:4px 10px; font-size:11px;">◀ Prev</button>
+      <button class="btn" id="btn-tour-autoplay" style="padding:4px 10px; font-size:11px;">⏸ Auto-Play</button>
+      <button class="btn" id="btn-tour-next" style="padding:4px 10px; font-size:11px;">Next ▶</button>
+    </div>
+  </div>
+
+  <!-- Top Right Stats Panel -->
+  <div class="hud-card stats-panel" id="stats-panel">
+    <div class="stat-row"><span>FPS / FRAMETIME:</span> <span class="stat-val fps-good" id="stat-fps">60.0 fps (16.6ms)</span></div>
+    <div class="stat-row"><span>FACILITY TRIANGLES:</span> <span class="stat-val" id="stat-triangles">0</span></div>
+    <div class="stat-row"><span>DRAW CALLS:</span> <span class="stat-val" id="stat-calls">0</span></div>
+    <div class="stat-row"><span>3D LAWN GRASS:</span> <span class="stat-val" style="color:#4ade80;">2,800 3D Tufts (14-17cm)</span></div>
+    <div class="stat-row"><span>WATER FLOW:</span> <span class="stat-val" style="color:#38bdf8;">Active (0.24 m/s)</span></div>
+    <div class="stat-row"><span>WATER QUALITY:</span> <span class="stat-val" id="stat-water-quality" style="color:#34d399;">Clean Outfall < 1 NTU</span></div>
+    <div class="stat-row"><span>SHADING MODE:</span> <span class="stat-val" id="stat-shading">ACES PBR Sky</span></div>
+    
+    <!-- Shading Mode Diagnostic Selector -->
+    <div style="margin-top:8px; display:flex; gap:4px;">
+      <button class="btn active" id="btn-mode-pbr" style="padding:4px 8px; font-size:10px;">PBR</button>
+      <button class="btn" id="btn-mode-wire" style="padding:4px 8px; font-size:10px;">Wireframe</button>
+      <button class="btn" id="btn-mode-normals" style="padding:4px 8px; font-size:10px;">Normals</button>
+      <button class="btn" id="btn-mode-clay" style="padding:4px 8px; font-size:10px;">Clay</button>
+    </div>
+
+    <!-- Lighting Controls -->
+    <div style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.08); padding-top:6px;">
+      <div class="stat-row" style="margin-bottom:2px;">
+        <span style="font-size:9.5px;">Sun Altitude:</span>
+        <input type="range" id="sun-altitude" min="5" max="85" value="52" style="width:75px; height:4px;">
+      </div>
+      <div class="stat-row" style="margin-bottom:2px;">
+        <span style="font-size:9.5px;">Sun Azimuth:</span>
+        <input type="range" id="sun-azimuth" min="-180" max="180" value="-55" style="width:75px; height:4px;">
+      </div>
+      <div class="stat-row">
+        <span style="font-size:9.5px;">Bloom Glow:</span>
+        <input type="range" id="bloom-strength" min="0" max="40" value="6" style="width:75px; height:4px;">
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Inspector Panel -->
+  <div class="hud-card inspector-panel" id="inspector-panel">
+    <div class="inspector-title" id="insp-title">Subsystem Inspector</div>
+    <div class="inspector-sub" id="insp-sub">Click any structure to inspect specifications.</div>
+    <div class="inspector-detail-row"><span>SUBSYSTEM:</span> <span class="inspector-val" id="insp-subsys">Preliminary Treatment</span></div>
+    <div class="inspector-detail-row"><span>SPECIFICATION:</span> <span class="inspector-val" id="insp-spec">Stainless bar screens</span></div>
+    <div class="inspector-detail-row"><span>WORLD POSITION:</span> <span class="inspector-val" id="insp-pos">X: 18.00, Y: 0.70, Z: 7.50</span></div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { Sky } from 'three/addons/objects/Sky.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+    import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+
+    // =========================================================================
+    // 1. PROCEDURAL TEXTURES & ATMOSPHERIC REAL SKY
+    // =========================================================================
+
+    // (A) Photorealistic Procedural Cloud Sky Dome Texture
+    function generateRealisticCloudCanvas(w = 2048, h = 1024) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+      skyGrad.addColorStop(0.0, '#0d47a1');
+      skyGrad.addColorStop(0.35, '#1e88e5');
+      skyGrad.addColorStop(0.70, '#64b5f6');
+      skyGrad.addColorStop(0.92, '#bbdefb');
+      skyGrad.addColorStop(1.0, '#e3f2fd');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Layer 1: Cirrus wisps
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.20)';
+      for (let i = 0; i < 90; i++) {
+        const cx = Math.random() * w;
+        const cy = Math.random() * (h * 0.45);
+        const cw = 120 + Math.random() * 340;
+        const ch = 12 + Math.random() * 35;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, cw, ch, -0.05, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Layer 2: Cumulus Cloud Formations
+      const cloudClusters = [
+        { x: w * 0.18, y: h * 0.48, scale: 1.3 },
+        { x: w * 0.42, y: h * 0.42, scale: 1.8 },
+        { x: w * 0.75, y: h * 0.50, scale: 1.4 },
+        { x: w * 0.92, y: h * 0.44, scale: 1.2 },
+        { x: w * 0.58, y: h * 0.35, scale: 1.6 }
+      ];
+
+      cloudClusters.forEach(cluster => {
+        const numPuffs = 45;
+        for (let p = 0; p < numPuffs; p++) {
+          const px = cluster.x + (Math.random() - 0.5) * 260 * cluster.scale;
+          const py = cluster.y + (Math.random() - 0.4) * 80 * cluster.scale;
+          const rad = (30 + Math.random() * 65) * cluster.scale;
+
+          const shadowGrad = ctx.createRadialGradient(px, py + 12, rad * 0.2, px, py + 12, rad);
+          shadowGrad.addColorStop(0, 'rgba(165, 185, 205, 0.45)');
+          shadowGrad.addColorStop(0.8, 'rgba(180, 200, 218, 0.15)');
+          shadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.fillStyle = shadowGrad;
+          ctx.beginPath(); ctx.arc(px, py + 12, rad, 0, Math.PI * 2); ctx.fill();
+
+          const sunGrad = ctx.createRadialGradient(px - rad * 0.2, py - rad * 0.2, 0, px, py, rad);
+          sunGrad.addColorStop(0, 'rgba(255, 255, 255, 0.90)');
+          sunGrad.addColorStop(0.55, 'rgba(250, 252, 255, 0.65)');
+          sunGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = sunGrad;
+          ctx.beginPath(); ctx.arc(px, py, rad, 0, Math.PI * 2); ctx.fill();
+        }
+      });
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      return tex;
+    }
+
+    // (B) Formwork Concrete Texture
+    function generateFormworkConcreteCanvas(w = 1024, h = 1024) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#b3b0a6';
+      ctx.fillRect(0, 0, w, h);
+
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const d = imgData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 26;
+        d[i] = Math.min(255, Math.max(0, d[i] + noise));
+        d[i+1] = Math.min(255, Math.max(0, d[i+1] + noise));
+        d[i+2] = Math.min(255, Math.max(0, d[i+2] + noise));
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      ctx.strokeStyle = 'rgba(75, 70, 65, 0.35)';
+      ctx.lineWidth = 2;
+      for (let y = 128; y < h; y += 128) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    // (C) Foam & Aeration Wave Texture
+    function generateFoamTexture(w = 512, h = 512) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#080808';
+      ctx.fillRect(0, 0, w, h);
+
+      for (let i = 0; i < 2800; i++) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        const r = 1 + Math.random() * 4.5;
+        const alpha = 0.2 + Math.random() * 0.7;
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    // (D) Natural Low-Cut Lawn Blade Texture (Realistic blade tuft with color gradation)
+    function generateNaturalGrassTuftTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+
+      ctx.clearRect(0, 0, 128, 128);
+
+      // Gradient from rich earthy green root to sunny lime tips
+      const grad = ctx.createLinearGradient(0, 128, 0, 0);
+      grad.addColorStop(0.0, '#2d531b');
+      grad.addColorStop(0.4, '#4d8329');
+      grad.addColorStop(1.0, '#74c038');
+      ctx.fillStyle = grad;
+
+      // Draw 10 fine natural lawn blades with slight fan curvature
+      for (let b = 0; b < 10; b++) {
+        const rootX = 40 + b * 5 + (Math.random() - 0.5) * 6;
+        const tipX = rootX + (b - 4.5) * 4.5 + (Math.random() - 0.5) * 8;
+        const tipY = 12 + Math.random() * 28;
+        const ctrlX = (rootX + tipX) * 0.5 + (Math.random() - 0.5) * 10;
+
+        ctx.beginPath();
+        ctx.moveTo(rootX - 2.5, 128);
+        ctx.quadraticCurveTo(ctrlX - 1.5, 70, tipX, tipY);
+        ctx.quadraticCurveTo(ctrlX + 1.5, 70, rootX + 2.5, 128);
+        ctx.fill();
+      }
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    // (E) Spatially Accurate Site Ground: Distinct concrete pads, asphalt roadway, green lawn
+    function generateSiteTerrainCanvas(w = 2048, h = 2048) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      // 1. Lush deep green turf across the entire 120m landscape
+      ctx.fillStyle = '#2d5219';
+      ctx.fillRect(0, 0, w, h);
+
+      for (let i = 0; i < 90000; i++) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(38, 72, 22, 0.45)' : 'rgba(68, 115, 42, 0.45)';
+        ctx.fillRect(x, y, 3, 3);
+      }
+
+      // Natural earth and loam variations
+      for (let p = 0; p < 28; p++) {
+        const px = Math.random() * w;
+        const py = Math.random() * h;
+        const pr = 40 + Math.random() * 90;
+        const pGrad = ctx.createRadialGradient(px, py, 4, px, py, pr);
+        pGrad.addColorStop(0, 'rgba(84, 68, 44, 0.38)');
+        pGrad.addColorStop(1, 'rgba(45, 82, 25, 0)');
+        ctx.fillStyle = pGrad;
+        ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Helper function to map world coordinates (X, Z) to Canvas Pixel (PX, PY)
+      // Site: 120m wide -> center (0,0) is at (1024, 1024). 1m = 17.06 px
+      function toPx(x, z) {
+        return {
+          px: 1024 + x * 17.06,
+          py: 1024 + z * 17.06
+        };
+      }
+
+      function drawConcretePad(x, z, width, depth, label) {
+        const p = toPx(x - width/2, z - depth/2);
+        const pw = width * 17.06;
+        const pd = depth * 17.06;
+
+        ctx.fillStyle = '#78848f';
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(p.px, p.py, pw, pd, 12);
+        else ctx.rect(p.px, p.py, pw, pd);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(50, 60, 70, 0.30)';
+        ctx.lineWidth = 2;
+        for (let gx = p.px + 40; gx < p.px + pw; gx += 50) {
+          ctx.beginPath(); ctx.moveTo(gx, p.py); ctx.lineTo(gx, p.py + pd); ctx.stroke();
+        }
+        for (let gy = p.py + 40; gy < p.py + pd; gy += 50) {
+          ctx.beginPath(); ctx.moveTo(p.px, gy); ctx.lineTo(p.px + pw, gy); ctx.stroke();
+        }
+
+        ctx.strokeStyle = '#9ca9b5';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
+
+      // Draw separated concrete equipment foundations (100% Engineered Sequence)
+      // 1. Aeration Basin Pad (Biological Activation)
+      drawConcretePad(6.0, 7.5, 17.0, 8.5);
+      // 2. Operations & Blower Building Pad
+      drawConcretePad(-11.5, 7.5, 10.0, 7.5);
+      // 3. Preliminary Headworks Pad (Raw Influent & Screens)
+      drawConcretePad(18.0, 7.5, 5.0, 6.0);
+      // 4. Clarifier CL-01 Pad (Sedimentation)
+      drawConcretePad(-4.5, -4.5, 9.0, 9.0);
+      // 5. Clarifier CL-02 Pad (Sedimentation)
+      drawConcretePad(5.5, -4.5, 9.0, 9.0);
+      // 6. Central Flow Splitter & Hydraulic Vault
+      drawConcretePad(0.5, 1.2, 4.0, 3.5);
+      // 7. RAS/WAS Sludge Pump Station Pad
+      drawConcretePad(10.5, -4.5, 4.0, 4.0);
+      // 8. Tertiary Filtration & UV Disinfection Complex Pad (DIRECTLY IN PROCESS FLOW!)
+      drawConcretePad(0.5, -9.2, 12.0, 5.8);
+      // 9. Administration & Water Quality Laboratory Pad (West Campus)
+      drawConcretePad(-14.0, -4.5, 8.0, 8.0);
+      // 10. Anaerobic Digesters & Biosolids Solids Handling Pad (East Campus)
+      drawConcretePad(20.0, -6.0, 17.0, 12.5);
+
+      // Paved Asphalt Access Roadway Loop
+      ctx.strokeStyle = '#22272e';
+      ctx.lineWidth = 84;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      // Main Entrance road from South
+      ctx.moveTo(1024, 2048);
+      ctx.lineTo(1024, 1550);
+      // Outer perimeter road loop connecting all process zones with wide turning radiuses
+      ctx.lineTo(450, 1550);
+      ctx.lineTo(450, 600);
+      ctx.lineTo(1620, 600);
+      ctx.lineTo(1620, 1550);
+      ctx.lineTo(1024, 1550);
+      ctx.stroke();
+
+      // Roadway concrete curbs
+      ctx.strokeStyle = '#8a949e';
+      ctx.lineWidth = 6;
+      ctx.stroke();
+
+      // Roadway safety yellow dashed centerlines
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.85)';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([26, 18]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Retention Wetland Pond Rim at (0.5, -22.5)
+      const pondP = toPx(0.5, -22.5);
+      const pondR = 8.5 * 17.06;
+
+      ctx.fillStyle = '#998f78';
+      ctx.beginPath();
+      ctx.arc(pondP.px, pondP.py, pondR + 24, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#164e63';
+      ctx.beginPath();
+      ctx.arc(pondP.px, pondP.py, pondR, 0, Math.PI * 2);
+      ctx.fill();
+
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    // (F) Procedural Signage Placard Generator
+    function generateSignageTexture(title, subtitle, w = 512, h = 128, accentColor = '#38bdf8') {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#141c24';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = accentColor;
+      ctx.lineWidth = 6;
+      ctx.strokeRect(4, 4, w - 8, h - 8);
+
+      ctx.fillStyle = accentColor;
+      ctx.fillRect(8, 8, 12, h - 16);
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 30px sans-serif';
+      ctx.fillText(title, 32, 54);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 17px monospace';
+      ctx.fillText(subtitle, 32, 92);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // =========================================================================
+    // 2. SCENE, CAMERAS, LIGHTING & RENDERER SETUP
+    // =========================================================================
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#93c5fd');
+
+    scene.fog = new THREE.Fog('#9dc4ea', 90, 520);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.2, 3000);
+    camera.position.set(28, 20, 32);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.info.autoReset = false;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02;
+    controls.minDistance = 2.0;
+    controls.maxDistance = 160.0;
+    controls.target.set(3.0, 1.2, 0.5);
+
+    // Rayleigh Physical Sky
+    const sky = new Sky();
+    sky.scale.setScalar(2400);
+    scene.add(sky);
+
+    const sun = new THREE.Vector3();
+    const skyUniforms = sky.material.uniforms;
+    skyUniforms['turbidity'].value = 8.0;
+    skyUniforms['rayleigh'].value = 1.6;
+    skyUniforms['mieCoefficient'].value = 0.005;
+    skyUniforms['mieDirectionalG'].value = 0.82;
+
+    const cloudTexture = generateRealisticCloudCanvas(2048, 1024);
+    const cloudDomeGeom = new THREE.SphereGeometry(1800, 36, 18, 0, Math.PI * 2, 0, Math.PI / 2.1);
+    const cloudDomeMat = new THREE.MeshBasicMaterial({
+      map: cloudTexture,
+      side: THREE.BackSide,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+      fog: false
+    });
+    const cloudDome = new THREE.Mesh(cloudDomeGeom, cloudDomeMat);
+    cloudDome.position.y = -5;
+    scene.add(cloudDome);
+
+    const sunLight = new THREE.DirectionalLight('#fffdf5', 2.8);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 180;
+    const shadowD = 42;
+    sunLight.shadow.camera.left = -shadowD;
+    sunLight.shadow.camera.right = shadowD;
+    sunLight.shadow.camera.top = shadowD;
+    sunLight.shadow.camera.bottom = -shadowD;
+    sunLight.shadow.bias = -0.0004;
+    scene.add(sunLight);
+
+    const hemiLight = new THREE.HemisphereLight('#f0f9ff', '#334155', 0.85);
+    scene.add(hemiLight);
+
+    function updateSunPosition(altitude, azimuth) {
+      const phi = THREE.MathUtils.degToRad(90 - altitude);
+      const theta = THREE.MathUtils.degToRad(azimuth);
+      sun.setFromSphericalCoords(1, phi, theta);
+      sky.material.uniforms['sunPosition'].value.copy(sun);
+      sunLight.position.set(sun.x * 70, sun.y * 70, sun.z * 70);
+    }
+    updateSunPosition(52, -55);
+
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.06, 0.45, 0.88
+    );
+    composer.addPass(bloomPass);
+
+    const outputPass = new OutputPass();
+    composer.addPass(outputPass);
+
+    // =========================================================================
+    // 3. MASTER MATERIAL PALETTE
+    // =========================================================================
+    const concreteMap = generateFormworkConcreteCanvas(1024, 1024);
+    concreteMap.wrapS = THREE.RepeatWrapping; concreteMap.wrapT = THREE.RepeatWrapping;
+    concreteMap.repeat.set(2, 2);
+
+    const foamTexture = generateFoamTexture(512, 512);
+    foamTexture.repeat.set(4, 8);
+
+    const grassTuftMap = generateNaturalGrassTuftTexture();
+    const siteTerrainMap = generateSiteTerrainCanvas(2048, 2048);
+
+    const materials = {
+      siteTerrain: new THREE.MeshStandardMaterial({
+        map: siteTerrainMap,
+        roughness: 0.92,
+        metalness: 0.02
+      }),
+      concreteWall: new THREE.MeshStandardMaterial({
+        color: '#b6b2a8',
+        map: concreteMap,
+        roughness: 0.88,
+        metalness: 0.05
+      }),
+      concreteCapping: new THREE.MeshStandardMaterial({
+        color: '#d1cec7',
+        roughness: 0.80,
+        metalness: 0.08
+      }),
+      structuralSteel: new THREE.MeshStandardMaterial({
+        color: '#38424d',
+        roughness: 0.38,
+        metalness: 0.72
+      }),
+      safetyYellow: new THREE.MeshStandardMaterial({
+        color: '#eab308',
+        roughness: 0.40,
+        metalness: 0.30
+      }),
+      processPipeBlue: new THREE.MeshStandardMaterial({
+        color: '#0284c7',
+        roughness: 0.32,
+        metalness: 0.65
+      }),
+      processPipeGray: new THREE.MeshStandardMaterial({
+        color: '#909ba0',
+        roughness: 0.35,
+        metalness: 0.60
+      }),
+      tankGalvanized: new THREE.MeshStandardMaterial({
+        color: '#9fa8ad',
+        roughness: 0.35,
+        metalness: 0.68
+      }),
+      // STAGE 1: DIRTY RAW INFLUENT SEWAGE WATER (Opaque deep muddy sludge brown)
+      dirtyInfluentWater: new THREE.MeshStandardMaterial({
+        color: '#3d2611',
+        roughness: 0.75,
+        metalness: 0.02,
+        bumpMap: foamTexture,
+        bumpScale: 0.18,
+        transparent: false
+      }),
+      // STAGE 2: BIOLOGICAL MIXED LIQUOR AERATION WATER
+      aerationWater: new THREE.MeshStandardMaterial({
+        color: '#1f536b',
+        roughness: 0.18,
+        metalness: 0.22,
+        bumpMap: foamTexture,
+        bumpScale: 0.06,
+        transparent: true,
+        opacity: 0.92
+      }),
+      // STAGE 3: SECONDARY CLARIFIED WATER
+      clarifierWater: new THREE.MeshStandardMaterial({
+        color: '#14637d',
+        roughness: 0.08,
+        metalness: 0.30,
+        bumpMap: foamTexture,
+        bumpScale: 0.02,
+        transparent: true,
+        opacity: 0.86
+      }),
+      // STAGE 5: PRISTINE TREATED CLEAN EFFLUENT WATER
+      cleanEffluentWater: new THREE.MeshStandardMaterial({
+        color: '#38bdf8',
+        roughness: 0.04,
+        metalness: 0.15,
+        transparent: true,
+        opacity: 0.72
+      }),
+      cleanWaterfall: new THREE.MeshStandardMaterial({
+        color: '#ffffff',
+        roughness: 0.15,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.85
+      }),
+      pondWater: new THREE.MeshStandardMaterial({
+        color: '#0e7490',
+        roughness: 0.08,
+        metalness: 0.25,
+        transparent: true,
+        opacity: 0.88
+      }),
+      // Natural 3D Grass Material
+      grassBladeMat: new THREE.MeshStandardMaterial({
+        map: grassTuftMap,
+        alphaTest: 0.45,
+        side: THREE.DoubleSide,
+        roughness: 0.82,
+        metalness: 0.01
+      }),
+      vegetationCanopy: new THREE.MeshStandardMaterial({
+        color: '#345224',
+        roughness: 0.88,
+        metalness: 0.02
+      }),
+      treeTrunk: new THREE.MeshStandardMaterial({
+        color: '#5c452d',
+        roughness: 0.92,
+        metalness: 0.04
+      })
+    };
+
+    // =========================================================================
+    // 4. ARCHITECTURAL & INDUSTRIAL ENVIRONMENT GENERATION (CLEAN SPACING)
+    // =========================================================================
+    const facilityGroup = new THREE.Group();
+    facilityGroup.name = "Industrial Wastewater Facility";
+    scene.add(facilityGroup);
+
+    // --- (A) Natural Landscape Ground ---
+    const terrainSize = 130;
+    const terrainGeom = new THREE.PlaneGeometry(terrainSize, terrainSize, 48, 48);
+    const posAttr = terrainGeom.attributes.position;
+    for (let i = 0; i < posAttr.count; i++) {
+      const x = posAttr.getX(i);
+      const y = posAttr.getY(i);
+      let elevation = 0;
+      if (y > 48) elevation = (y - 48) * 0.08;
+      if (x < -48) elevation += (-48 - x) * 0.06;
+      posAttr.setZ(i, elevation);
+    }
+    terrainGeom.computeVertexNormals();
+
+    const terrainMesh = new THREE.Mesh(terrainGeom, materials.siteTerrain);
+    terrainMesh.name = "Site Civil Topography & Access Roadways";
+    terrainMesh.userData = { subsystem: "Civil Works & Site Pad", spec: "130x130m civil graded terrain with segregated equipment pads" };
+    terrainMesh.rotation.x = -Math.PI / 2;
+    terrainMesh.receiveShadow = true;
+    facilityGroup.add(terrainMesh);
+
+    // 3D Stormwater Retention Wetland Lagoon
+    const pondGeom = new THREE.CircleGeometry(8.5, 40);
+    const pondMesh = new THREE.Mesh(pondGeom, materials.pondWater);
+    pondMesh.name = "Stormwater Retention Lagoon Surface";
+    pondMesh.userData = { subsystem: "Stormwater Retention Basin", spec: "Natural environmental buffer lagoon (dia 17m) receiving clean effluent" };
+    pondMesh.rotation.x = -Math.PI / 2;
+    pondMesh.position.set(0.5, 0.08, -22.5);
+    facilityGroup.add(pondMesh);
+
+    // --- (B) Natural Low-Cut Lawn Grass (2,800 Volumetric Star-Tufts, Height 14-17cm, Zero Concrete Overlap) ---
+    const grassCount = 2800;
+    // True 3D volumetric star-tuft: 3 intersecting planes (0, 60, 120 deg) merged via BufferGeometryUtils
+    const p1 = new THREE.PlaneGeometry(0.22, 0.16);
+    p1.translate(0, 0.08, 0);
+    const p2 = new THREE.PlaneGeometry(0.22, 0.16);
+    p2.translate(0, 0.08, 0);
+    p2.rotateY(Math.PI / 3);
+    const p3 = new THREE.PlaneGeometry(0.22, 0.16);
+    p3.translate(0, 0.08, 0);
+    p3.rotateY(2 * Math.PI / 3);
+    const starTuftGeom = BufferGeometryUtils.mergeGeometries([p1, p2, p3]);
+
+    const grassInst = new THREE.InstancedMesh(starTuftGeom, materials.grassBladeMat, grassCount);
+    grassInst.name = "3D Natural Lawn Grass Tufts";
+    grassInst.castShadow = false; // Disable self-shadow on micro blades for high performance
+
+    // Strict Zone Masking: Return true ONLY if (x, z) is in valid natural green turf
+    function isGrassAllowed(x, z) {
+      // 1. Must be inside site bounds
+      if (Math.abs(x) > 58 || Math.abs(z) > 58) return false;
+
+      // 2. Concrete equipment pads (STRICT EXCLUSION)
+      // Aeration Pad
+      if (x >= -2.8 && x <= 14.8 && z >= 3.0 && z <= 12.0) return false;
+      // Blower Building Pad
+      if (x >= -16.8 && x <= -6.2 && z >= 3.5 && z <= 11.5) return false;
+      // Headworks Pad
+      if (x >= 15.2 && x <= 20.8 && z >= 4.2 && z <= 10.8) return false;
+      // Clarifier CL-01 Pad
+      if (x >= -9.2 && x <= 0.2 && z >= -9.2 && z <= 0.2) return false;
+      // Clarifier CL-02 Pad
+      if (x >= 0.8 && x <= 10.2 && z >= -9.2 && z <= 0.2) return false;
+      // Flow Splitter Pad
+      if (x >= -1.8 && x <= 2.8 && z >= -0.8 && z <= 3.2) return false;
+      // RAS/WAS Sludge Pump Station Pad
+      if (x >= 8.2 && x <= 12.8 && z >= -6.8 && z <= -2.2) return false;
+      // Tertiary Filtration & UV Disinfection Complex Pad (Center)
+      if (x >= -5.8 && x <= 6.8 && z >= -12.4 && z <= -6.0) return false;
+      // Admin & Testing Lab Pad (West)
+      if (x >= -18.5 && x <= -9.5 && z >= -8.8 && z <= -0.2) return false;
+      // Solids Handling & Digesters Pad (East)
+      if (x >= 10.0 && x <= 29.0 && z >= -13.0 && z <= 0.8) return false;
+      // Outfall Cascade Channel
+      if (x >= -1.0 && x <= 2.0 && z >= -17.5 && z <= -11.5) return false;
+
+      // 3. Retention Wetland Pond Water (radius 8.5 at (0.5, -22.5))
+      const dPond = Math.hypot(x - 0.5, z - (-22.5));
+      if (dPond < 8.6) return false;
+
+      // 4. Asphalt Roadways (Exclude road corridors: width 5.0m -> distance < 2.8m)
+      // South entrance
+      if (Math.abs(x - 0.0) < 3.0 && z >= 15.0) return false;
+      // Loop roads
+      if (Math.abs(z - 15.5) < 3.0 && x >= -34.0 && x <= 35.0) return false;
+      if (Math.abs(z - (-25.0)) < 3.0 && x >= -34.0 && x <= 35.0) return false;
+      if (Math.abs(x - (-34.0)) < 3.0 && z >= -25.0 && z <= 15.5) return false;
+      if (Math.abs(x - 35.0) < 3.0 && z >= -25.0 && z <= 15.5) return false;
+
+      return true;
+    }
+
+    const gDummy = new THREE.Object3D();
+    let placedGrass = 0;
+    let attempts = 0;
+    while (placedGrass < grassCount && attempts < 15000) {
+      attempts++;
+      const gx = (Math.random() - 0.5) * 110;
+      const gz = (Math.random() - 0.5) * 110;
+
+      if (!isGrassAllowed(gx, gz)) continue;
+
+      // Low realistic blade height: 0.12m - 0.18m (5 to 7 inches)
+      const gScale = 0.75 + Math.random() * 0.40;
+      gDummy.position.set(gx, 0.01, gz);
+      gDummy.scale.set(gScale, gScale, gScale);
+      gDummy.rotation.set(
+        (Math.random() - 0.5) * 0.18,
+        Math.random() * Math.PI * 2,
+        (Math.random() - 0.5) * 0.18
+      );
+      gDummy.updateMatrix();
+      grassInst.setMatrixAt(placedGrass, gDummy.matrix);
+      placedGrass++;
+    }
+    grassInst.instanceMatrix.needsUpdate = true;
+    facilityGroup.add(grassInst);
+
+    // Background Multi-tier Trees
+    const treeCount = 80;
+    const trunkGeom = new THREE.CylinderGeometry(0.18, 0.28, 2.2, 7);
+    const trunkInst = new THREE.InstancedMesh(trunkGeom, materials.treeTrunk, treeCount);
+    trunkInst.name = "Background Tree Trunks";
+    trunkInst.castShadow = true;
+
+    const foliageGeom = new THREE.DodecahedronGeometry(1.6, 1);
+    const foliageInst = new THREE.InstancedMesh(foliageGeom, materials.vegetationCanopy, treeCount);
+    foliageInst.name = "Background Tree Canopy";
+    foliageInst.castShadow = true;
+
+    const dummy = new THREE.Object3D();
+    let treeIdx = 0;
+    for (let i = 0; i < treeCount; i++) {
+      const angle = (i / treeCount) * Math.PI * 1.5 - 0.2;
+      const radius = 38 + (i % 7) * 4.5 + Math.random() * 5;
+      const tx = Math.cos(angle) * radius;
+      const tz = -Math.sin(angle) * radius * 0.85 - 10;
+      const scale = 0.8 + Math.random() * 0.6;
+
+      dummy.position.set(tx, scale * 1.1, tz);
+      dummy.scale.set(scale, scale, scale);
+      dummy.rotation.y = Math.random() * Math.PI;
+      dummy.updateMatrix();
+      trunkInst.setMatrixAt(treeIdx, dummy.matrix);
+
+      dummy.position.set(tx, scale * 2.8, tz);
+      dummy.scale.set(scale * 1.2, scale * 1.3, scale * 1.2);
+      dummy.updateMatrix();
+      foliageInst.setMatrixAt(treeIdx, dummy.matrix);
+
+      treeIdx++;
+    }
+    trunkInst.instanceMatrix.needsUpdate = true;
+    foliageInst.instanceMatrix.needsUpdate = true;
+    facilityGroup.add(trunkInst);
+    facilityGroup.add(foliageInst);
+
+    // =========================================================================
+    // WATER TREATMENT STAGE 1: RAW INFLUENT HEADWORKS (DIRTY WATER INLET)
+    // Position: (18.0, 0, 7.5) — Elevated screening intake
+    // =========================================================================
+    const headworksGroup = new THREE.Group();
+    headworksGroup.name = "Headworks & Raw Sewage Influent Station";
+    headworksGroup.userData = { subsystem: "Preliminary Treatment", spec: "600mm incoming force main, mechanical bar screens & vortex grit removal" };
+    headworksGroup.position.set(18.0, 0, 7.5);
+    facilityGroup.add(headworksGroup);
+
+    // Concrete Intake Chamber - OPEN U-CHANNEL
+    const hwFloor = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.3, 4.4), materials.concreteWall);
+    hwFloor.position.set(0, 0.15, 0);
+    hwFloor.castShadow = true;
+    headworksGroup.add(hwFloor);
+
+    const hwLeftWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.3, 4.4), materials.concreteWall);
+    hwLeftWall.position.set(-1.05, 0.65, 0);
+    hwLeftWall.castShadow = true;
+    headworksGroup.add(hwLeftWall);
+
+    const hwRightWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.3, 4.4), materials.concreteWall);
+    hwRightWall.position.set(1.05, 0.65, 0);
+    hwRightWall.castShadow = true;
+    headworksGroup.add(hwRightWall);
+
+    const hwRearWall = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.3, 0.3), materials.concreteWall);
+    hwRearWall.position.set(0, 0.65, 2.05);
+    hwRearWall.castShadow = true;
+    headworksGroup.add(hwRearWall);
+
+    // Incoming Raw Sewage Pipe (600mm conduit entering from East)
+    const rawPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 5.0, 24), materials.processPipeGray);
+    rawPipe.rotation.x = Math.PI / 2;
+    rawPipe.position.set(0, 0.85, 3.5);
+    rawPipe.castShadow = true;
+    headworksGroup.add(rawPipe);
+
+    const pipeMouth = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.12, 24), materials.structuralSteel);
+    pipeMouth.rotation.x = Math.PI / 2;
+    pipeMouth.position.set(0, 0.85, 1.88);
+    headworksGroup.add(pipeMouth);
+
+    // Dark silt channel bottom
+    const siltBottom = new THREE.Mesh(new THREE.PlaneGeometry(1.78, 3.8), new THREE.MeshStandardMaterial({ color: '#261b0c', roughness: 0.9 }));
+    siltBottom.rotation.x = -Math.PI / 2;
+    siltBottom.position.set(0, 0.31, 0);
+    headworksGroup.add(siltBottom);
+
+    // DIRTY SEWAGE WATER SURFACE (Opaque, turbid muddy brown sludge)
+    const dirtyWaterGeom = new THREE.PlaneGeometry(1.78, 3.8, 24, 24);
+    const dirtyWaterMesh = new THREE.Mesh(dirtyWaterGeom, materials.dirtyInfluentWater);
+    dirtyWaterMesh.name = "Raw Influent Sewage Water Flow";
+    dirtyWaterMesh.rotation.x = -Math.PI / 2;
+    dirtyWaterMesh.position.set(0, 0.72, 0);
+    headworksGroup.add(dirtyWaterMesh);
+
+    // Churning organic foam scum
+    const scumRaft = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.6, 2.0),
+      new THREE.MeshStandardMaterial({ color: '#543b1e', roughness: 0.85, bumpMap: foamTexture, bumpScale: 0.12, transparent: true, opacity: 0.8 })
+    );
+    scumRaft.rotation.x = -Math.PI / 2;
+    scumRaft.position.set(0, 0.73, 0.5);
+    headworksGroup.add(scumRaft);
+
+    // Animated water plunge cascade from incoming pipe
+    const rawPlunge = new THREE.Mesh(new THREE.PlaneGeometry(0.68, 0.42, 8, 8), materials.dirtyInfluentWater);
+    rawPlunge.position.set(0, 0.76, 1.72);
+    rawPlunge.rotation.x = 0.55;
+    headworksGroup.add(rawPlunge);
+
+    // Mechanical Inclined Bar Screen Rack (Stainless steel bars angled at 60 degrees)
+    const barScreenGroup = new THREE.Group();
+    barScreenGroup.position.set(0, 0.72, 0.3);
+    for (let b = -0.8; b <= 0.8; b += 0.09) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.95, 0.04), materials.structuralSteel);
+      bar.rotation.x = 0.52;
+      bar.position.set(b, 0.22, 0);
+      barScreenGroup.add(bar);
+    }
+    headworksGroup.add(barScreenGroup);
+
+    // Mechanical Screen Debris Rake & Collection Hopper
+    const rakeFrame = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.12, 0.12), materials.safetyYellow);
+    rakeFrame.position.set(0, 1.28, -0.15);
+    headworksGroup.add(rakeFrame);
+
+    const hopper = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.22, 0.75, 16), materials.structuralSteel);
+    hopper.position.set(0, 1.68, -0.15);
+    headworksGroup.add(hopper);
+
+    // Overhead Catwalk & Handrails
+    const hwWalkway = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.06, 0.6), materials.structuralSteel);
+    hwWalkway.position.set(0, 1.28, -1.6);
+    headworksGroup.add(hwWalkway);
+
+    const hwRailL = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.6, 0.6), materials.safetyYellow);
+    hwRailL.position.set(-1.15, 1.58, -1.6);
+    headworksGroup.add(hwRailL);
+    const hwRailR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.6, 0.6), materials.safetyYellow);
+    hwRailR.position.set(1.15, 1.58, -1.6);
+    headworksGroup.add(hwRailR);
+
+    // Connecting Inflow Flume bridging Headworks to Aeration Basin (length 4.0m)
+    const bridgeFlume = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.45, 1.0), materials.concreteWall);
+    bridgeFlume.position.set(-3.2, 0.85, -1.5);
+    headworksGroup.add(bridgeFlume);
+
+    // Flume dirty water surface
+    const bridgeFlumeWater = new THREE.Mesh(new THREE.PlaneGeometry(4.0, 0.8), materials.dirtyInfluentWater);
+    bridgeFlumeWater.rotation.x = -Math.PI / 2;
+    bridgeFlumeWater.position.set(-3.2, 1.05, -1.5);
+    headworksGroup.add(bridgeFlumeWater);
+
+    // ID Signage Plaque for Headworks
+    const headSignMat = new THREE.MeshStandardMaterial({
+      map: generateSignageTexture("RAW INFLUENT HEADWORKS", "STAGE 01: BAR SCREEN & GRIT REMOVAL", 512, 128, '#f59e0b'),
+      roughness: 0.3, metalness: 0.6
+    });
+    const headSign = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.42, 0.04), headSignMat);
+    headSign.position.set(0, 1.1, 2.22);
+    headworksGroup.add(headSign);
+
+    // =========================================================================
+    // WATER TREATMENT STAGE 2: PRIMARY BIOLOGICAL AERATION BASINS
+    // Position: (6.0, 0, 7.5) — 4-Channel Plug-Flow Aeration
+    // =========================================================================
+    const aerationGroup = new THREE.Group();
+    aerationGroup.name = "Biological Aeration Oxidation Basins";
+    aerationGroup.userData = { subsystem: "Secondary Biological Treatment", spec: "4-Cell Plug-Flow Aeration Basins with Fine Bubble Diffusers" };
+    aerationGroup.position.set(6.0, 0, 7.5);
+    facilityGroup.add(aerationGroup);
+
+    // --- Process Flume: Mixed Liquor (MLSS) Channel from Aeration Basin to Splitter Vault ---
+    const mlssChannel = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 6.2), materials.concreteWall);
+    mlssChannel.position.set(0.5, 0.4, 4.3);
+    mlssChannel.castShadow = true;
+    facilityGroup.add(mlssChannel);
+
+    const mlssWater = new THREE.Mesh(new THREE.PlaneGeometry(0.45, 6.2), materials.aerationWater);
+    mlssWater.rotation.x = -Math.PI / 2;
+    mlssWater.position.set(0.5, 0.65, 4.3);
+    facilityGroup.add(mlssWater);
+
+    // --- Return Activated Sludge (RAS) Seeding Pipe back to Aeration Headworks ---
+    // Returns active biomass from Sludge Pump Station (10.5, -4.5) to Aeration inlet (13.0, 7.5)
+    const rasPipeRun = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 12.5, 16), materials.processPipeBlue);
+    rasPipeRun.position.set(11.8, 0.4, 1.5);
+    rasPipeRun.rotation.x = Math.PI / 2;
+    rasPipeRun.castShadow = true;
+    facilityGroup.add(rasPipeRun);
+
+    const rasElbowN = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.8, 16), materials.processPipeBlue);
+    rasElbowN.position.set(11.1, 0.4, -4.5);
+    rasElbowN.rotation.z = Math.PI / 2;
+    facilityGroup.add(rasElbowN);
+
+    const rasElbowS = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.6, 16), materials.processPipeBlue);
+    rasElbowS.position.set(12.4, 0.4, 7.5);
+    rasElbowS.rotation.z = Math.PI / 2;
+    facilityGroup.add(rasElbowS);
+
+    const basinL = 14.0, basinW = 6.5, basinH = 1.6, wallT = 0.35;
+
+    // Floor slab
+    const aFloor = new THREE.Mesh(new THREE.BoxGeometry(basinL + 0.4, 0.3, basinW + 0.4), materials.concreteWall);
+    aFloor.position.set(0, 0.15, 0);
+    aFloor.receiveShadow = true;
+    aerationGroup.add(aFloor);
+
+    // Exterior walls
+    const aWallN = new THREE.Mesh(new THREE.BoxGeometry(basinL, basinH, wallT), materials.concreteWall);
+    aWallN.position.set(0, basinH / 2, -basinW / 2);
+    aerationGroup.add(aWallN);
+
+    const aWallS = new THREE.Mesh(new THREE.BoxGeometry(basinL, basinH, wallT), materials.concreteWall);
+    aWallS.position.set(0, basinH / 2, basinW / 2);
+    aerationGroup.add(aWallS);
+
+    const aWallW = new THREE.Mesh(new THREE.BoxGeometry(wallT, basinH, basinW), materials.concreteWall);
+    aWallW.position.set(-basinL / 2, basinH / 2, 0);
+    aerationGroup.add(aWallW);
+
+    const aWallE = new THREE.Mesh(new THREE.BoxGeometry(wallT, basinH, basinW), materials.concreteWall);
+    aWallE.position.set(basinL / 2, basinH / 2, 0);
+    aerationGroup.add(aWallE);
+
+    // Center divider baffle wall
+    const aBaffle = new THREE.Mesh(new THREE.BoxGeometry(basinL - 1.2, basinH, 0.25), materials.concreteWall);
+    aBaffle.position.set(0, basinH / 2, 0);
+    aerationGroup.add(aBaffle);
+
+    // Aeration Water Mesh
+    const waterGeomW = basinL - wallT * 2;
+    const waterGeomD = basinW - wallT * 2;
+    const aerationWaterGeom = new THREE.PlaneGeometry(waterGeomW, waterGeomD, 64, 32);
+    const aerationWaterMesh = new THREE.Mesh(aerationWaterGeom, materials.aerationWater);
+    aerationWaterMesh.name = "Biological Mixed Liquor (Aeration Water)";
+    aerationWaterMesh.rotation.x = -Math.PI / 2;
+    aerationWaterMesh.position.set(0, basinH * 0.78, 0);
+    aerationWaterMesh.receiveShadow = true;
+    aerationGroup.add(aerationWaterMesh);
+
+    // Walkway with Safety Rails
+    const walkGeom = new THREE.BoxGeometry(basinL, 0.08, 0.75);
+    const walkMesh = new THREE.Mesh(walkGeom, materials.structuralSteel);
+    walkMesh.position.set(0, basinH + 0.04, 0);
+    aerationGroup.add(walkMesh);
+
+    const railGeom = new THREE.BoxGeometry(basinL, 0.04, 0.04);
+    const railN = new THREE.Mesh(railGeom, materials.safetyYellow);
+    railN.position.set(0, basinH + 0.85, -0.35);
+    aerationGroup.add(railN);
+    const railS = new THREE.Mesh(railGeom, materials.safetyYellow);
+    railS.position.set(0, basinH + 0.85, 0.35);
+    aerationGroup.add(railS);
+
+    // Air Supply Headers (600mm Blue Steel)
+    const airPipeMain = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, basinL + 1.2, 24), materials.processPipeBlue);
+    airPipeMain.rotation.z = Math.PI / 2;
+    airPipeMain.position.set(0, basinH + 0.35, -basinW / 2 + 0.45);
+    aerationGroup.add(airPipeMain);
+
+    for (let d = -5.5; d <= 5.5; d += 1.8) {
+      const dropLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.4, 12), materials.processPipeBlue);
+      dropLeg.position.set(d, basinH - 0.35, -basinW / 2 + 0.45);
+      aerationGroup.add(dropLeg);
+    }
+
+    // Aeration ID Signage
+    const aerSignMat = new THREE.MeshStandardMaterial({
+      map: generateSignageTexture("AERATION BIO-REACTOR", "STAGE 02: FINE-BUBBLE DIFFUSED AIR OXIDATION", 512, 128, '#0284c7'),
+      roughness: 0.3, metalness: 0.6
+    });
+    const aerSign = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.55, 0.04), aerSignMat);
+    aerSign.position.set(0, 1.0, basinW / 2 + 0.2);
+    aerationGroup.add(aerSign);
+
+    // =========================================================================
+    // OPERATIONS & BLOWER FACILITY (SPACED 5.0m WEST OF AERATION BASIN)
+    // Position: (-11.5, 0, 7.5)
+    // =========================================================================
+    const blowerGroup = new THREE.Group();
+    blowerGroup.name = "Operations & Blower Compressor Building";
+    blowerGroup.userData = { subsystem: "Plant Utilities & SCADA", spec: "Rotary screw air compressors (450 kW) & motor control center" };
+    blowerGroup.position.set(-11.5, 0, 7.5);
+    facilityGroup.add(blowerGroup);
+
+    // Main Hall
+    const bHall = new THREE.Mesh(new THREE.BoxGeometry(8.0, 3.2, 5.2), materials.concreteWall);
+    bHall.position.set(0, 1.6, 0);
+    bHall.castShadow = true;
+    blowerGroup.add(bHall);
+
+    // Parapet roof rim
+    const bRoof = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.22, 5.4), materials.concreteCapping);
+    bRoof.position.set(0, 3.25, 0);
+    blowerGroup.add(bRoof);
+
+    // Louvered Air Intake Grilles
+    for (let l = -2.6; l <= 2.6; l += 1.8) {
+      const louver = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 0.08), materials.structuralSteel);
+      louver.position.set(l, 1.8, 2.64);
+      blowerGroup.add(louver);
+    }
+
+    // Electrical Substation Yard
+    const subYard = new THREE.Group();
+    subYard.position.set(-5.2, 0, 0);
+    for (let t = -1.2; t <= 1.2; t += 1.2) {
+      const trans = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 0.9), materials.structuralSteel);
+      trans.position.set(0, 0.6, t);
+      trans.castShadow = true;
+      subYard.add(trans);
+    }
+    blowerGroup.add(subYard);
+
+    // Complete Structural Pipe Gantry Truss Bridge across Roadway (Spanning from Blower Building east wall x=4.0 to Aeration Basin west wall x=10.5)
+    const pipeBridge = new THREE.Group();
+    pipeBridge.name = "Low-Pressure Air Header Pipe Gantry Bridge";
+    pipeBridge.userData = { subsystem: "Aeration Air Distribution", spec: "Structural steel pipe trestle spanning roadway (clearance 4.2m) with 500mm insulated header" };
+    
+    // West Tower (Verge of Roadway)
+    const towerW = new THREE.Group();
+    towerW.position.set(5.1, 0, 0);
+    const postW1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.3, 12), materials.structuralSteel);
+    postW1.position.set(0, 2.15, -0.4);
+    const postW2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.3, 12), materials.structuralSteel);
+    postW2.position.set(0, 2.15, 0.4);
+    towerW.add(postW1, postW2);
+    pipeBridge.add(towerW);
+
+    // East Tower (Verge of Aeration Basin)
+    const towerE = new THREE.Group();
+    towerE.position.set(9.7, 0, 0);
+    const postE1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.3, 12), materials.structuralSteel);
+    postE1.position.set(0, 2.15, -0.4);
+    const postE2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.3, 12), materials.structuralSteel);
+    postE2.position.set(0, 2.15, 0.4);
+    towerE.add(postE1, postE2);
+    pipeBridge.add(towerE);
+
+    // Main Overhead Truss Beam (Spans 6.5m from x=4.0 to x=10.5)
+    const bridgeTruss = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.22, 1.0), materials.structuralSteel);
+    bridgeTruss.position.set(7.25, 4.15, 0);
+    bridgeTruss.castShadow = true;
+    pipeBridge.add(bridgeTruss);
+
+    // Yellow/Black Hazard Stripes on Roadway Underpass
+    const hazardBar = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.16, 1.02), materials.safetyYellow);
+    hazardBar.position.set(7.4, 4.02, 0);
+    pipeBridge.add(hazardBar);
+
+    // Main Air Header Pipe (Horizontal run across full span)
+    const mainHeaderPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 6.6, 24), materials.processPipeBlue);
+    mainHeaderPipe.rotation.z = Math.PI / 2;
+    mainHeaderPipe.position.set(7.25, 4.45, 0);
+    mainHeaderPipe.castShadow = true;
+    pipeBridge.add(mainHeaderPipe);
+
+    // West Vertical Drop into Blower Compressor Roof (at x=4.0)
+    const elbowW = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 1.4, 24), materials.processPipeBlue);
+    elbowW.position.set(4.0, 3.75, 0);
+    elbowW.castShadow = true;
+    pipeBridge.add(elbowW);
+
+    // East Vertical Drop connecting into Aeration Basin Header (at x=10.5)
+    const elbowE = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 2.3, 24), materials.processPipeBlue);
+    elbowE.position.set(10.5, 3.3, 0);
+    elbowE.castShadow = true;
+    pipeBridge.add(elbowE);
+
+    blowerGroup.add(pipeBridge);
+
+    // =========================================================================
+    // FLOW SPLITTER & VALVE VAULT (Sits between Aeration Basin and Clarifiers)
+    // Position: (0.5, 0, 1.2)
+    // =========================================================================
+    const splitterGroup = new THREE.Group();
+    splitterGroup.name = "Flow Distribution & Clarifier Splitter Box";
+    splitterGroup.userData = { subsystem: "Process Flow Distribution", spec: "Hydraulic weir splitter box distributing flow equally to CL-01 and CL-02" };
+    splitterGroup.position.set(0.5, 0, 1.2);
+    facilityGroup.add(splitterGroup);
+
+    const sBox = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.2, 2.4), materials.concreteWall);
+    sBox.position.set(0, 0.6, 0);
+    sBox.castShadow = true;
+    splitterGroup.add(sBox);
+
+    const sWater = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 2.0), materials.aerationWater);
+    sWater.rotation.x = -Math.PI / 2;
+    sWater.position.set(0, 1.15, 0);
+    splitterGroup.add(sWater);
+
+    // Feed Conduit branching to CL-01 Center Well (-4.5, 0, -4.5)
+    // Splitter is at (0.5, 0, 1.2). Delta to CL-01 is dx = -5.0, dz = -5.7
+    const cl1Conduit = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 6.4), materials.concreteWall);
+    cl1Conduit.position.set(-2.5, 0.35, -2.8);
+    cl1Conduit.rotation.y = Math.atan2(-5.0, -5.7);
+    cl1Conduit.castShadow = true;
+    splitterGroup.add(cl1Conduit);
+
+    // Feed Conduit branching to CL-02 Center Well (5.5, 0, -4.5)
+    // Delta to CL-02 is dx = +5.0, dz = -5.7
+    const cl2Conduit = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 6.4), materials.concreteWall);
+    cl2Conduit.position.set(2.5, 0.35, -2.8);
+    cl2Conduit.rotation.y = Math.atan2(5.0, -5.7);
+    cl2Conduit.castShadow = true;
+    splitterGroup.add(cl2Conduit);
+
+    // =========================================================================
+    // WATER TREATMENT STAGE 3: SECONDARY CIRCULAR CLARIFIERS (SPACED GENEROUSLY)
+    // CL-01: (-4.5, 0, -4.5) | CL-02: (5.5, 0, -4.5) — 10.0m Center-to-Center!
+    // =========================================================================
+    const clarifierCenters = [
+      { x: -4.5, z: -4.5, name: "Secondary Clarifier Unit CL-01", outletAngle: -Math.PI * 0.45 },
+      { x: 5.5, z: -4.5, name: "Secondary Clarifier Unit CL-02", outletAngle: -Math.PI * 0.55 }
+    ];
+    const clarifierBridges = [];
+    const clarifierWaterMeshes = [];
+
+    clarifierCenters.forEach((c, idx) => {
+      const cGroup = new THREE.Group();
+      cGroup.name = c.name;
+      cGroup.userData = { subsystem: "Secondary Clarification", spec: "16m Center-Feed Circular Clarifier with continuous spiral scraper" };
+      cGroup.position.set(c.x, 0, c.z);
+      facilityGroup.add(cGroup);
+
+      const cRad = 3.4, cHeight = 1.35;
+
+      const cCyl = new THREE.Mesh(
+        new THREE.CylinderGeometry(cRad, cRad, cHeight, 48, 1, true),
+        materials.concreteWall
+      );
+      cCyl.position.y = cHeight / 2;
+      cCyl.castShadow = true;
+      cCyl.receiveShadow = true;
+      cGroup.add(cCyl);
+
+      const cFloor = new THREE.Mesh(new THREE.CylinderGeometry(cRad + 0.15, cRad + 0.15, 0.2, 48), materials.concreteWall);
+      cFloor.position.y = 0.1;
+      cGroup.add(cFloor);
+
+      const cRim = new THREE.Mesh(new THREE.TorusGeometry(cRad, 0.08, 10, 48), materials.concreteCapping);
+      cRim.rotation.x = Math.PI / 2;
+      cRim.position.y = cHeight;
+      cGroup.add(cRim);
+
+      const weirMesh = new THREE.Mesh(
+        new THREE.TorusGeometry(cRad - 0.22, 0.10, 8, 48),
+        materials.structuralSteel
+      );
+      weirMesh.rotation.x = Math.PI / 2;
+      weirMesh.position.y = cHeight - 0.08;
+      cGroup.add(weirMesh);
+
+      const feedWell = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.72, 0.72, 1.1, 24, 1, true),
+        materials.structuralSteel
+      );
+      feedWell.position.y = cHeight * 0.65;
+      cGroup.add(feedWell);
+
+      const cWaterGeom = new THREE.CircleGeometry(cRad - 0.08, 48);
+      const cWaterMesh = new THREE.Mesh(cWaterGeom, materials.clarifierWater);
+      cWaterMesh.name = `Clarifier ${idx + 1} Water Surface`;
+      cWaterMesh.rotation.x = -Math.PI / 2;
+      cWaterMesh.position.y = cHeight - 0.12;
+      cGroup.add(cWaterMesh);
+      clarifierWaterMeshes.push(cWaterMesh);
+
+      const centerPier = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.30, cHeight + 0.45, 16), materials.concreteWall);
+      centerPier.position.y = (cHeight + 0.45) / 2;
+      cGroup.add(centerPier);
+
+      const bridgeGroup = new THREE.Group();
+      bridgeGroup.position.y = cHeight + 0.18;
+
+      const bridgeWalk = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.08, 0.65), materials.structuralSteel);
+      bridgeWalk.castShadow = true;
+      bridgeGroup.add(bridgeWalk);
+
+      const bRail1 = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.04, 0.04), materials.safetyYellow);
+      bRail1.position.set(0, 0.55, -0.30);
+      bridgeGroup.add(bRail1);
+      const bRail2 = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.04, 0.04), materials.safetyYellow);
+      bRail2.position.set(0, 0.55, 0.30);
+      bridgeGroup.add(bRail2);
+
+      for (let s = -cRad + 0.6; s < cRad - 0.6; s += 0.85) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.7, 0.02), materials.structuralSteel);
+        blade.position.set(s, -0.65, 0);
+        blade.rotation.y = 0.25;
+        bridgeGroup.add(blade);
+      }
+
+      cGroup.add(bridgeGroup);
+      clarifierBridges.push(bridgeGroup);
+    });
+
+    // --- Clarifier Effluent Flumes discharging to Tertiary Complex ---
+    // CL-01 Flume (West): Runs from (-4.5, 1.25, -7.8) northeast to Tertiary Inlet (-1.5, 1.1, -8.0)
+    const cl1OutFlume = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 2.2), materials.concreteWall);
+    cl1OutFlume.position.set(-2.8, 0.95, -7.6);
+    cl1OutFlume.rotation.y = -0.65;
+    cl1OutFlume.castShadow = true;
+    facilityGroup.add(cl1OutFlume);
+
+    const cl1Water = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 2.2), materials.clarifierWater);
+    cl1Water.rotation.x = -Math.PI / 2;
+    cl1Water.rotation.z = 0.65;
+    cl1Water.position.set(-2.8, 1.12, -7.6);
+    facilityGroup.add(cl1Water);
+
+    // CL-02 Flume (East): Runs from (5.5, 1.25, -7.8) northwest to Tertiary Inlet (2.5, 1.1, -8.0)
+    const cl2OutFlume = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 2.2), materials.concreteWall);
+    cl2OutFlume.position.set(3.8, 0.95, -7.6);
+    cl2OutFlume.rotation.y = 0.65;
+    cl2OutFlume.castShadow = true;
+    facilityGroup.add(cl2OutFlume);
+
+    const cl2Water = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 2.2), materials.clarifierWater);
+    cl2Water.rotation.x = -Math.PI / 2;
+    cl2Water.rotation.z = -0.65;
+    cl2Water.position.set(3.8, 1.12, -7.6);
+    facilityGroup.add(cl2Water);
+
+    // =========================================================================
+    // WATER TREATMENT STAGE 4: TERTIARY FILTRATION & UV DISINFECTION COMPLEX
+    // Position: (0.5, 0, -9.6) — DIRECTLY IN LINE BETWEEN CLARIFIERS & OUTFALL!
+    // =========================================================================
+    const filterGroup = new THREE.Group();
+    filterGroup.name = "Tertiary Rapid Sand Filtration & UV Disinfection Complex";
+    filterGroup.userData = { subsystem: "Tertiary Polishing & Pathogen Inactivation", spec: "Dual-media sand filters & UV irradiation channels reducing turbidity to <1 NTU and inactivating 99.9% pathogens" };
+    filterGroup.position.set(0.5, 0, -9.6);
+    facilityGroup.add(filterGroup);
+
+    // Reinforced Concrete Basin (10.4m Wide x 3.6m Deep x 1.3m High)
+    const tFloor = new THREE.Mesh(new THREE.BoxGeometry(10.4, 0.25, 3.8), materials.concreteWall);
+    tFloor.position.set(0, 0.125, 0);
+    tFloor.castShadow = true;
+    filterGroup.add(tFloor);
+
+    // Perimeter Walls
+    const tWallN = new THREE.Mesh(new THREE.BoxGeometry(10.4, 1.2, 0.3), materials.concreteWall);
+    tWallN.position.set(0, 0.75, -1.75);
+    tWallN.castShadow = true;
+    filterGroup.add(tWallN);
+
+    const tWallS = new THREE.Mesh(new THREE.BoxGeometry(10.4, 1.2, 0.3), materials.concreteWall);
+    tWallS.position.set(0, 0.75, 1.75);
+    tWallS.castShadow = true;
+    filterGroup.add(tWallS);
+
+    const tWallW = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.2, 3.8), materials.concreteWall);
+    tWallW.position.set(-5.05, 0.75, 0);
+    tWallW.castShadow = true;
+    filterGroup.add(tWallW);
+
+    const tWallE = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.2, 3.8), materials.concreteWall);
+    tWallE.position.set(5.05, 0.75, 0);
+    tWallE.castShadow = true;
+    filterGroup.add(tWallE);
+
+    // Central Dividing Wall (Splits Sand Filtration on West from UV Disinfection on East)
+    const tDivWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.2, 3.5), materials.concreteWall);
+    tDivWall.position.set(0, 0.75, 0);
+    tDivWall.castShadow = true;
+    filterGroup.add(tDivWall);
+
+    // --- WEST WING: DUAL RAPID SAND / ANTHRACITE MEDIA FILTERS ---
+    const sandBed = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.45, 3.2), materials.sandMedia);
+    sandBed.position.set(-2.5, 0.45, 0);
+    filterGroup.add(sandBed);
+
+    // Sand Filter Water Layer
+    const sandWater = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 3.2), materials.clarifierWater);
+    sandWater.rotation.x = -Math.PI / 2;
+    sandWater.position.set(-2.5, 1.05, 0);
+    filterGroup.add(sandWater);
+
+    // Surface Wash Troughs
+    for (let wt = -0.9; wt <= 0.9; wt += 0.9) {
+      const trough = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.18, 0.22), materials.structuralSteel);
+      trough.position.set(-2.5, 1.0, wt);
+      filterGroup.add(trough);
+    }
+
+    // Air-Scour & Backwash Header
+    const backwashPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 4.4, 16), materials.processPipeBlue);
+    backwashPipe.position.set(-2.5, 1.35, 1.4);
+    backwashPipe.rotation.z = Math.PI / 2;
+    filterGroup.add(backwashPipe);
+
+    // --- EAST WING: SERPENTINE UV DISINFECTION CHANNELS ---
+    const uvBaffle1 = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.1, 0.2), materials.concreteWall);
+    uvBaffle1.position.set(2.0, 0.75, -0.6);
+    filterGroup.add(uvBaffle1);
+
+    const uvBaffle2 = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.1, 0.2), materials.concreteWall);
+    uvBaffle2.position.set(3.0, 0.75, 0.6);
+    filterGroup.add(uvBaffle2);
+
+    // UV Channel Sparkling Water with subtle actinic blue glow
+    const uvWater = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 3.2), materials.uvGlowWater);
+    uvWater.rotation.x = -Math.PI / 2;
+    uvWater.position.set(2.5, 1.05, 0);
+    filterGroup.add(uvWater);
+
+    // Submerged UV Lamp Racks
+    for (let u = -0.8; u <= 0.8; u += 0.8) {
+      const lampFrame = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.9), materials.structuralSteel);
+      lampFrame.position.set(2.5, 0.75, u);
+      filterGroup.add(lampFrame);
+
+      const lampGlow = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.85, 12), materials.uvLamps);
+      lampGlow.rotation.x = Math.PI / 2;
+      lampGlow.position.set(2.5, 0.75, u);
+      filterGroup.add(lampGlow);
+    }
+
+    // Central Walkway & Yellow Handrails
+    const tWalkway = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.08, 3.8), materials.structuralSteel);
+    tWalkway.position.set(0, 1.35, 0);
+    tWalkway.castShadow = true;
+    filterGroup.add(tWalkway);
+
+    const tRail1 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.55, 3.8), materials.safetyYellow);
+    tRail1.position.set(-0.42, 1.62, 0);
+    filterGroup.add(tRail1);
+    const tRail2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.55, 3.8), materials.safetyYellow);
+    tRail2.position.set(0.42, 1.62, 0);
+    filterGroup.add(tRail2);
+
+    // =========================================================================
+    // WEST CAMPUS: PLANT OPERATIONS & WATER QUALITY TESTING LABORATORY
+    // Position: (-14.0, 0, -4.5) — Active administration & compliance lab
+    // =========================================================================
+    const labGroup = new THREE.Group();
+    labGroup.name = "Plant Operations & Water Quality Laboratory";
+    labGroup.userData = { subsystem: "Quality Control & Compliance", spec: "Certified EPA wastewater analysis lab: BOD5, COD, TSS, turbidity & pathogen testing" };
+    labGroup.position.set(-14.0, 0, -4.5);
+    facilityGroup.add(labGroup);
+
+    // Modern Administrative Building
+    const labBuilding = new THREE.Mesh(new THREE.BoxGeometry(6.4, 3.0, 5.6), materials.concreteWall);
+    labBuilding.position.set(0, 1.5, 0);
+    labBuilding.castShadow = true;
+    labGroup.add(labBuilding);
+
+    // Entrance Canopy & Glass Windows
+    const labCanopy = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.15, 1.2), materials.structuralSteel);
+    labCanopy.position.set(0, 2.3, 3.1);
+    labGroup.add(labCanopy);
+
+    const labDoor = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.0), new THREE.MeshStandardMaterial({ color: "#1e293b", roughness: 0.2 }));
+    labDoor.position.set(0, 1.0, 2.82);
+    labGroup.add(labDoor);
+
+    // SCADA Telemetry Antenna Mast
+    const antennaMast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 4.2, 10), materials.structuralSteel);
+    antennaMast.position.set(2.2, 5.0, -1.8);
+    labGroup.add(antennaMast);
+
+    const antennaDish = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), materials.structuralSteel);
+    antennaDish.position.set(2.2, 6.5, -1.8);
+    antennaDish.rotation.x = Math.PI / 4;
+    labGroup.add(antennaDish);
+
+    // =========================================================================
+    // WATER TREATMENT STAGE 5: FINAL CLEAN WATER DISCHARGE OUTFALL (CLEAN WATER OUT!)
+    // Position: (0.5, 0, -14.2) — SEAMLESSLY RECEIVES TERTIARY DISINFECTED OUTFLOW!
+    // =========================================================================
+    const outfallGroup = new THREE.Group();
+    outfallGroup.name = "Clean Effluent Discharge Outfall & Parshall Flume";
+    outfallGroup.userData = { subsystem: "Effluent Outfall", spec: "Calibrated Parshall flume measuring clean water discharge (<1 NTU turbidity) into environmental wetlands" };
+    outfallGroup.position.set(0.5, 0, -14.2);
+    facilityGroup.add(outfallGroup);
+
+    const outFloor = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.22, 5.4), materials.concreteWall);
+    outFloor.position.set(0, 0.11, 0);
+    outFloor.castShadow = true;
+    outfallGroup.add(outFloor);
+
+    // Tiled Floor Liner visible through crystal water
+    const outTileLiner = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.7, 5.2),
+      new THREE.MeshStandardMaterial({ color: '#7dd3fc', roughness: 0.25, metalness: 0.05 })
+    );
+    outTileLiner.rotation.x = -Math.PI / 2;
+    outTileLiner.position.set(0, 0.225, 0);
+    outfallGroup.add(outTileLiner);
+
+    const outLeftWall = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 5.4), materials.concreteWall);
+    outLeftWall.position.set(-0.98, 0.45, 0);
+    outLeftWall.castShadow = true;
+    outfallGroup.add(outLeftWall);
+
+    const outRightWall = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 5.4), materials.concreteWall);
+    outRightWall.position.set(0.98, 0.45, 0);
+    outRightWall.castShadow = true;
+    outfallGroup.add(outRightWall);
+
+    // CRYSTAL-CLEAR SPARKLING TREATED WATER (High transparency, visible channel bottom!)
+    const cleanWaterGeom = new THREE.PlaneGeometry(1.7, 5.2, 32, 24);
+    const cleanWaterMesh = new THREE.Mesh(cleanWaterGeom, materials.cleanEffluentWater);
+    cleanWaterMesh.name = "Pristine Treated Effluent Water Flow";
+    cleanWaterMesh.rotation.x = -Math.PI / 2;
+    cleanWaterMesh.position.set(0, 0.52, 0);
+    outfallGroup.add(cleanWaterMesh);
+
+    // Parshall Flume Gantry
+    const gantryArch = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.08, 0.12), materials.structuralSteel);
+    gantryArch.position.set(0, 1.45, 0.5);
+    outfallGroup.add(gantryArch);
+
+    const gantryLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.0, 10), materials.structuralSteel);
+    gantryLegL.position.set(-1.0, 0.95, 0.5);
+    outfallGroup.add(gantryLegL);
+    const gantryLegR = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.0, 10), materials.structuralSteel);
+    gantryLegR.position.set(1.0, 0.95, 0.5);
+    outfallGroup.add(gantryLegR);
+
+    const sensorHead = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.28, 12), materials.safetyYellow);
+    sensorHead.position.set(0, 1.25, 0.5);
+    outfallGroup.add(sensorHead);
+
+    const flowDisplay = new THREE.Mesh(
+      new THREE.BoxGeometry(0.42, 0.26, 0.04),
+      new THREE.MeshStandardMaterial({
+        color: '#0284c7',
+        emissive: '#0369a1',
+        emissiveIntensity: 0.6,
+        roughness: 0.2
+      })
+    );
+    flowDisplay.position.set(1.0, 1.5, 0.5);
+    outfallGroup.add(flowDisplay);
+
+    // 2-TIER STEPPED CASCADE WATERFALL INTO RETENTION LAGOON!
+    const step1 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.28, 0.35), materials.concreteWall);
+    step1.position.set(0, 0.14, -2.82);
+    outfallGroup.add(step1);
+
+    const cascade1 = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.34), materials.cleanWaterfall);
+    cascade1.position.set(0, 0.40, -2.68);
+    cascade1.rotation.x = 0.85;
+    outfallGroup.add(cascade1);
+
+    const cascade2 = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.38), materials.cleanWaterfall);
+    cascade2.position.set(0, 0.18, -3.02);
+    cascade2.rotation.x = 0.72;
+    outfallGroup.add(cascade2);
+
+    const splashGeom = new THREE.PlaneGeometry(2.4, 1.2, 16, 16);
+    const splashMat = new THREE.MeshStandardMaterial({
+      color: '#ffffff',
+      roughness: 0.15,
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.82
+    });
+    const splashMesh = new THREE.Mesh(splashGeom, splashMat);
+    splashMesh.rotation.x = -Math.PI / 2;
+    splashMesh.position.set(0, 0.10, -3.6);
+    outfallGroup.add(splashMesh);
+
+    // Shoreline Boulders around Outfall Basin
+    const boulderGeom = new THREE.DodecahedronGeometry(0.38, 1);
+    const boulderMat = new THREE.MeshStandardMaterial({ color: '#64748b', roughness: 0.88, metalness: 0.05 });
+    const boulderInst = new THREE.InstancedMesh(boulderGeom, boulderMat, 20);
+    const bDummy = new THREE.Object3D();
+    for (let b = 0; b < 20; b++) {
+      const bAngle = (b / 20) * Math.PI * 1.4 - 0.5;
+      const bx = Math.sin(bAngle) * 3.0 + (Math.random() - 0.5) * 0.3;
+      const bz = -3.4 - Math.cos(bAngle) * 2.2;
+      const bs = 0.6 + Math.random() * 0.8;
+      bDummy.position.set(bx, bs * 0.28, bz);
+      bDummy.scale.set(bs * 1.2, bs * 0.7, bs);
+      bDummy.rotation.set(Math.random(), Math.random(), Math.random());
+      bDummy.updateMatrix();
+      boulderInst.setMatrixAt(b, bDummy.matrix);
+    }
+    boulderInst.instanceMatrix.needsUpdate = true;
+    outfallGroup.add(boulderInst);
+
+    // Outfall ID Signage
+    const outSignMat = new THREE.MeshStandardMaterial({
+      map: generateSignageTexture("TREATED WATER DISCHARGE", "STAGE 05: CLEAN EFFLUENT < 1 NTU | 99% REMOVAL", 512, 128, '#10b981'),
+      roughness: 0.3, metalness: 0.6
+    });
+    const outSign = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.42, 0.04), outSignMat);
+    outSign.position.set(0, 0.7, 2.65);
+    outfallGroup.add(outSign);
+
+    // =========================================================================
+    // WATER TREATMENT STAGE 6: ANAEROBIC DIGESTERS (SPACED ON EAST BIO-PAD)
+    // TK-101: (15.5, 0, -3.5) | TK-102: (22.5, 0, -7.0) — Clear separation!
+    // =========================================================================
+    const storageTanks = new THREE.Group();
+    storageTanks.name = "Anaerobic Digester Tanks (Biogas Recovery)";
+    storageTanks.userData = { subsystem: "Biosolids Treatment", spec: "Twin cylindrical anaerobic digesters with fixed steel covers and methane gas recovery domes" };
+    storageTanks.position.set(0, 0, 0);
+    facilityGroup.add(storageTanks);
+
+    const digesterDefs = [
+      { x: 15.5, z: -3.5, r: 2.8, h: 4.8, label: "DIGESTER TK-101" },
+      { x: 22.5, z: -7.0, r: 2.8, h: 4.8, label: "DIGESTER TK-102" }
+    ];
+
+    digesterDefs.forEach(d => {
+      const dtGroup = new THREE.Group();
+      dtGroup.position.set(d.x, 0, d.z);
+
+      const dCyl = new THREE.Mesh(
+        new THREE.CylinderGeometry(d.r, d.r, d.h, 36),
+        materials.tankGalvanized
+      );
+      dCyl.position.y = d.h / 2;
+      dCyl.castShadow = true;
+      dCyl.receiveShadow = true;
+      dtGroup.add(dCyl);
+
+      const roofCone = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, d.r + 0.06, 0.45, 36),
+        materials.structuralSteel
+      );
+      roofCone.position.y = d.h + 0.225;
+      roofCone.castShadow = true;
+      dtGroup.add(roofCone);
+
+      const vent = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.65, 16), materials.structuralSteel);
+      vent.position.y = d.h + 0.65;
+      dtGroup.add(vent);
+
+      const gasPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.4, 12), materials.safetyYellow);
+      gasPipe.position.set(d.r * 0.7, d.h * 0.7, 0);
+      dtGroup.add(gasPipe);
+
+      const dtSignMat = new THREE.MeshStandardMaterial({
+        map: generateSignageTexture(d.label, "METHANE RECOVERY | 38°C MESOPHILIC", 512, 128, '#06b6d4'),
+        roughness: 0.3, metalness: 0.6
+      });
+      const dtSign = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.38, 0.04), dtSignMat);
+      dtSign.position.set(0, d.h * 0.62, d.r + 0.06);
+      dtGroup.add(dtSign);
+
+      const numSteps = 22;
+      for (let s = 0; s < numSteps; s++) {
+        const sProg = s / numSteps;
+        const sAngle = sProg * Math.PI * 1.4 + 0.2;
+        const sx = Math.sin(sAngle) * (d.r + 0.28);
+        const sz = Math.cos(sAngle) * (d.r + 0.28);
+        const sy = sProg * (d.h - 0.6) + 0.3;
+
+        const stepMesh = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.04, 0.24), materials.safetyYellow);
+        stepMesh.position.set(sx, sy, sz);
+        stepMesh.rotation.y = -sAngle;
+        dtGroup.add(stepMesh);
+      }
+
+      storageTanks.add(dtGroup);
+    });
+
+    // Perimeter High-Mast Industrial Floodlights
+    function createFloodlightPole(x, z) {
+      const pole = new THREE.Group();
+      pole.position.set(x, 0, z);
+
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.10, 6.8, 10), materials.structuralSteel);
+      mast.position.y = 3.4;
+      mast.castShadow = true;
+      pole.add(mast);
+
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.18, 0.25), materials.safetyYellow);
+      head.position.set(0, 6.8, 0);
+      pole.add(head);
+
+      const lightGlow = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.42, 0.14),
+        new THREE.MeshBasicMaterial({ color: '#fffbeb' })
+      );
+      lightGlow.rotation.x = Math.PI / 2.2;
+      lightGlow.position.set(0, 6.75, 0.1);
+      pole.add(lightGlow);
+
+      return pole;
+    }
+    facilityGroup.add(createFloodlightPole(22.0, 12.0));
+    facilityGroup.add(createFloodlightPole(-18.0, 12.0));
+    facilityGroup.add(createFloodlightPole(10.0, -10.0));
+    facilityGroup.add(createFloodlightPole(-10.0, -10.0));
+
+    // =========================================================================
+    // 5. 3D TEXT PINS & ANNOTATION SYSTEM (UPDATED COORDINATES)
+    // =========================================================================
+    const annotationPins = [
+      { id: "01", text: "Raw Influent & Headworks", worldPos: new THREE.Vector3(18.0, 2.0, 7.5), desc: "Raw municipal sewer line with mechanical bar screens & screenings hopper" },
+      { id: "02", text: "Aeration Bio-Reactors & Blowers", worldPos: new THREE.Vector3(6.0, 2.2, 7.5), desc: "Activated sludge biological treatment fed by overhead compressed air gantry bridge" },
+      { id: "03", text: "Flow Splitter & Clarifiers", worldPos: new THREE.Vector3(0.5, 2.0, -4.5), desc: "Dual 16m center-feed circular clarifiers with rotating scraper bridges" },
+      { id: "04", text: "RAS/WAS Sludge Pump Station", worldPos: new THREE.Vector3(10.5, 1.8, -4.5), desc: "Recycles Return Sludge (RAS) to Aeration & pumps Waste Sludge (WAS) to Digesters" },
+      { id: "05", text: "Tertiary Filtration & UV Disinfection", worldPos: new THREE.Vector3(0.5, 2.0, -9.2), desc: "Dual-media sand filters & actinic UV lamp disinfection reducing turbidity to <1 NTU" },
+      { id: "06", text: "Clean Effluent Cascade Outfall", worldPos: new THREE.Vector3(0.5, 1.8, -14.2), desc: "Calibrated Parshall flume discharging sparkling clean water over stepped weir" },
+      { id: "07", text: "Environmental Wetland Lagoon", worldPos: new THREE.Vector3(0.5, 0.8, -22.5), desc: "Natural polishing wetland pond with emergent vegetation and riparian boulders" },
+      { id: "08", text: "Anaerobic Digestion & Biogas Flare", worldPos: new THREE.Vector3(19.5, 5.2, -5.5), desc: "Solids stabilization, dewatered cake storage & surplus methane flare stack" },
+      { id: "09", text: "Operations & Water Testing Lab", worldPos: new THREE.Vector3(-14.0, 2.6, -4.5), desc: "Certified EPA water quality laboratory & SCADA facility monitoring center" }
+    ];
+
+    const annotationsContainer = document.getElementById('annotations-layer');
+    const pinElements = [];
+    let textLabelsVisible = true;
+
+    annotationPins.forEach(pin => {
+      const pinEl = document.createElement('div');
+      pinEl.className = 'annotation-pin';
+      pinEl.innerHTML = `
+        <div class="pin-pill">
+          <span class="pin-badge">${pin.id}</span>
+          <span>${pin.text}</span>
+        </div>
+        <div class="pin-stem"></div>
+        <div class="pin-dot"></div>
+      `;
+      pinEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectObjectByAnnotation(pin);
+      });
+      annotationsContainer.appendChild(pinEl);
+      pinElements.push({ el: pinEl, worldPos: pin.worldPos, pinData: pin });
+    });
+
+    const tempV = new THREE.Vector3();
+    function updateAnnotationPins() {
+      if (!textLabelsVisible) return;
+      const w = window.innerWidth, h = window.innerHeight;
+
+      for (let i = 0; i < pinElements.length; i++) {
+        const item = pinElements[i];
+        tempV.copy(item.worldPos);
+        tempV.project(camera);
+
+        const isBehind = tempV.z > 1.0;
+        const sx = (tempV.x * 0.5 + 0.5) * w;
+        const sy = (-(tempV.y * 0.5) + 0.5) * h;
+
+        const camDist = camera.position.distanceTo(item.worldPos);
+        const opacity = isBehind ? 0 : Math.max(0, Math.min(1, (130 - camDist) / 50));
+        const scale = Math.max(0.72, Math.min(1.05, 36 / camDist));
+
+        item.el.style.left = `${sx}px`;
+        item.el.style.top = `${sy}px`;
+        item.el.style.opacity = opacity.toFixed(2);
+        item.el.style.transform = `translate(-50%, -100%) scale(${scale.toFixed(2)})`;
+        item.el.style.pointerEvents = opacity > 0.35 ? 'auto' : 'none';
+      }
+    }
+
+    const btnTextLabels = document.getElementById('btn-text-labels');
+    btnTextLabels.addEventListener('click', () => {
+      textLabelsVisible = !textLabelsVisible;
+      btnTextLabels.classList.toggle('toggle-on', textLabelsVisible);
+      btnTextLabels.textContent = textLabelsVisible ? '🏷️ Text Pins: ON' : '🏷️ Text Pins: OFF';
+      annotationsContainer.style.display = textLabelsVisible ? 'block' : 'none';
+    });
+
+    // =========================================================================
+    // 6. GUIDED PROCESS TOUR ENGINE (TUNED FOR NEW SPACIOUS LAYOUT)
+    // =========================================================================
+    const tourStages = [
+      {
+        step: "STAGE 01 / 06",
+        badgeClass: "badge dirty",
+        status: "DIRTY WATER INLET",
+        title: "1. Raw Sewage Influent & Mechanical Headworks",
+        desc: "Raw untreated municipal wastewater enters the plant via the 600mm incoming sewer conduit. Heavy debris, plastics, and rags are extracted by mechanical bar screens, while vortex grit chambers drop dense sand before primary pumping.",
+        turbidity: "340 NTU (Murky)",
+        bod: "260 mg/L",
+        eff: "0% (Raw Influent)",
+        valClass: "dirty-val",
+        camPos: new THREE.Vector3(21.5, 3.8, 10.5),
+        camTarget: new THREE.Vector3(18.0, 0.7, 7.5)
+      },
+      {
+        step: "STAGE 02 / 06",
+        badgeClass: "badge flow",
+        status: "BIOLOGICAL ACTIVATION",
+        title: "2. Biological Aeration Basins (Activated Sludge)",
+        desc: "Untreated liquor flows into 4 plug-flow channels. Billions of beneficial aerobic microorganisms digest dissolved organic matter, fueled by 450 m³/min of compressed air injected through fine-bubble bottom diffusers.",
+        turbidity: "120 NTU (Turbulent MLSS)",
+        bod: "75 mg/L (71% reduction)",
+        eff: "71% Oxidized",
+        valClass: "",
+        camPos: new THREE.Vector3(12.5, 5.8, 13.5),
+        camTarget: new THREE.Vector3(6.0, 1.2, 7.5)
+      },
+      {
+        step: "STAGE 03 / 06",
+        badgeClass: "badge flow",
+        status: "GRAVITY SEDIMENTATION",
+        title: "3. Secondary Circular Clarifiers",
+        desc: "Flow passes through the central distribution splitter to twin 16m radial clarifiers. Heavy biological floc settles to the tank floor, where continuous scraper bridges gather it for reuse as Return Activated Sludge (RAS).",
+        turbidity: "18 NTU (Clarified)",
+        bod: "22 mg/L (91% reduction)",
+        eff: "91% Clarified",
+        valClass: "",
+        camPos: new THREE.Vector3(0.5, 8.5, 4.0),
+        camTarget: new THREE.Vector3(0.5, 0.8, -4.5)
+      },
+      {
+        step: "STAGE 04 / 06",
+        badgeClass: "badge flow",
+        status: "TERTIARY POLISHING & UV",
+        title: "4. Tertiary Sand Filtration & UV Disinfection",
+        desc: "Clarifier overflow flumes directly feed the central Tertiary Complex. Dual-media rapid sand filters capture residual micro-particulates, followed by ultraviolet disinfection lamp banks neutralizing 99.9% of bacteria without toxic chemicals.",
+        turbidity: "0.9 NTU (Ultra-Pure)",
+        bod: "3.5 mg/L (98% reduction)",
+        eff: "98.6% Disinfected",
+        valClass: "clean-val",
+        camPos: new THREE.Vector3(5.5, 6.8, -4.5),
+        camTarget: new THREE.Vector3(0.5, 1.0, -9.6)
+      },
+      {
+        step: "STAGE 05 / 06",
+        badgeClass: "badge clean",
+        status: "CLEAN WATER OUTFLOW",
+        title: "5. Pristine Treated Water Discharge Outfall & Wetlands",
+        desc: "Disinfected crystal-clear treated effluent overflows into the calibrated Parshall flume outfall, tumbling over a 2-tier natural stone cascade with sparkling foam into the environmental wetland lagoon at 99.4% purity!",
+        turbidity: "0.4 NTU (Pristine)",
+        bod: "< 2.0 mg/L (99.4% Removal)",
+        eff: "99.4% Pristine Outflow",
+        valClass: "clean-val",
+        camPos: new THREE.Vector3(0.5, 3.2, -10.5),
+        camTarget: new THREE.Vector3(0.5, 0.4, -16.5)
+      },
+      {
+        step: "STAGE 06 / 06",
+        badgeClass: "badge tour",
+        status: "BIOGAS RECOVERY",
+        title: "6. Anaerobic Digestion & Renewable Biogas",
+        desc: "Concentrated solids from the clarifiers are pumped to twin anaerobic digester tanks on the eastern bio-pad, where thermophilic microbes convert organic sludge into stabilized fertilizer and renewable methane biogas.",
+        turbidity: "Volatile Solids Destroyed: 58%",
+        bod: "Methane Yield: 65% CH4",
+        eff: "Closed Loop Complete",
+        valClass: "",
+        camPos: new THREE.Vector3(27.0, 9.5, 8.5),
+        camTarget: new THREE.Vector3(19.5, 3.0, -6.5)
+      }
+    ];
+
+    let currentTourIndex = 0;
+    let tourActive = false;
+    let tourAutoPlay = true;
+    let tourTimer = null;
+
+    const tourDrawer = document.getElementById('tour-drawer');
+    const btnStartTour = document.getElementById('btn-start-tour');
+    const btnTourClose = document.getElementById('btn-tour-close');
+    const btnTourNext = document.getElementById('btn-tour-next');
+    const btnTourPrev = document.getElementById('btn-tour-prev');
+    const btnTourAutoplay = document.getElementById('btn-tour-autoplay');
+
+    function applyTourStage(idx) {
+      currentTourIndex = idx;
+      const stage = tourStages[idx];
+
+      document.getElementById('tour-badge-stage').textContent = stage.step;
+      const statusEl = document.getElementById('tour-stage-status');
+      statusEl.textContent = stage.status;
+      statusEl.className = stage.badgeClass;
+
+      document.getElementById('tour-title').textContent = stage.title;
+      document.getElementById('tour-desc').textContent = stage.desc;
+
+      const turbEl = document.getElementById('tour-val-turb');
+      turbEl.textContent = stage.turbidity;
+      turbEl.className = `tour-metric-val ${stage.valClass}`;
+
+      const bodEl = document.getElementById('tour-val-bod');
+      bodEl.textContent = stage.bod;
+      bodEl.className = `tour-metric-val ${stage.valClass}`;
+
+      document.getElementById('tour-val-eff').textContent = stage.eff;
+
+      // Progress bar
+      document.getElementById('tour-progress-bar').style.width = `${((idx + 1) / tourStages.length) * 100}%`;
+
+      // Smooth camera fly
+      smoothTransitionCamera({ pos: stage.camPos, target: stage.camTarget });
+    }
+
+    function startTour() {
+      tourActive = true;
+      tourDrawer.style.display = 'block';
+      btnStartTour.classList.add('tour-active');
+      applyTourStage(0);
+      resetAutoPlayTimer();
+    }
+
+    function exitTour() {
+      tourActive = false;
+      tourDrawer.style.display = 'none';
+      btnStartTour.classList.remove('tour-active');
+      if (tourTimer) clearTimeout(tourTimer);
+    }
+
+    function nextTourStage() {
+      const nextIdx = (currentTourIndex + 1) % tourStages.length;
+      applyTourStage(nextIdx);
+      resetAutoPlayTimer();
+    }
+
+    function prevTourStage() {
+      const prevIdx = (currentTourIndex - 1 + tourStages.length) % tourStages.length;
+      applyTourStage(prevIdx);
+      resetAutoPlayTimer();
+    }
+
+    function resetAutoPlayTimer() {
+      if (tourTimer) clearTimeout(tourTimer);
+      if (tourActive && tourAutoPlay) {
+        tourTimer = setTimeout(() => {
+          nextTourStage();
+        }, 8500);
+      }
+    }
+
+    btnStartTour.addEventListener('click', () => {
+      if (!tourActive) startTour(); else exitTour();
+    });
+    btnTourClose.addEventListener('click', exitTour);
+    btnTourNext.addEventListener('click', nextTourStage);
+    btnTourPrev.addEventListener('click', prevTourStage);
+    btnTourAutoplay.addEventListener('click', () => {
+      tourAutoPlay = !tourAutoPlay;
+      btnTourAutoplay.textContent = tourAutoPlay ? '⏸ Auto-Play' : '▶ Play';
+      resetAutoPlayTimer();
+    });
+
+    // =========================================================================
+    // 7. ROBUST & CLEAN CAD WIREFRAME MODE
+    // =========================================================================
+    let currentShadingMode = 'pbr';
+    let isWireframeActive = false;
+
+    const originalMeshMaterials = new Map();
+    facilityGroup.traverse((obj) => {
+      if (obj.isMesh) {
+        originalMeshMaterials.set(obj, obj.material);
+      }
+    });
+
+    const cadSteelWire = new THREE.MeshBasicMaterial({ color: '#f8fafc', wireframe: true });
+    const cadPipeWire = new THREE.MeshBasicMaterial({ color: '#38bdf8', wireframe: true });
+    const cadYellowWire = new THREE.MeshBasicMaterial({ color: '#facc15', wireframe: true });
+    const cadWaterWire = new THREE.MeshBasicMaterial({ color: '#00f2fe', wireframe: true, transparent: true, opacity: 0.65 });
+    const cadGroundSolid = new THREE.MeshBasicMaterial({ color: '#090d14' });
+
+    function setShadingMode(mode) {
+      currentShadingMode = mode;
+      isWireframeActive = (mode === 'wireframe');
+
+      ['pbr', 'wire', 'normals', 'clay'].forEach(m => {
+        const b = document.getElementById(`btn-mode-${m}`);
+        if (b) b.classList.toggle('active', (m === 'wire' && mode === 'wireframe') || m === mode);
+      });
+
+      const wireframeHudBtn = document.getElementById('btn-wireframe');
+      wireframeHudBtn.classList.toggle('wireframe-active', isWireframeActive);
+      wireframeHudBtn.textContent = isWireframeActive ? '📐 CAD Wireframe: ON' : '📐 CAD Wireframe';
+
+      const modeBadge = document.getElementById('render-mode-badge');
+      const statShading = document.getElementById('stat-shading');
+
+      if (mode === 'pbr') {
+        modeBadge.textContent = 'PROCESS SIMULATION';
+        modeBadge.className = 'badge flow';
+        statShading.textContent = 'ACES PBR Sky';
+        sky.visible = true;
+        cloudDome.visible = true;
+        scene.fog = new THREE.Fog('#9dc4ea', 90, 520);
+        trunkInst.visible = true;
+        foliageInst.visible = true;
+        grassInst.visible = true;
+        bloomPass.strength = parseFloat(document.getElementById('bloom-strength').value) / 100.0;
+
+        facilityGroup.traverse((obj) => {
+          if (obj.isMesh && originalMeshMaterials.has(obj)) {
+            obj.material = originalMeshMaterials.get(obj);
+          }
+        });
+      } else if (mode === 'wireframe') {
+        modeBadge.textContent = 'CAD BLUEPRINT VECTOR';
+        modeBadge.className = 'badge tour';
+        statShading.textContent = 'CAD Wireframe';
+        sky.visible = false;
+        cloudDome.visible = false;
+        scene.background = new THREE.Color('#06090f');
+        scene.fog = new THREE.FogExp2('#06090f', 0.015);
+        trunkInst.visible = false;
+        foliageInst.visible = false;
+        grassInst.visible = false;
+        bloomPass.strength = 0.04;
+
+        facilityGroup.traverse((obj) => {
+          if (!obj.isMesh) return;
+          const orig = originalMeshMaterials.get(obj);
+          if (obj === terrainMesh) {
+            obj.material = cadGroundSolid;
+          } else if (orig === materials.safetyYellow) {
+            obj.material = cadYellowWire;
+          } else if (orig === materials.processPipeBlue || orig === materials.processPipeGray) {
+            obj.material = cadPipeWire;
+          } else if (orig === materials.aerationWater || orig === materials.clarifierWater || orig === materials.cleanEffluentWater) {
+            obj.material = cadWaterWire;
+          } else {
+            obj.material = cadSteelWire;
+          }
+        });
+      } else if (mode === 'normals') {
+        modeBadge.textContent = 'SURFACE NORMALS';
+        modeBadge.className = 'badge flow';
+        statShading.textContent = 'Geometric Normals';
+        sky.visible = false;
+        cloudDome.visible = false;
+        scene.background = new THREE.Color('#10141c');
+        scene.fog = null;
+        trunkInst.visible = true;
+        foliageInst.visible = true;
+        grassInst.visible = true;
+
+        const normalMat = new THREE.MeshNormalMaterial();
+        facilityGroup.traverse((obj) => {
+          if (obj.isMesh) obj.material = normalMat;
+        });
+      } else if (mode === 'clay') {
+        modeBadge.textContent = 'CLAY STUDY';
+        modeBadge.className = 'badge';
+        statShading.textContent = 'Clay Ambient Occlusion';
+        sky.visible = true;
+        cloudDome.visible = true;
+        scene.fog = new THREE.Fog('#9dc4ea', 90, 520);
+        trunkInst.visible = true;
+        foliageInst.visible = true;
+        grassInst.visible = true;
+
+        const clayMat = new THREE.MeshStandardMaterial({ color: '#f1f5f9', roughness: 0.9, metalness: 0.05 });
+        facilityGroup.traverse((obj) => {
+          if (obj.isMesh) obj.material = clayMat;
+        });
+      }
+    }
+
+    document.getElementById('btn-mode-pbr').addEventListener('click', () => setShadingMode('pbr'));
+    document.getElementById('btn-mode-wire').addEventListener('click', () => setShadingMode('wireframe'));
+    document.getElementById('btn-mode-normals').addEventListener('click', () => setShadingMode('normals'));
+    document.getElementById('btn-mode-clay').addEventListener('click', () => setShadingMode('clay'));
+    document.getElementById('btn-wireframe').addEventListener('click', () => {
+      setShadingMode(isWireframeActive ? 'pbr' : 'wireframe');
+    });
+
+    // =========================================================================
+    // 8. INTERACTIVE RAYCASTING INSPECTOR & HOVER FEEDBACK
+    // =========================================================================
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let selectedObject = null;
+
+    const selectionBox = new THREE.BoxHelper(new THREE.Mesh(), 0x38bdf8);
+    selectionBox.visible = false;
+    scene.add(selectionBox);
+
+    const inspectorPanel = document.getElementById('inspector-panel');
+
+    function selectObjectByMesh(mesh) {
+      if (!mesh) {
+        selectionBox.visible = false;
+        inspectorPanel.style.display = 'none';
+        selectedObject = null;
+        return;
+      }
+      selectedObject = mesh;
+      selectionBox.setFromObject(mesh);
+      selectionBox.visible = true;
+
+      let curr = mesh;
+      let title = mesh.name || "Process Equipment Component";
+      let subsys = "General Facility";
+      let spec = "Industrial specification standard";
+
+      while (curr && curr !== facilityGroup && curr !== scene) {
+        if (curr.userData && curr.userData.subsystem) {
+          subsys = curr.userData.subsystem;
+          if (curr.userData.spec) spec = curr.userData.spec;
+          if (curr.name) title = curr.name;
+          break;
+        }
+        curr = curr.parent;
+      }
+
+      document.getElementById('insp-title').textContent = title;
+      document.getElementById('insp-sub').textContent = spec;
+      document.getElementById('insp-subsys').textContent = subsys;
+      document.getElementById('insp-spec').textContent = spec;
+      const wp = new THREE.Vector3();
+      mesh.getWorldPosition(wp);
+      document.getElementById('insp-pos').textContent = `X: ${wp.x.toFixed(2)}, Y: ${wp.y.toFixed(2)}, Z: ${wp.z.toFixed(2)}`;
+      inspectorPanel.style.display = 'block';
+    }
+
+    function selectObjectByAnnotation(pinData) {
+      document.getElementById('insp-title').textContent = pinData.text;
+      document.getElementById('insp-sub').textContent = pinData.desc;
+      document.getElementById('insp-subsys').textContent = "Process Stage Marker";
+      document.getElementById('insp-spec').textContent = pinData.desc;
+      document.getElementById('insp-pos').textContent = `X: ${pinData.worldPos.x.toFixed(2)}, Y: ${pinData.worldPos.y.toFixed(2)}, Z: ${pinData.worldPos.z.toFixed(2)}`;
+      inspectorPanel.style.display = 'block';
+    }
+
+    window.addEventListener('click', (event) => {
+      if (event.target.closest('.hud-card')) return;
+
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(facilityGroup.children, true);
+
+      if (intersects.length > 0) {
+        let hit = intersects[0].object;
+        if (hit === terrainMesh) return;
+        selectObjectByMesh(hit);
+      } else {
+        selectObjectByMesh(null);
+      }
+    });
+
+    // =========================================================================
+    // 9. ANIMATION, WAVE SHADERS & PERFORMANCE LOOP
+    // =========================================================================
+    let isAnimating = true;
+    const clock = new THREE.Clock();
+    let frameCount = 0;
+    let lastFpsTime = performance.now();
+
+    const aPosAttr = aerationWaterGeom.attributes.position;
+    const origWaterZ = new Float32Array(aPosAttr.count);
+    for (let i = 0; i < aPosAttr.count; i++) {
+      origWaterZ[i] = aPosAttr.getZ(i);
+    }
+
+    const dPosAttr = dirtyWaterGeom.attributes.position;
+    const origDirtyZ = new Float32Array(dPosAttr.count);
+    for (let i = 0; i < dPosAttr.count; i++) {
+      origDirtyZ[i] = dPosAttr.getZ(i);
+    }
+
+    let totalFacilityTriangles = 0;
+    facilityGroup.traverse((obj) => {
+      if (obj.isMesh && obj.geometry) {
+        const g = obj.geometry;
+        if (g.index) {
+          totalFacilityTriangles += g.index.count / 3;
+        } else if (g.attributes.position) {
+          totalFacilityTriangles += g.attributes.position.count / 3;
+        }
+      }
+    });
+
+    const statFps = document.getElementById('stat-fps');
+    const statTriangles = document.getElementById('stat-triangles');
+    const statCalls = document.getElementById('stat-calls');
+
+    function renderLoop() {
+      requestAnimationFrame(renderLoop);
+
+      const delta = clock.getDelta();
+      const elapsed = clock.getElapsedTime();
+
+      if (cloudDome.visible) {
+        cloudDome.rotation.y = elapsed * 0.003;
+        cloudTexture.offset.x = (elapsed * 0.001) % 1;
+      }
+
+      if (isAnimating) {
+        clarifierBridges.forEach((bridge, idx) => {
+          const speed = (idx % 2 === 0 ? 1 : -0.85) * 0.12;
+          bridge.rotation.y += speed * delta;
+        });
+
+        if (currentShadingMode !== 'wireframe') {
+          foamTexture.offset.y = -(elapsed * 0.22) % 1;
+          foamTexture.offset.x = Math.sin(elapsed * 0.4) * 0.08;
+
+          for (let i = 0; i < aPosAttr.count; i++) {
+            const vx = aPosAttr.getX(i);
+            const vy = aPosAttr.getY(i);
+            const wave = Math.sin(vx * 1.8 + elapsed * 3.4) * 0.024
+                       + Math.cos(vy * 3.2 - elapsed * 2.8) * 0.016;
+            aPosAttr.setZ(i, origWaterZ[i] + wave);
+          }
+          aPosAttr.needsUpdate = true;
+
+          for (let i = 0; i < dPosAttr.count; i++) {
+            const vx = dPosAttr.getX(i);
+            const vy = dPosAttr.getY(i);
+            const wave = Math.sin(vy * 3.5 - elapsed * 4.2) * 0.02
+                       + Math.cos(vx * 4.0 + elapsed * 3.0) * 0.015;
+            dPosAttr.setZ(i, origDirtyZ[i] + wave);
+          }
+          dPosAttr.needsUpdate = true;
+        }
+      }
+
+      updateAnnotationPins();
+      controls.update();
+
+      renderer.info.reset();
+      composer.render();
+
+      frameCount++;
+      const now = performance.now();
+      if (now - lastFpsTime >= 500) {
+        const fps = (frameCount * 1000) / (now - lastFpsTime);
+        const ms = 1000 / Math.max(fps, 1);
+        statFps.textContent = `${fps.toFixed(1)} fps (${ms.toFixed(1)}ms)`;
+        statTriangles.textContent = totalFacilityTriangles.toLocaleString();
+        statCalls.textContent = renderer.info.render.calls.toLocaleString();
+
+        frameCount = 0;
+        lastFpsTime = now;
+      }
+    }
+    renderLoop();
+
+    // =========================================================================
+    // 10. CAMERA PRESETS & CONTROLS (OPTIMIZED FOR NO-OVERLAP SPATIAL SPREAD)
+    // =========================================================================
+    const cameraPresets = {
+      overview: { pos: new THREE.Vector3(28, 20, 32), target: new THREE.Vector3(3.0, 1.2, 0.5) },
+      influent: { pos: new THREE.Vector3(21.5, 3.8, 10.5), target: new THREE.Vector3(18.0, 0.7, 7.5) },
+      aeration: { pos: new THREE.Vector3(12.5, 5.8, 13.5), target: new THREE.Vector3(6.0, 1.2, 7.5) },
+      clarifier: { pos: new THREE.Vector3(0.5, 9.5, 5.0), target: new THREE.Vector3(0.5, 1.0, -4.5) },
+      tertiary: { pos: new THREE.Vector3(5.5, 6.8, -4.5), target: new THREE.Vector3(0.5, 1.0, -9.6) },
+      outfall: { pos: new THREE.Vector3(0.5, 3.2, -10.5), target: new THREE.Vector3(0.5, 0.4, -16.5) },
+      digesters: { pos: new THREE.Vector3(27.0, 9.5, 8.5), target: new THREE.Vector3(19.5, 3.0, -6.5) },
+      ground: { pos: new THREE.Vector3(-4.0, 1.6, 12.0), target: new THREE.Vector3(-4.0, 3.5, 5.0) }
+    };
+
+    function smoothTransitionCamera(preset) {
+      const startPos = camera.position.clone();
+      const startTarget = controls.target.clone();
+      const duration = 1.2;
+      let startTime = performance.now();
+
+      function step() {
+        const now = performance.now();
+        const progress = Math.min((now - startTime) / (duration * 1000), 1.0);
+        const ease = 0.5 - 0.5 * Math.cos(progress * Math.PI);
+
+        camera.position.lerpVectors(startPos, preset.pos, ease);
+        controls.target.lerpVectors(startTarget, preset.target, ease);
+
+        if (progress < 1.0) {
+          requestAnimationFrame(step);
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    function setBtnActive(id) {
+      document.querySelectorAll('.hud-controls .btn').forEach(b => {
+        if (b.id.startsWith('btn-cam')) b.classList.remove('active');
+      });
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+    }
+
+    document.getElementById('btn-cam-overview').addEventListener('click', () => {
+      setBtnActive('btn-cam-overview');
+      smoothTransitionCamera(cameraPresets.overview);
+    });
+
+    document.getElementById('btn-cam-influent').addEventListener('click', () => {
+      setBtnActive('btn-cam-influent');
+      smoothTransitionCamera(cameraPresets.influent);
+    });
+
+    document.getElementById('btn-cam-aeration').addEventListener('click', () => {
+      setBtnActive('btn-cam-aeration');
+      smoothTransitionCamera(cameraPresets.aeration);
+    });
+
+    document.getElementById('btn-cam-clarifier').addEventListener('click', () => {
+      setBtnActive('btn-cam-clarifier');
+      smoothTransitionCamera(cameraPresets.clarifier);
+    });
+
+    document.getElementById('btn-cam-tertiary').addEventListener('click', () => {
+      setBtnActive('btn-cam-tertiary');
+      smoothTransitionCamera(cameraPresets.tertiary);
+    });
+
+    document.getElementById('btn-cam-outfall').addEventListener('click', () => {
+      setBtnActive('btn-cam-outfall');
+      smoothTransitionCamera(cameraPresets.outfall);
+    });
+
+    document.getElementById('btn-cam-digesters').addEventListener('click', () => {
+      setBtnActive('btn-cam-digesters');
+      smoothTransitionCamera(cameraPresets.digesters);
+    });
+    document.getElementById('btn-cam-ground').addEventListener('click', () => {
+      setBtnActive('btn-cam-ground');
+      smoothTransitionCamera(cameraPresets.ground);
+    });
+
+    const animToggle = document.getElementById('btn-animate');
+    animToggle.addEventListener('click', () => {
+      isAnimating = !isAnimating;
+      animToggle.textContent = isAnimating ? 'Pause Motion' : 'Resume Motion';
+      animToggle.classList.toggle('active', !isAnimating);
+    });
+
+    document.getElementById('sun-altitude').addEventListener('input', (e) => {
+      updateSunPosition(parseFloat(e.target.value), parseFloat(document.getElementById('sun-azimuth').value));
+    });
+    document.getElementById('sun-azimuth').addEventListener('input', (e) => {
+      updateSunPosition(parseFloat(document.getElementById('sun-altitude').value), parseFloat(e.target.value));
+    });
+    document.getElementById('bloom-strength').addEventListener('input', (e) => {
+      bloomPass.strength = parseFloat(e.target.value) / 100.0;
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'wireframe') {
+      setShadingMode('wireframe');
+    } else if (urlParams.get('mode') === 'normals') {
+      setShadingMode('normals');
+    } else if (urlParams.get('mode') === 'clay') {
+      setShadingMode('clay');
+    }
+    const camParam = urlParams.get('cam');
+    if (camParam && cameraPresets[camParam]) {
+      camera.position.copy(cameraPresets[camParam].pos);
+      controls.target.copy(cameraPresets[camParam].target);
+      controls.update();
+      const b = document.getElementById(`btn-cam-${camParam}`);
+      if (b) setBtnActive(`btn-cam-${camParam}`);
+    }
+    if (urlParams.get('tour') === 'true') {
+      startTour();
+    }
+  </script>
+</body>
+</html>

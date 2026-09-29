@@ -1,0 +1,26 @@
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Node & package files (if any)
+node_modules/
+package-lock.json
+
+# Python cache & virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+
+# Editor & IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local build / scratch artifacts
+scratch/
+temp/
+*.log
