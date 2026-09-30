@@ -703,28 +703,28 @@
       }
 
       // Draw separated concrete equipment foundations (100% Engineered Sequence)
-      // 1. Aeration Basin Pad (Biological Activation)
-      drawConcretePad(6.0, 7.5, 17.0, 8.5);
+      // 1. Aeration Basin Pad (Biological Activation) - generous clearance
+      drawConcretePad(6.0, 7.5, 17.5, 9.0);
       // 2. Operations & Blower Building Pad
-      drawConcretePad(-11.5, 7.5, 10.0, 7.5);
+      drawConcretePad(-12.0, 7.5, 12.0, 8.5);
       // 3. Preliminary Headworks Pad (Raw Influent & Screens)
-      drawConcretePad(18.0, 7.5, 5.0, 6.0);
+      drawConcretePad(18.0, 7.5, 6.0, 7.0);
       // 4. Clarifier CL-01 Pad (Sedimentation)
-      drawConcretePad(-4.5, -4.5, 9.0, 9.0);
+      drawConcretePad(-4.5, -4.5, 9.2, 9.2);
       // 5. Clarifier CL-02 Pad (Sedimentation)
-      drawConcretePad(5.5, -4.5, 9.0, 9.0);
+      drawConcretePad(5.5, -4.5, 9.2, 9.2);
       // 6. Central Flow Splitter & Hydraulic Vault
-      drawConcretePad(0.5, 1.2, 4.0, 3.5);
+      drawConcretePad(0.5, 1.2, 4.5, 3.8);
       // 7. RAS/WAS Sludge Pump Station Pad
-      drawConcretePad(10.5, -4.5, 4.0, 4.0);
+      drawConcretePad(11.5, -4.5, 4.8, 4.8);
       // 8. Tertiary Filtration & UV Disinfection Complex Pad (DIRECTLY IN PROCESS FLOW!)
-      drawConcretePad(0.5, -9.2, 12.0, 5.8);
+      drawConcretePad(0.5, -9.6, 12.5, 6.2);
       // 9. Administration & Water Quality Laboratory Pad (West Campus)
-      drawConcretePad(-14.0, -4.5, 8.0, 8.0);
+      drawConcretePad(-15.5, -4.5, 9.5, 9.5);
       // 10. Anaerobic Digesters & Biosolids Solids Handling Pad (East Campus)
-      drawConcretePad(20.0, -6.0, 17.0, 12.5);
+      drawConcretePad(20.5, -5.5, 18.0, 13.5);
 
-      // Paved Asphalt Access Roadway Loop
+      // Paved Asphalt Access Roadway Loop & Dedicated Spur Aprons
       ctx.strokeStyle = '#22272e';
       ctx.lineWidth = 84;
       ctx.lineCap = 'round';
@@ -739,6 +739,15 @@
       ctx.lineTo(1620, 600);
       ctx.lineTo(1620, 1550);
       ctx.lineTo(1024, 1550);
+      // Service access spur to Admin Lab (West)
+      ctx.moveTo(450, 1024 + (-4.5) * 17.06);
+      ctx.lineTo(toPx(-15.5, -4.5).px, toPx(-15.5, -4.5).py);
+      // Service access spur to Blower Building (Northwest)
+      ctx.moveTo(450, 1024 + 7.5 * 17.06);
+      ctx.lineTo(toPx(-12.0, 7.5).px, toPx(-12.0, 7.5).py);
+      // Service access spur to Sludge Station & Digesters (East)
+      ctx.moveTo(1620, 1024 + (-4.5) * 17.06);
+      ctx.lineTo(toPx(11.5, -4.5).px, toPx(11.5, -4.5).py);
       ctx.stroke();
 
       // Roadway concrete curbs
@@ -1075,46 +1084,61 @@
     grassInst.castShadow = false; // Disable self-shadow on micro blades for high performance
 
     // Strict Zone Masking: Return true ONLY if (x, z) is in valid natural green turf
+    // ZERO grass blades in water, flumes, concrete foundations, gravel aprons, or asphalt roadways!
     function isGrassAllowed(x, z) {
       // 1. Must be inside site bounds
-      if (Math.abs(x) > 58 || Math.abs(z) > 58) return false;
+      if (Math.abs(x) > 56 || Math.abs(z) > 56) return false;
 
-      // 2. Concrete equipment pads (STRICT EXCLUSION)
-      // Aeration Pad
-      if (x >= -2.8 && x <= 14.8 && z >= 3.0 && z <= 12.0) return false;
-      // Blower Building Pad
-      if (x >= -16.8 && x <= -6.2 && z >= 3.5 && z <= 11.5) return false;
-      // Headworks Pad
-      if (x >= 15.2 && x <= 20.8 && z >= 4.2 && z <= 10.8) return false;
-      // Clarifier CL-01 Pad
-      if (x >= -9.2 && x <= 0.2 && z >= -9.2 && z <= 0.2) return false;
-      // Clarifier CL-02 Pad
-      if (x >= 0.8 && x <= 10.2 && z >= -9.2 && z <= 0.2) return false;
-      // Flow Splitter Pad
-      if (x >= -1.8 && x <= 2.8 && z >= -0.8 && z <= 3.2) return false;
-      // RAS/WAS Sludge Pump Station Pad
-      if (x >= 8.2 && x <= 12.8 && z >= -6.8 && z <= -2.2) return false;
-      // Tertiary Filtration & UV Disinfection Complex Pad (Center)
-      if (x >= -5.8 && x <= 6.8 && z >= -12.4 && z <= -6.0) return false;
-      // Admin & Testing Lab Pad (West)
-      if (x >= -18.5 && x <= -9.5 && z >= -8.8 && z <= -0.2) return false;
-      // Solids Handling & Digesters Pad (East)
-      if (x >= 10.0 && x <= 29.0 && z >= -13.0 && z <= 0.8) return false;
-      // Outfall Cascade Channel
-      if (x >= -1.0 && x <= 2.0 && z >= -17.5 && z <= -11.5) return false;
+      // 2. Concrete equipment pads & hydraulic channels (STRICT EXCLUSIONS WITH CLEAR BUFFER)
+      // (a) Biological Aeration Basin Pad & Perimeter
+      if (x >= -3.2 && x <= 15.2 && z >= 2.6 && z <= 12.4) return false;
+      // (b) Operations & Blower Building Pad & Substation (-12.0, 7.5)
+      if (x >= -18.5 && x <= -5.5 && z >= 2.8 && z <= 12.2) return false;
+      // (c) Preliminary Headworks Pad (18.0, 7.5)
+      if (x >= 14.6 && x <= 21.4 && z >= 3.6 && z <= 11.4) return false;
+      // (d) Connecting Inflow Flume (from Headworks 18.0 to Aeration 13.0)
+      if (x >= 12.5 && x <= 18.5 && z >= 6.4 && z <= 8.6) return false;
+      // (e) Clarifier CL-01 Pad & Center Basin (-4.5, -4.5, radius 4.8m)
+      if (Math.hypot(x - (-4.5), z - (-4.5)) < 4.8) return false;
+      if (x >= -9.5 && x <= 0.5 && z >= -9.5 && z <= 0.5) return false;
+      // (f) Clarifier CL-02 Pad & Center Basin (5.5, -4.5, radius 4.8m)
+      if (Math.hypot(x - 5.5, z - (-4.5)) < 4.8) return false;
+      if (x >= 0.5 && x <= 10.5 && z >= -9.5 && z <= 0.5) return false;
+      // (g) Central Mixed Liquor (MLSS) Channel & Flow Splitter Vault
+      if (x >= -2.4 && x <= 3.4 && z >= -1.2 && z <= 7.8) return false;
+      // (h) Clarifier to Tertiary Effluent Launders & Flumes
+      if (x >= -4.8 && x <= 5.8 && z >= -8.2 && z <= -4.0) return false;
+      // (i) RAS/WAS Sludge Pump Station & Piezometer Vault (11.5, -4.5)
+      if (x >= 8.5 && x <= 14.5 && z >= -7.5 && z <= -1.5) return false;
+      // (j) Return Activated Sludge (RAS) Pipe Corridor
+      if (x >= 11.0 && x <= 13.5 && z >= -4.8 && z <= 8.0) return false;
+      // (k) Tertiary Filtration & UV Disinfection Complex Pad (0.5, -9.6)
+      if (x >= -6.2 && x <= 7.2 && z >= -13.0 && z <= -6.2) return false;
+      // (l) Parshall Flume Outfall & Cascade Waterfall Channel (0.5, -14.2 to -17.5)
+      if (x >= -1.6 && x <= 2.6 && z >= -18.0 && z <= -11.0) return false;
+      // (m) West Administration & Environmental Testing Lab (-15.5, -4.5)
+      if (x >= -21.0 && x <= -10.0 && z >= -9.8 && z <= 0.8) return false;
+      // (n) East Anaerobic Digesters TK-101, TK-102 & Biogas Handling Pad
+      if (x >= 11.0 && x <= 30.0 && z >= -13.5 && z <= 1.5) return false;
 
-      // 3. Retention Wetland Pond Water (radius 8.5 at (0.5, -22.5))
+      // 3. Retention Wetland Pond & Riparian Rocky Bank (radius 8.5m + 1.2m bank buffer at (0.5, -22.5))
       const dPond = Math.hypot(x - 0.5, z - (-22.5));
-      if (dPond < 8.6) return false;
+      if (dPond < 9.8) return false;
 
-      // 4. Asphalt Roadways (Exclude road corridors: width 5.0m -> distance < 2.8m)
-      // South entrance
-      if (Math.abs(x - 0.0) < 3.0 && z >= 15.0) return false;
-      // Loop roads
-      if (Math.abs(z - 15.5) < 3.0 && x >= -34.0 && x <= 35.0) return false;
-      if (Math.abs(z - (-25.0)) < 3.0 && x >= -34.0 && x <= 35.0) return false;
-      if (Math.abs(x - (-34.0)) < 3.0 && z >= -25.0 && z <= 15.5) return false;
-      if (Math.abs(x - 35.0) < 3.0 && z >= -25.0 && z <= 15.5) return false;
+      // 4. Asphalt Roadways & Access Spurs (corridor width 5.2m -> exclusion buffer 3.2m)
+      // Main South Entrance road
+      if (Math.abs(x - 0.0) < 3.2 && z >= 14.5) return false;
+      // Perimeter Loop Roads
+      if (Math.abs(z - 15.5) < 3.2 && x >= -35.0 && x <= 36.0) return false;
+      if (Math.abs(z - (-25.0)) < 3.2 && x >= -35.0 && x <= 36.0) return false;
+      if (Math.abs(x - (-34.0)) < 3.2 && z >= -25.5 && z <= 16.0) return false;
+      if (Math.abs(x - 35.0) < 3.2 && z >= -25.5 && z <= 16.0) return false;
+      // Road Spur to West Admin Lab
+      if (Math.abs(z - (-4.5)) < 3.0 && x >= -34.0 && x <= -15.0) return false;
+      // Road Spur to Blower Building
+      if (Math.abs(z - 7.5) < 3.0 && x >= -34.0 && x <= -12.0) return false;
+      // Road Spur to East Sludge Handling & Digesters
+      if (Math.abs(z - (-4.5)) < 3.0 && x >= 11.0 && x <= 35.0) return false;
 
       return true;
     }
@@ -1288,16 +1312,22 @@
     hwRailR.position.set(1.15, 1.58, -1.6);
     headworksGroup.add(hwRailR);
 
-    // Connecting Inflow Flume bridging Headworks to Aeration Basin (length 4.0m)
-    const bridgeFlume = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.45, 1.0), materials.concreteWall);
-    bridgeFlume.position.set(-3.2, 0.85, -1.5);
+    // Connecting Inflow Flume bridging Headworks (18.0, 0, 7.5) to Aeration Basin inlet (13.0, 0, 7.5)
+    // Runs 5.0m westward from x = 0.0 to x = -5.0 relative to Headworks (from world x=18.0 to x=13.0)
+    const bridgeFlume = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.45, 1.0), materials.concreteWall);
+    bridgeFlume.position.set(-2.6, 0.85, 0.0);
     headworksGroup.add(bridgeFlume);
 
     // Flume dirty water surface
-    const bridgeFlumeWater = new THREE.Mesh(new THREE.PlaneGeometry(4.0, 0.8), materials.dirtyInfluentWater);
+    const bridgeFlumeWater = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 0.76), materials.dirtyInfluentWater);
     bridgeFlumeWater.rotation.x = -Math.PI / 2;
-    bridgeFlumeWater.position.set(-3.2, 1.05, -1.5);
+    bridgeFlumeWater.position.set(-2.6, 1.05, 0.0);
     headworksGroup.add(bridgeFlumeWater);
+
+    // Flume safety handrails
+    const flumeRail = new THREE.Mesh(new THREE.BoxGeometry(5.0, 0.45, 0.04), materials.safetyYellow);
+    flumeRail.position.set(-2.6, 1.30, 0.48);
+    headworksGroup.add(flumeRail);
 
     // ID Signage Plaque for Headworks
     const headSignMat = new THREE.MeshStandardMaterial({
@@ -1330,20 +1360,20 @@
     facilityGroup.add(mlssWater);
 
     // --- Return Activated Sludge (RAS) Seeding Pipe back to Aeration Headworks ---
-    // Returns active biomass from Sludge Pump Station (10.5, -4.5) to Aeration inlet (13.0, 7.5)
-    const rasPipeRun = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 12.5, 16), materials.processPipeBlue);
-    rasPipeRun.position.set(11.8, 0.4, 1.5);
+    // Returns active biomass from Sludge Pump Station (11.5, -4.5) to Aeration inlet (12.5, 7.5)
+    const rasPipeRun = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 12.0, 16), materials.processPipeBlue);
+    rasPipeRun.position.set(12.2, 0.45, 1.5);
     rasPipeRun.rotation.x = Math.PI / 2;
     rasPipeRun.castShadow = true;
     facilityGroup.add(rasPipeRun);
 
-    const rasElbowN = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.8, 16), materials.processPipeBlue);
-    rasElbowN.position.set(11.1, 0.4, -4.5);
+    const rasElbowN = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.4, 16), materials.processPipeBlue);
+    rasElbowN.position.set(11.8, 0.45, -4.5);
     rasElbowN.rotation.z = Math.PI / 2;
     facilityGroup.add(rasElbowN);
 
-    const rasElbowS = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.6, 16), materials.processPipeBlue);
-    rasElbowS.position.set(12.4, 0.4, 7.5);
+    const rasElbowS = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.4, 16), materials.processPipeBlue);
+    rasElbowS.position.set(12.5, 0.45, 7.5);
     rasElbowS.rotation.z = Math.PI / 2;
     facilityGroup.add(rasElbowS);
 
@@ -1463,13 +1493,14 @@
     blowerGroup.add(subYard);
 
     // Complete Structural Pipe Gantry Truss Bridge across Roadway (Spanning from Blower Building east wall x=4.0 to Aeration Basin west wall x=10.5)
+    // Runs at z = -2.8 to align with the northern longitudinal air header of Aeration Basin
     const pipeBridge = new THREE.Group();
     pipeBridge.name = "Low-Pressure Air Header Pipe Gantry Bridge";
     pipeBridge.userData = { subsystem: "Aeration Air Distribution", spec: "Structural steel pipe trestle spanning roadway (clearance 4.2m) with 500mm insulated header" };
     
     // West Tower (Verge of Roadway)
     const towerW = new THREE.Group();
-    towerW.position.set(5.1, 0, 0);
+    towerW.position.set(5.1, 0, -2.8);
     const postW1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.3, 12), materials.structuralSteel);
     postW1.position.set(0, 2.15, -0.4);
     const postW2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.3, 12), materials.structuralSteel);
@@ -1479,7 +1510,7 @@
 
     // East Tower (Verge of Aeration Basin)
     const towerE = new THREE.Group();
-    towerE.position.set(9.7, 0, 0);
+    towerE.position.set(9.7, 0, -2.8);
     const postE1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.3, 12), materials.structuralSteel);
     postE1.position.set(0, 2.15, -0.4);
     const postE2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.3, 12), materials.structuralSteel);
@@ -1487,33 +1518,33 @@
     towerE.add(postE1, postE2);
     pipeBridge.add(towerE);
 
-    // Main Overhead Truss Beam (Spans 6.5m from x=4.0 to x=10.5)
+    // Main Overhead Truss Beam (Spans 6.6m from x=4.0 to x=10.6 at z=-2.8)
     const bridgeTruss = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.22, 1.0), materials.structuralSteel);
-    bridgeTruss.position.set(7.25, 4.15, 0);
+    bridgeTruss.position.set(7.25, 4.15, -2.8);
     bridgeTruss.castShadow = true;
     pipeBridge.add(bridgeTruss);
 
     // Yellow/Black Hazard Stripes on Roadway Underpass
     const hazardBar = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.16, 1.02), materials.safetyYellow);
-    hazardBar.position.set(7.4, 4.02, 0);
+    hazardBar.position.set(7.4, 4.02, -2.8);
     pipeBridge.add(hazardBar);
 
     // Main Air Header Pipe (Horizontal run across full span)
     const mainHeaderPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 6.6, 24), materials.processPipeBlue);
     mainHeaderPipe.rotation.z = Math.PI / 2;
-    mainHeaderPipe.position.set(7.25, 4.45, 0);
+    mainHeaderPipe.position.set(7.25, 4.45, -2.8);
     mainHeaderPipe.castShadow = true;
     pipeBridge.add(mainHeaderPipe);
 
-    // West Vertical Drop into Blower Compressor Roof (at x=4.0)
+    // West Vertical Drop into Blower Compressor Roof (at x=4.0, z=-2.8)
     const elbowW = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 1.4, 24), materials.processPipeBlue);
-    elbowW.position.set(4.0, 3.75, 0);
+    elbowW.position.set(4.0, 3.75, -2.8);
     elbowW.castShadow = true;
     pipeBridge.add(elbowW);
 
-    // East Vertical Drop connecting into Aeration Basin Header (at x=10.5)
-    const elbowE = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 2.3, 24), materials.processPipeBlue);
-    elbowE.position.set(10.5, 3.3, 0);
+    // East Vertical Drop connecting into Aeration Basin Header (at x=10.5, z=-2.8)
+    const elbowE = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 2.6, 24), materials.processPipeBlue);
+    elbowE.position.set(10.5, 3.15, -2.8);
     elbowE.castShadow = true;
     pipeBridge.add(elbowE);
 
@@ -1646,31 +1677,89 @@
     });
 
     // --- Clarifier Effluent Flumes discharging to Tertiary Complex ---
-    // CL-01 Flume (West): Runs from (-4.5, 1.25, -7.8) northeast to Tertiary Inlet (-1.5, 1.1, -8.0)
-    const cl1OutFlume = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 2.2), materials.concreteWall);
-    cl1OutFlume.position.set(-2.8, 0.95, -7.6);
-    cl1OutFlume.rotation.y = -0.65;
+    // --- Clarifier Effluent Flumes discharging to Tertiary Complex ---
+    // Both secondary clarifier peripheral launders feed into a central conduit bridging directly into Tertiary Rapid Sand Filters
+    const cl1OutFlume = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 2.6), materials.concreteWall);
+    cl1OutFlume.position.set(-2.6, 0.95, -7.5);
+    cl1OutFlume.rotation.y = -0.52;
     cl1OutFlume.castShadow = true;
     facilityGroup.add(cl1OutFlume);
 
-    const cl1Water = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 2.2), materials.clarifierWater);
+    const cl1Water = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 2.6), materials.clarifierWater);
     cl1Water.rotation.x = -Math.PI / 2;
-    cl1Water.rotation.z = 0.65;
-    cl1Water.position.set(-2.8, 1.12, -7.6);
+    cl1Water.rotation.z = 0.52;
+    cl1Water.position.set(-2.6, 1.12, -7.5);
     facilityGroup.add(cl1Water);
 
-    // CL-02 Flume (East): Runs from (5.5, 1.25, -7.8) northwest to Tertiary Inlet (2.5, 1.1, -8.0)
-    const cl2OutFlume = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 2.2), materials.concreteWall);
-    cl2OutFlume.position.set(3.8, 0.95, -7.6);
-    cl2OutFlume.rotation.y = 0.65;
+    const cl2OutFlume = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 2.6), materials.concreteWall);
+    cl2OutFlume.position.set(3.6, 0.95, -7.5);
+    cl2OutFlume.rotation.y = 0.52;
     cl2OutFlume.castShadow = true;
     facilityGroup.add(cl2OutFlume);
 
-    const cl2Water = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 2.2), materials.clarifierWater);
+    const cl2Water = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 2.6), materials.clarifierWater);
     cl2Water.rotation.x = -Math.PI / 2;
-    cl2Water.rotation.z = -0.65;
-    cl2Water.position.set(3.8, 1.12, -7.6);
+    cl2Water.rotation.z = -0.52;
+    cl2Water.position.set(3.6, 1.12, -7.5);
     facilityGroup.add(cl2Water);
+
+    // =========================================================================
+    // DEDICATED RAS / WAS SLUDGE PUMP STATION & METERING VAULT
+    // Position: (11.5, 0, -4.5) — Centrally positioned between Clarifiers and Digesters
+    // =========================================================================
+    const sludgeStationGroup = new THREE.Group();
+    sludgeStationGroup.name = "Return & Waste Activated Sludge (RAS/WAS) Pumping Station";
+    sludgeStationGroup.userData = { subsystem: "Biosolids Management & Pumping", spec: "Submersible chopper pumps recycling active biomass (RAS) to aeration and diverting waste sludge (WAS) to digesters" };
+    sludgeStationGroup.position.set(11.5, 0, -4.5);
+    facilityGroup.add(sludgeStationGroup);
+
+    // Reinforced concrete dry-well building / wet-well vault
+    const spFloor = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.3, 4.2), materials.concreteWall);
+    spFloor.position.set(0, 0.15, 0);
+    spFloor.castShadow = true;
+    sludgeStationGroup.add(spFloor);
+
+    const spBuilding = new THREE.Mesh(new THREE.BoxGeometry(3.6, 2.4, 3.6), materials.concreteWall);
+    spBuilding.position.set(0, 1.35, 0);
+    spBuilding.castShadow = true;
+    sludgeStationGroup.add(spBuilding);
+
+    const spRoof = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.15, 3.8), materials.concreteCapping);
+    spRoof.position.set(0, 2.6, 0);
+    sludgeStationGroup.add(spRoof);
+
+    // Double aluminum access doors
+    const spDoor = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.8), new THREE.MeshStandardMaterial({ color: "#334155", metalness: 0.8, roughness: 0.3 }));
+    spDoor.position.set(0, 1.0, 1.81);
+    sludgeStationGroup.add(spDoor);
+
+    // External heavy duty motor pump headers & electromagnetic flow meter loops
+    for (let p = -0.9; p <= 0.9; p += 1.8) {
+      const motorBase = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.8, 16), materials.structuralSteel);
+      motorBase.position.set(p, 0.5, 2.4);
+      motorBase.castShadow = true;
+      sludgeStationGroup.add(motorBase);
+
+      const dischargePipe = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 1.4, 16), materials.processPipeBlue);
+      dischargePipe.position.set(p, 1.2, 2.4);
+      sludgeStationGroup.add(dischargePipe);
+    }
+
+    // Waste Activated Sludge (WAS) Transfer Pipeline run toward Anaerobic Digesters
+    // Runs from Sludge Pump Station (11.5, -4.5) east to TK-101 (16.0, -4.5)
+    const wasPipeRun = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 5.0, 16), materials.processPipeBlue);
+    wasPipeRun.rotation.z = Math.PI / 2;
+    wasPipeRun.position.set(2.8, 0.45, 0.0);
+    sludgeStationGroup.add(wasPipeRun);
+
+    // ID Plaque
+    const spSignMat = new THREE.MeshStandardMaterial({
+      map: generateSignageTexture("RAS / WAS PUMP STATION", "BIOMASS RECYCLE & SLUDGE PURGE", 512, 128, '#0284c7'),
+      roughness: 0.3, metalness: 0.6
+    });
+    const spSign = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.36, 0.04), spSignMat);
+    spSign.position.set(0, 2.1, 1.82);
+    sludgeStationGroup.add(spSign);
 
     // =========================================================================
     // WATER TREATMENT STAGE 4: TERTIARY FILTRATION & UV DISINFECTION COMPLEX
@@ -1714,6 +1803,16 @@
     tDivWall.position.set(0, 0.75, 0);
     tDivWall.castShadow = true;
     filterGroup.add(tDivWall);
+
+    // Inter-stage transfer flume cut weir: passes filtered water from West sand filters to East UV channels
+    const filterTransFlume = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 0.7), materials.concreteWall);
+    filterTransFlume.position.set(0, 0.85, 1.2);
+    filterGroup.add(filterTransFlume);
+
+    const filterTransWater = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.5), materials.clarifierWater);
+    filterTransWater.rotation.x = -Math.PI / 2;
+    filterTransWater.position.set(0, 1.05, 1.2);
+    filterGroup.add(filterTransWater);
 
     // --- WEST WING: DUAL RAPID SAND / ANTHRACITE MEDIA FILTERS ---
     const sandBed = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.45, 3.2), materials.sandMedia);
@@ -1779,40 +1878,93 @@
     tRail2.position.set(0.42, 1.62, 0);
     filterGroup.add(tRail2);
 
+    // --- Disinfected Effluent Discharge Conduit to Parshall Flume Outfall ---
+    // Connects Tertiary UV exit (x=0.5+2.5=3.0, z=-9.6-1.75=-11.35) southwest to Outfall inlet (x=0.5, z=-11.5)
+    const uvDischargeFlume = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 2.6), materials.concreteWall);
+    uvDischargeFlume.position.set(1.5, 0.45, -11.4);
+    uvDischargeFlume.rotation.y = 0.85;
+    uvDischargeFlume.castShadow = true;
+    facilityGroup.add(uvDischargeFlume);
+
+    const uvDischargeWater = new THREE.Mesh(new THREE.PlaneGeometry(0.45, 2.6), materials.cleanEffluentWater);
+    uvDischargeWater.rotation.x = -Math.PI / 2;
+    uvDischargeWater.rotation.z = -0.85;
+    uvDischargeWater.position.set(1.5, 0.68, -11.4);
+    facilityGroup.add(uvDischargeWater);
+
     // =========================================================================
     // WEST CAMPUS: PLANT OPERATIONS & WATER QUALITY TESTING LABORATORY
-    // Position: (-14.0, 0, -4.5) — Active administration & compliance lab
+    // Position: (-15.5, 0, -4.5) — Generous setback from clarifiers and roadways
     // =========================================================================
     const labGroup = new THREE.Group();
     labGroup.name = "Plant Operations & Water Quality Laboratory";
     labGroup.userData = { subsystem: "Quality Control & Compliance", spec: "Certified EPA wastewater analysis lab: BOD5, COD, TSS, turbidity & pathogen testing" };
-    labGroup.position.set(-14.0, 0, -4.5);
+    labGroup.position.set(-15.5, 0, -4.5);
     facilityGroup.add(labGroup);
 
-    // Modern Administrative Building
-    const labBuilding = new THREE.Mesh(new THREE.BoxGeometry(6.4, 3.0, 5.6), materials.concreteWall);
-    labBuilding.position.set(0, 1.5, 0);
+    // Foundation concrete slab pad
+    const labPad = new THREE.Mesh(new THREE.BoxGeometry(8.8, 0.25, 7.8), materials.concreteWall);
+    labPad.position.set(0, 0.125, 0);
+    labPad.receiveShadow = true;
+    labGroup.add(labPad);
+
+    // Modern Administrative & Lab Facility Building
+    const labBuilding = new THREE.Mesh(new THREE.BoxGeometry(7.6, 3.4, 6.4), materials.concreteWall);
+    labBuilding.position.set(0, 1.825, 0);
     labBuilding.castShadow = true;
     labGroup.add(labBuilding);
 
-    // Entrance Canopy & Glass Windows
-    const labCanopy = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.15, 1.2), materials.structuralSteel);
-    labCanopy.position.set(0, 2.3, 3.1);
+    // Parapet roof cap rim
+    const labRoofRim = new THREE.Mesh(new THREE.BoxGeometry(7.8, 0.18, 6.6), materials.concreteCapping);
+    labRoofRim.position.set(0, 3.58, 0);
+    labGroup.add(labRoofRim);
+
+    // Entrance Plaza Canopy & Glass Ribbon Facade
+    const labCanopy = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.16, 1.6), materials.structuralSteel);
+    labCanopy.position.set(0, 2.6, 3.8);
+    labCanopy.castShadow = true;
     labGroup.add(labCanopy);
 
-    const labDoor = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.0), new THREE.MeshStandardMaterial({ color: "#1e293b", roughness: 0.2 }));
-    labDoor.position.set(0, 1.0, 2.82);
+    const canopyPoles1 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.6, 12), materials.structuralSteel);
+    canopyPoles1.position.set(-1.2, 1.3, 4.4);
+    labGroup.add(canopyPoles1);
+    const canopyPoles2 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.6, 12), materials.structuralSteel);
+    canopyPoles2.position.set(1.2, 1.3, 4.4);
+    labGroup.add(canopyPoles2);
+
+    const labDoor = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.2), new THREE.MeshStandardMaterial({ color: "#0f172a", roughness: 0.15, metalness: 0.8 }));
+    labDoor.position.set(0, 1.25, 3.22);
     labGroup.add(labDoor);
+
+    // Laboratory Ribbon Windows (South and North faces)
+    const windowMat = new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.1, metalness: 0.9 });
+    const winS = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 0.9), windowMat);
+    winS.position.set(0, 2.2, 3.22);
+    labGroup.add(winS);
+
+    // HVAC Rooftop Air Handling Unit
+    const hvacUnit = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.1, 1.6), materials.structuralSteel);
+    hvacUnit.position.set(-1.6, 4.15, 0.5);
+    labGroup.add(hvacUnit);
 
     // SCADA Telemetry Antenna Mast
     const antennaMast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 4.2, 10), materials.structuralSteel);
-    antennaMast.position.set(2.2, 5.0, -1.8);
+    antennaMast.position.set(2.4, 5.6, -1.8);
     labGroup.add(antennaMast);
 
-    const antennaDish = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), materials.structuralSteel);
-    antennaDish.position.set(2.2, 6.5, -1.8);
+    const antennaDish = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), materials.structuralSteel);
+    antennaDish.position.set(2.4, 7.2, -1.8);
     antennaDish.rotation.x = Math.PI / 4;
     labGroup.add(antennaDish);
+
+    // Laboratory ID Signage
+    const labSignMat = new THREE.MeshStandardMaterial({
+      map: generateSignageTexture("OPERATIONS & EPA TESTING LAB", "STAGE 07: SCADA TELEMETRY & QC COMPLIANCE", 512, 128, '#38bdf8'),
+      roughness: 0.3, metalness: 0.6
+    });
+    const labSign = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.45, 0.04), labSignMat);
+    labSign.position.set(0, 2.95, 3.23);
+    labGroup.add(labSign);
 
     // =========================================================================
     // WATER TREATMENT STAGE 5: FINAL CLEAN WATER DISCHARGE OUTFALL (CLEAN WATER OUT!)
@@ -2009,6 +2161,56 @@
       storageTanks.add(dtGroup);
     });
 
+    // Enclosed Biogas Elevated Flare Stack (Methane safety relief, 12m height)
+    const flareGroup = new THREE.Group();
+    flareGroup.name = "Biogas Surplus Elevated Flare Stack";
+    flareGroup.userData = { subsystem: "Biogas Management & Safety", spec: "Enclosed elevated candle flare with flame arrestor and automatic pilot ignition for surplus methane destruction" };
+    flareGroup.position.set(26.5, 0, -5.0);
+    
+    const flareBase = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 0.4, 16), materials.concreteWall);
+    flareBase.position.y = 0.2;
+    flareGroup.add(flareBase);
+
+    const flareStack = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 10.5, 16), materials.structuralSteel);
+    flareStack.position.y = 5.45;
+    flareStack.castShadow = true;
+    flareGroup.add(flareStack);
+
+    const flareTip = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.18, 1.4, 16), materials.structuralSteel);
+    flareTip.position.y = 11.2;
+    flareGroup.add(flareTip);
+
+    const flarePilot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.24, 12, 12),
+      new THREE.MeshBasicMaterial({ color: '#f97316' })
+    );
+    flarePilot.position.y = 12.0;
+    flareGroup.add(flarePilot);
+    facilityGroup.add(flareGroup);
+
+    // Mechanical Sludge Dewatering & Centrifuge Building (East Bio-Pad)
+    const dewaterGroup = new THREE.Group();
+    dewaterGroup.name = "Centrifuge Sludge Dewatering Facility";
+    dewaterGroup.userData = { subsystem: "Biosolids Dewatering", spec: "High-solids decanter centrifuges producing 22% dry solids cake for agricultural land application" };
+    dewaterGroup.position.set(16.5, 0, -9.5);
+    
+    const dwHall = new THREE.Mesh(new THREE.BoxGeometry(6.2, 3.2, 4.4), materials.concreteWall);
+    dwHall.position.set(0, 1.6, 0);
+    dwHall.castShadow = true;
+    dewaterGroup.add(dwHall);
+
+    const dwRoof = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.15, 4.6), materials.concreteCapping);
+    dwRoof.position.set(0, 3.25, 0);
+    dewaterGroup.add(dwRoof);
+
+    // Cake load-out bay roll-up doors
+    for (let r = -1.5; r <= 1.5; r += 3.0) {
+      const rollDoor = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.4), new THREE.MeshStandardMaterial({ color: "#475569", metalness: 0.7, roughness: 0.4 }));
+      rollDoor.position.set(r, 1.2, 2.21);
+      dewaterGroup.add(rollDoor);
+    }
+    facilityGroup.add(dewaterGroup);
+
     // Perimeter High-Mast Industrial Floodlights
     function createFloodlightPole(x, z) {
       const pole = new THREE.Group();
@@ -2033,10 +2235,10 @@
 
       return pole;
     }
-    facilityGroup.add(createFloodlightPole(22.0, 12.0));
-    facilityGroup.add(createFloodlightPole(-18.0, 12.0));
-    facilityGroup.add(createFloodlightPole(10.0, -10.0));
-    facilityGroup.add(createFloodlightPole(-10.0, -10.0));
+    facilityGroup.add(createFloodlightPole(24.0, 12.0));
+    facilityGroup.add(createFloodlightPole(-22.0, 12.0));
+    facilityGroup.add(createFloodlightPole(12.0, -12.0));
+    facilityGroup.add(createFloodlightPole(-12.0, -12.0));
 
     // =========================================================================
     // 5. 3D TEXT PINS & ANNOTATION SYSTEM (UPDATED COORDINATES)
@@ -2045,12 +2247,12 @@
       { id: "01", text: "Raw Influent & Headworks", worldPos: new THREE.Vector3(18.0, 2.0, 7.5), desc: "Raw municipal sewer line with mechanical bar screens & screenings hopper" },
       { id: "02", text: "Aeration Bio-Reactors & Blowers", worldPos: new THREE.Vector3(6.0, 2.2, 7.5), desc: "Activated sludge biological treatment fed by overhead compressed air gantry bridge" },
       { id: "03", text: "Flow Splitter & Clarifiers", worldPos: new THREE.Vector3(0.5, 2.0, -4.5), desc: "Dual 16m center-feed circular clarifiers with rotating scraper bridges" },
-      { id: "04", text: "RAS/WAS Sludge Pump Station", worldPos: new THREE.Vector3(10.5, 1.8, -4.5), desc: "Recycles Return Sludge (RAS) to Aeration & pumps Waste Sludge (WAS) to Digesters" },
-      { id: "05", text: "Tertiary Filtration & UV Disinfection", worldPos: new THREE.Vector3(0.5, 2.0, -9.2), desc: "Dual-media sand filters & actinic UV lamp disinfection reducing turbidity to <1 NTU" },
+      { id: "04", text: "RAS/WAS Sludge Pump Station", worldPos: new THREE.Vector3(11.5, 1.8, -4.5), desc: "Recycles Return Sludge (RAS) to Aeration & pumps Waste Sludge (WAS) to Digesters" },
+      { id: "05", text: "Tertiary Filtration & UV Disinfection", worldPos: new THREE.Vector3(0.5, 2.0, -9.6), desc: "Dual-media sand filters & actinic UV lamp disinfection reducing turbidity to <1 NTU" },
       { id: "06", text: "Clean Effluent Cascade Outfall", worldPos: new THREE.Vector3(0.5, 1.8, -14.2), desc: "Calibrated Parshall flume discharging sparkling clean water over stepped weir" },
       { id: "07", text: "Environmental Wetland Lagoon", worldPos: new THREE.Vector3(0.5, 0.8, -22.5), desc: "Natural polishing wetland pond with emergent vegetation and riparian boulders" },
-      { id: "08", text: "Anaerobic Digestion & Biogas Flare", worldPos: new THREE.Vector3(19.5, 5.2, -5.5), desc: "Solids stabilization, dewatered cake storage & surplus methane flare stack" },
-      { id: "09", text: "Operations & Water Testing Lab", worldPos: new THREE.Vector3(-14.0, 2.6, -4.5), desc: "Certified EPA water quality laboratory & SCADA facility monitoring center" }
+      { id: "08", text: "Anaerobic Digestion & Biogas Flare", worldPos: new THREE.Vector3(20.5, 5.2, -5.5), desc: "Solids stabilization, dewatered cake storage & surplus methane flare stack" },
+      { id: "09", text: "Operations & Water Testing Lab", worldPos: new THREE.Vector3(-15.5, 2.6, -4.5), desc: "Certified EPA water quality laboratory & SCADA facility monitoring center" }
     ];
 
     const annotationsContainer = document.getElementById('annotations-layer');
