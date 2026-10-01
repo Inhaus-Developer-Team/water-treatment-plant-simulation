@@ -608,7 +608,7 @@
       return tex;
     }
 
-    // (C2) High-Density Aeration Basin Surface Foam & Bubble Cluster Texture
+    // (C2) Delicate Fine-Effervescence Aeration Basin Surface Foam & Microbubble Texture
     function generateAerationFoamTexture(w = 512, h = 512) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
@@ -616,14 +616,14 @@
 
       ctx.clearRect(0, 0, w, h);
 
-      // Diffuse background froth
-      for (let p = 0; p < 80; p++) {
+      // Soft, very faint wispy effervescence clouds (low opacity, fine scale)
+      for (let p = 0; p < 24; p++) {
         const px = Math.random() * w;
         const py = Math.random() * h;
-        const pr = 20 + Math.random() * 45;
-        const grad = ctx.createRadialGradient(px, py, 4, px, py, pr);
-        grad.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
-        grad.addColorStop(0.6, 'rgba(224, 242, 254, 0.35)');
+        const pr = 12 + Math.random() * 24;
+        const grad = ctx.createRadialGradient(px, py, 1, px, py, pr);
+        grad.addColorStop(0, 'rgba(255, 255, 255, 0.14)');
+        grad.addColorStop(0.5, 'rgba(224, 242, 254, 0.07)');
         grad.addColorStop(1, 'rgba(186, 230, 253, 0)');
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -631,20 +631,20 @@
         ctx.fill();
       }
 
-      // Thousands of individual bursting microbubbles and foam cells
-      for (let i = 0; i < 4200; i++) {
+      // Delicate microbubble fizz dots and tiny foam vein rings
+      for (let i = 0; i < 1800; i++) {
         const x = Math.random() * w;
         const y = Math.random() * h;
-        const r = 0.8 + Math.random() * 3.8;
-        const alpha = 0.35 + Math.random() * 0.65;
+        const r = 0.5 + Math.random() * 1.6;
+        const alpha = 0.12 + Math.random() * 0.28;
         ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fill();
 
-        if (Math.random() > 0.6) {
-          ctx.strokeStyle = 'rgba(186, 230, 253, 0.8)';
-          ctx.lineWidth = 0.8;
+        if (Math.random() > 0.75) {
+          ctx.strokeStyle = `rgba(224, 242, 254, ${alpha * 0.6})`;
+          ctx.lineWidth = 0.5;
           ctx.stroke();
         }
       }
@@ -652,7 +652,7 @@
       const tex = new THREE.CanvasTexture(canvas);
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(6, 3);
+      tex.repeat.set(3, 2);
       tex.needsUpdate = true;
       return tex;
     }
@@ -1092,20 +1092,23 @@
       // STAGE 2: BIOLOGICAL MIXED LIQUOR AERATION WATER & FOAM
       aerationWater: new THREE.MeshStandardMaterial({
         color: '#1f536b',
-        roughness: 0.18,
-        metalness: 0.22,
+        roughness: 0.15,
+        metalness: 0.18,
         bumpMap: aerationFoamMap,
-        bumpScale: 0.12,
+        bumpScale: 0.02,
         transparent: true,
-        opacity: 0.90
+        opacity: 0.92
       }),
       aerationFoam: new THREE.MeshStandardMaterial({
         map: aerationFoamMap,
         transparent: true,
-        opacity: 0.86,
-        roughness: 0.15,
-        metalness: 0.08,
-        depthWrite: false
+        opacity: 0.22,
+        roughness: 0.20,
+        metalness: 0.05,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1
       }),
       // STAGE 3: SECONDARY CLARIFIED WATER
       clarifierWater: new THREE.MeshStandardMaterial({
@@ -1546,11 +1549,11 @@
     aerationWaterMesh.receiveShadow = true;
     aerationGroup.add(aerationWaterMesh);
 
-    // Active Surface Aeration Foam & Boiling Bubbles Layer
-    const aerationFoamMesh = new THREE.Mesh(new THREE.PlaneGeometry(waterGeomW, waterGeomD), materials.aerationFoam);
+    // Active Surface Aeration Foam & Boiling Bubbles Layer (Shares water geometry to eliminate clipping)
+    const aerationFoamMesh = new THREE.Mesh(aerationWaterGeom, materials.aerationFoam);
     aerationFoamMesh.name = "Aeration Boiling Surface Foam & Bubble Raft";
     aerationFoamMesh.rotation.x = -Math.PI / 2;
-    aerationFoamMesh.position.set(0, basinH * 0.78 + 0.006, 0);
+    aerationFoamMesh.position.set(0, basinH * 0.78 + 0.003, 0);
     aerationGroup.add(aerationFoamMesh);
 
     // Floor Fine-Bubble Disc Diffusers Grid (EPDM membrane aerators)
@@ -1574,17 +1577,17 @@
     diffusersInst.instanceMatrix.needsUpdate = true;
     aerationGroup.add(diffusersInst);
 
-    // 850 Volumetric Rising Air Bubbles (InstancedMesh)
-    const bubbleCount = 850;
-    const bubbleGeom = new THREE.SphereGeometry(0.046, 8, 6);
+    // 1000 Volumetric Rising Fine Air Bubbles (InstancedMesh - Realistic microbubble fizz)
+    const bubbleCount = 1000;
+    const bubbleGeom = new THREE.SphereGeometry(0.010, 6, 5);
     const bubbleMat = new THREE.MeshStandardMaterial({
-      color: '#ffffff',
-      roughness: 0.05,
-      metalness: 0.15,
+      color: '#f0f9ff',
+      roughness: 0.10,
+      metalness: 0.10,
       transparent: true,
-      opacity: 0.88,
-      emissive: '#bae6fd',
-      emissiveIntensity: 0.50,
+      opacity: 0.65,
+      emissive: '#dbeafe',
+      emissiveIntensity: 0.22,
       depthWrite: false
     });
     const bubbleInst = new THREE.InstancedMesh(bubbleGeom, bubbleMat, bubbleCount);
@@ -1597,9 +1600,9 @@
       const isNorth = Math.random() > 0.5;
       const bz = isNorth ? (-0.45 - Math.random() * 2.15) : (0.45 + Math.random() * 2.15);
       const bx = (Math.random() - 0.5) * 12.6;
-      const by = 0.32 + Math.random() * 0.92;
-      const bScale = 0.45 + Math.random() * 1.1;
-      const speed = 0.55 + Math.random() * 0.65;
+      const by = 0.32 + Math.random() * 0.90;
+      const bScale = 0.50 + Math.random() * 0.70;
+      const speed = 0.18 + Math.random() * 0.15;
       const wobblePhase = Math.random() * Math.PI * 2;
       bubbleData.push({ x: bx, y: by, z: bz, scale: bScale, speed: speed, phase: wobblePhase });
       bMatrixDummy.position.set(bx, by, bz);
@@ -1609,8 +1612,8 @@
     }
     bubbleInst.instanceMatrix.needsUpdate = true;
 
-    // Bursting Surface Bubble Spray / Droplets (Particles popping slightly above surface)
-    const sprayCount = 90;
+    // Bursting Surface Bubble Spray / Droplets (Subtle micro-droplets popping at surface)
+    const sprayCount = 35;
     const sprayGeom = new THREE.BufferGeometry();
     const sprayPos = new Float32Array(sprayCount * 3);
     const sprayData = [];
@@ -1618,18 +1621,18 @@
       const isNorth = Math.random() > 0.5;
       const sz = isNorth ? (-0.45 - Math.random() * 2.15) : (0.45 + Math.random() * 2.15);
       const sx = (Math.random() - 0.5) * 12.6;
-      const sy = basinH * 0.78 + Math.random() * 0.12;
+      const sy = basinH * 0.78 + Math.random() * 0.04;
       sprayPos[s * 3] = sx;
       sprayPos[s * 3 + 1] = sy;
       sprayPos[s * 3 + 2] = sz;
-      sprayData.push({ x: sx, z: sz, baseH: basinH * 0.78, hOffset: Math.random() * 0.14, speed: 1.5 + Math.random() * 2.5, phase: Math.random() * Math.PI * 2 });
+      sprayData.push({ x: sx, z: sz, baseH: basinH * 0.78, hOffset: 0.02 + Math.random() * 0.03, speed: 0.7 + Math.random() * 0.7, phase: Math.random() * Math.PI * 2 });
     }
     sprayGeom.setAttribute('position', new THREE.BufferAttribute(sprayPos, 3));
     const sprayMat = new THREE.PointsMaterial({
       color: '#e0f2fe',
-      size: 0.08,
+      size: 0.022,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.35,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -3081,40 +3084,40 @@
         });
 
         if (currentShadingMode !== 'wireframe') {
-          foamTexture.offset.y = -(elapsed * 0.22) % 1;
-          foamTexture.offset.x = Math.sin(elapsed * 0.4) * 0.08;
+          foamTexture.offset.y = -(elapsed * 0.05) % 1;
+          foamTexture.offset.x = Math.sin(elapsed * 0.15) * 0.02;
 
           for (let i = 0; i < aPosAttr.count; i++) {
             const vx = aPosAttr.getX(i);
             const vy = aPosAttr.getY(i);
-            // Vigorous biological aeration boiling with micro-bubble turbulence harmonics
-            const wave = Math.sin(vx * 1.8 + elapsed * 3.4) * 0.024
-                       + Math.cos(vy * 3.2 - elapsed * 2.8) * 0.016
-                       + Math.sin(vx * 5.2 + elapsed * 6.2) * 0.015
-                       + Math.cos(vy * 5.8 - elapsed * 5.6) * 0.012;
+            // Gentle realistic rolling biological aeration simmer & surface swell
+            const wave = Math.sin(vx * 1.2 + elapsed * 0.85) * 0.007
+                       + Math.cos(vy * 1.8 - elapsed * 0.70) * 0.005
+                       + Math.sin(vx * 2.6 + elapsed * 1.10) * 0.004
+                       + Math.cos(vy * 3.2 - elapsed * 0.90) * 0.003;
             aPosAttr.setZ(i, origWaterZ[i] + wave);
           }
           aPosAttr.needsUpdate = true;
 
           // Animate Aeration Foam & Bubble Cluster Texture
           if (typeof aerationFoamMap !== 'undefined') {
-            aerationFoamMap.offset.x = (elapsed * 0.05) % 1;
-            aerationFoamMap.offset.y = Math.sin(elapsed * 0.9) * 0.04;
+            aerationFoamMap.offset.x = (elapsed * 0.012) % 1;
+            aerationFoamMap.offset.y = Math.sin(elapsed * 0.25) * 0.010;
           }
 
-          // Animate 850 Volumetric Rising Air Bubbles in Step 2 Aeration Basin
+          // Animate 1000 Volumetric Rising Fine Air Bubbles in Step 2 Aeration Basin
           if (typeof bubbleInst !== 'undefined' && typeof bubbleData !== 'undefined') {
             for (let i = 0; i < bubbleCount; i++) {
               const b = bubbleData[i];
               b.y += delta * b.speed;
-              if (b.y >= 1.25) {
-                b.y = 0.32 + Math.random() * 0.06;
+              if (b.y >= 1.23) {
+                b.y = 0.32 + Math.random() * 0.05;
                 b.x = (Math.random() - 0.5) * 12.6;
                 const isNorth = Math.random() > 0.5;
                 b.z = isNorth ? (-0.45 - Math.random() * 2.15) : (0.45 + Math.random() * 2.15);
               }
-              const wobbleX = Math.sin(b.y * 14.0 + b.phase + elapsed * 7.0) * 0.035;
-              const wobbleZ = Math.cos(b.y * 14.0 + b.phase + elapsed * 6.5) * 0.025;
+              const wobbleX = Math.sin(b.y * 7.0 + b.phase + elapsed * 1.6) * 0.012;
+              const wobbleZ = Math.cos(b.y * 7.0 + b.phase + elapsed * 1.4) * 0.010;
               bMatrixDummy.position.set(b.x + wobbleX, b.y, b.z + wobbleZ);
               bMatrixDummy.scale.setScalar(b.scale);
               bMatrixDummy.updateMatrix();
@@ -3138,8 +3141,8 @@
           for (let i = 0; i < dPosAttr.count; i++) {
             const vx = dPosAttr.getX(i);
             const vy = dPosAttr.getY(i);
-            const wave = Math.sin(vy * 3.5 - elapsed * 4.2) * 0.02
-                       + Math.cos(vx * 4.0 + elapsed * 3.0) * 0.015;
+            const wave = Math.sin(vy * 2.0 - elapsed * 1.1) * 0.010
+                       + Math.cos(vx * 2.4 + elapsed * 0.9) * 0.008;
             dPosAttr.setZ(i, origDirtyZ[i] + wave);
           }
           dPosAttr.needsUpdate = true;
