@@ -703,25 +703,23 @@
       }
 
       // Draw separated concrete equipment foundations (100% Engineered Sequence)
-      // 1. Aeration Basin Pad (Biological Activation) - generous clearance
-      drawConcretePad(6.0, 7.5, 17.5, 9.0);
-      // 2. Operations & Blower Building Pad
-      drawConcretePad(-12.0, 7.5, 12.0, 8.5);
-      // 3. Preliminary Headworks Pad (Raw Influent & Screens)
+      // 1. Aeration Basin Pad (Biological Activation) - accommodates on-skid blowers
+      drawConcretePad(6.0, 7.5, 18.0, 9.0);
+      // 2. Preliminary Headworks Pad (Raw Influent & Screens)
       drawConcretePad(18.0, 7.5, 6.0, 7.0);
-      // 4. Clarifier CL-01 Pad (Sedimentation)
+      // 3. Clarifier CL-01 Pad (Sedimentation)
       drawConcretePad(-4.5, -4.5, 9.2, 9.2);
-      // 5. Clarifier CL-02 Pad (Sedimentation)
+      // 4. Clarifier CL-02 Pad (Sedimentation)
       drawConcretePad(5.5, -4.5, 9.2, 9.2);
-      // 6. Central Flow Splitter & Hydraulic Vault
+      // 5. Central Flow Splitter & Hydraulic Vault
       drawConcretePad(0.5, 1.2, 4.5, 3.8);
-      // 7. RAS/WAS Sludge Pump Station Pad
+      // 6. RAS/WAS Sludge Pump Station Pad
       drawConcretePad(11.5, -4.5, 4.8, 4.8);
-      // 8. Tertiary Filtration & UV Disinfection Complex Pad (DIRECTLY IN PROCESS FLOW!)
+      // 7. Tertiary Filtration & UV Disinfection Complex Pad (DIRECTLY IN PROCESS FLOW!)
       drawConcretePad(0.5, -9.6, 12.5, 6.2);
-      // 9. Administration & Water Quality Laboratory Pad (West Campus)
+      // 8. Administration & Water Quality Laboratory Pad (West Campus)
       drawConcretePad(-15.5, -4.5, 9.5, 9.5);
-      // 10. Anaerobic Digesters & Biosolids Solids Handling Pad (East Campus)
+      // 9. Anaerobic Digesters & Biosolids Solids Handling Pad (East Campus)
       drawConcretePad(20.5, -5.5, 18.0, 13.5);
 
       // Paved Asphalt Access Roadway Loop & Dedicated Spur Aprons
@@ -742,9 +740,6 @@
       // Service access spur to Admin Lab (West)
       ctx.moveTo(450, 1024 + (-4.5) * 17.06);
       ctx.lineTo(toPx(-15.5, -4.5).px, toPx(-15.5, -4.5).py);
-      // Service access spur to Blower Building (Northwest)
-      ctx.moveTo(450, 1024 + 7.5 * 17.06);
-      ctx.lineTo(toPx(-12.0, 7.5).px, toPx(-12.0, 7.5).py);
       // Service access spur to Sludge Station & Digesters (East)
       ctx.moveTo(1620, 1024 + (-4.5) * 17.06);
       ctx.lineTo(toPx(11.5, -4.5).px, toPx(11.5, -4.5).py);
@@ -772,6 +767,18 @@
       ctx.fill();
 
       ctx.fillStyle = '#164e63';
+      ctx.beginPath();
+      ctx.arc(pondP.px, pondP.py, pondR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Clean treated effluent hydrodynamic mixing entry gradient on terrain
+      const outfallP = toPx(0.5, -17.5);
+      const plumeGrad = ctx.createRadialGradient(outfallP.px, outfallP.py, 15, outfallP.px, outfallP.py, 110);
+      plumeGrad.addColorStop(0, 'rgba(56, 189, 248, 0.65)');
+      plumeGrad.addColorStop(0.35, 'rgba(14, 165, 233, 0.40)');
+      plumeGrad.addColorStop(0.80, 'rgba(14, 116, 144, 0.15)');
+      plumeGrad.addColorStop(1, 'rgba(22, 78, 99, 0)');
+      ctx.fillStyle = plumeGrad;
       ctx.beginPath();
       ctx.arc(pondP.px, pondP.py, pondR, 0, Math.PI * 2);
       ctx.fill();
@@ -804,6 +811,70 @@
       ctx.fillText(subtitle, 32, 92);
 
       const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // (G) Dynamic Effluent Mixing Plume Texture Generator (Lagoon Dispersion & Dilution Zone)
+    function generateMixingPlumeTexture(w = 512, h = 512) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, w, h);
+
+      // Gradient from bottom (y=h, weir cascade plunge) to top (y=0, lagoon dispersion)
+      const grad = ctx.createLinearGradient(w / 2, h, w / 2, 0);
+      grad.addColorStop(0.0, 'rgba(255, 255, 255, 0.96)'); // Aerated plunge froth
+      grad.addColorStop(0.12, 'rgba(224, 242, 254, 0.88)'); // Dissolved oxygen bubbling zone
+      grad.addColorStop(0.35, 'rgba(56, 189, 248, 0.72)');  // Sparkling clean treated effluent
+      grad.addColorStop(0.70, 'rgba(14, 165, 233, 0.38)');  // Active dilution mixing zone
+      grad.addColorStop(1.0, 'rgba(14, 116, 144, 0.0)');   // Completely assimilated into wetland lagoon
+
+      // Draw hydrodynamic dispersion plume fan
+      ctx.save();
+      ctx.beginPath();
+      // Narrow neck at weir impact (bottom)
+      ctx.moveTo(w * 0.40, h);
+      ctx.lineTo(w * 0.60, h);
+      // Expanding curved fan outwards (towards top)
+      ctx.bezierCurveTo(w * 0.88, h * 0.65, w * 0.98, h * 0.25, w * 0.82, 0);
+      ctx.lineTo(w * 0.18, 0);
+      ctx.bezierCurveTo(w * 0.02, h * 0.25, w * 0.12, h * 0.65, w * 0.40, h);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.restore();
+
+      // Fluid streamlines & turbulence filaments
+      for (let s = 0; s < 36; s++) {
+        const startX = w * (0.44 + (Math.random() - 0.5) * 0.14);
+        const endX = w * (0.5 + (Math.random() - 0.5) * 0.78);
+        const midX = (startX + endX) / 2 + (Math.random() - 0.5) * 50;
+        const alpha = 0.2 + Math.random() * 0.45;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+        ctx.lineWidth = 1.5 + Math.random() * 2.5;
+        ctx.beginPath();
+        ctx.moveTo(startX, h);
+        ctx.quadraticCurveTo(midX, h * (0.4 + Math.random() * 0.3), endX, h * (Math.random() * 0.25));
+        ctx.stroke();
+      }
+
+      // Microbubbles in mixing core
+      for (let b = 0; b < 140; b++) {
+        const prog = Math.random();
+        const bx = w * (0.5 + (Math.random() - 0.5) * (0.18 + prog * 0.65));
+        const by = h * (1.0 - prog * 0.65);
+        const br = 1.2 + Math.random() * 3.5;
+        const bAlpha = (1.0 - prog) * (0.35 + Math.random() * 0.55);
+        ctx.fillStyle = `rgba(255, 255, 255, ${bAlpha})`;
+        ctx.beginPath();
+        ctx.arc(bx, by, br, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
       tex.needsUpdate = true;
       return tex;
     }
@@ -1057,8 +1128,10 @@
     terrainMesh.receiveShadow = true;
     facilityGroup.add(terrainMesh);
 
-    // 3D Stormwater Retention Wetland Lagoon
-    const pondGeom = new THREE.CircleGeometry(8.5, 40);
+    // 3D Stormwater Retention Wetland Lagoon (Dynamic Wave Displaced Surface)
+    const pondGeom = new THREE.CircleGeometry(8.5, 64, 24);
+    materials.pondWater.bumpMap = foamTexture;
+    materials.pondWater.bumpScale = 0.035;
     const pondMesh = new THREE.Mesh(pondGeom, materials.pondWater);
     pondMesh.name = "Stormwater Retention Lagoon Surface";
     pondMesh.userData = { subsystem: "Stormwater Retention Basin", spec: "Natural environmental buffer lagoon (dia 17m) receiving clean effluent" };
@@ -1090,35 +1163,33 @@
       if (Math.abs(x) > 56 || Math.abs(z) > 56) return false;
 
       // 2. Concrete equipment pads & hydraulic channels (STRICT EXCLUSIONS WITH CLEAR BUFFER)
-      // (a) Biological Aeration Basin Pad & Perimeter
-      if (x >= -3.2 && x <= 15.2 && z >= 2.6 && z <= 12.4) return false;
-      // (b) Operations & Blower Building Pad & Substation (-12.0, 7.5)
-      if (x >= -18.5 && x <= -5.5 && z >= 2.8 && z <= 12.2) return false;
-      // (c) Preliminary Headworks Pad (18.0, 7.5)
+      // (a) Biological Aeration Basin Pad & Perimeter (accommodates on-skid blowers)
+      if (x >= -3.5 && x <= 15.2 && z >= 2.6 && z <= 12.4) return false;
+      // (b) Preliminary Headworks Pad (18.0, 7.5)
       if (x >= 14.6 && x <= 21.4 && z >= 3.6 && z <= 11.4) return false;
-      // (d) Connecting Inflow Flume (from Headworks 18.0 to Aeration 13.0)
+      // (c) Connecting Inflow Flume (from Headworks 18.0 to Aeration 13.0)
       if (x >= 12.5 && x <= 18.5 && z >= 6.4 && z <= 8.6) return false;
-      // (e) Clarifier CL-01 Pad & Center Basin (-4.5, -4.5, radius 4.8m)
+      // (d) Clarifier CL-01 Pad & Center Basin (-4.5, -4.5, radius 4.8m)
       if (Math.hypot(x - (-4.5), z - (-4.5)) < 4.8) return false;
       if (x >= -9.5 && x <= 0.5 && z >= -9.5 && z <= 0.5) return false;
-      // (f) Clarifier CL-02 Pad & Center Basin (5.5, -4.5, radius 4.8m)
+      // (e) Clarifier CL-02 Pad & Center Basin (5.5, -4.5, radius 4.8m)
       if (Math.hypot(x - 5.5, z - (-4.5)) < 4.8) return false;
       if (x >= 0.5 && x <= 10.5 && z >= -9.5 && z <= 0.5) return false;
-      // (g) Central Mixed Liquor (MLSS) Channel & Flow Splitter Vault
+      // (f) Central Mixed Liquor (MLSS) Channel & Flow Splitter Vault
       if (x >= -2.4 && x <= 3.4 && z >= -1.2 && z <= 7.8) return false;
-      // (h) Clarifier to Tertiary Effluent Launders & Flumes
+      // (g) Clarifier to Tertiary Effluent Launders & Flumes
       if (x >= -4.8 && x <= 5.8 && z >= -8.2 && z <= -4.0) return false;
-      // (i) RAS/WAS Sludge Pump Station & Piezometer Vault (11.5, -4.5)
+      // (h) RAS/WAS Sludge Pump Station & Piezometer Vault (11.5, -4.5)
       if (x >= 8.5 && x <= 14.5 && z >= -7.5 && z <= -1.5) return false;
-      // (j) Return Activated Sludge (RAS) Pipe Corridor
+      // (i) Return Activated Sludge (RAS) Pipe Corridor
       if (x >= 11.0 && x <= 13.5 && z >= -4.8 && z <= 8.0) return false;
-      // (k) Tertiary Filtration & UV Disinfection Complex Pad (0.5, -9.6)
+      // (j) Tertiary Filtration & UV Disinfection Complex Pad (0.5, -9.6)
       if (x >= -6.2 && x <= 7.2 && z >= -13.0 && z <= -6.2) return false;
-      // (l) Parshall Flume Outfall & Cascade Waterfall Channel (0.5, -14.2 to -17.5)
+      // (k) Parshall Flume Outfall & Cascade Waterfall Channel (0.5, -14.2 to -17.5)
       if (x >= -1.6 && x <= 2.6 && z >= -18.0 && z <= -11.0) return false;
-      // (m) West Administration & Environmental Testing Lab (-15.5, -4.5)
+      // (l) West Administration & Environmental Testing Lab (-15.5, -4.5)
       if (x >= -21.0 && x <= -10.0 && z >= -9.8 && z <= 0.8) return false;
-      // (n) East Anaerobic Digesters TK-101, TK-102 & Biogas Handling Pad
+      // (m) East Anaerobic Digesters TK-101, TK-102 & Biogas Handling Pad
       if (x >= 11.0 && x <= 30.0 && z >= -13.5 && z <= 1.5) return false;
 
       // 3. Retention Wetland Pond & Riparian Rocky Bank (radius 8.5m + 1.2m bank buffer at (0.5, -22.5))
@@ -1135,8 +1206,6 @@
       if (Math.abs(x - 35.0) < 3.2 && z >= -25.5 && z <= 16.0) return false;
       // Road Spur to West Admin Lab
       if (Math.abs(z - (-4.5)) < 3.0 && x >= -34.0 && x <= -15.0) return false;
-      // Road Spur to Blower Building
-      if (Math.abs(z - 7.5) < 3.0 && x >= -34.0 && x <= -12.0) return false;
       // Road Spur to East Sludge Handling & Digesters
       if (Math.abs(z - (-4.5)) < 3.0 && x >= 11.0 && x <= 35.0) return false;
 
@@ -1453,102 +1522,63 @@
     aerSign.position.set(0, 1.0, basinW / 2 + 0.2);
     aerationGroup.add(aerSign);
 
-    // =========================================================================
-    // OPERATIONS & BLOWER FACILITY (SPACED 5.0m WEST OF AERATION BASIN)
-    // Position: (-11.5, 0, 7.5)
-    // =========================================================================
-    const blowerGroup = new THREE.Group();
-    blowerGroup.name = "Operations & Blower Compressor Building";
-    blowerGroup.userData = { subsystem: "Plant Utilities & SCADA", spec: "Rotary screw air compressors (450 kW) & motor control center" };
-    blowerGroup.position.set(-11.5, 0, 7.5);
-    facilityGroup.add(blowerGroup);
+    // Dedicated On-Basin Fine-Bubble Aeration Blower Skid Package
+    // (High-efficiency packaged rotary screw blowers directly mounted on basin west gallery footing)
+    const blowerSkidGroup = new THREE.Group();
+    blowerSkidGroup.name = "Packaged Aeration Blower Skid System";
+    blowerSkidGroup.userData = { subsystem: "Aeration Compressed Air", spec: "Twin high-efficiency variable-speed screw blowers (450 m³/min) in weatherproof sound-attenuated acoustic enclosures" };
+    blowerSkidGroup.position.set(-7.7, 0, -2.0);
+    aerationGroup.add(blowerSkidGroup);
 
-    // Main Hall
-    const bHall = new THREE.Mesh(new THREE.BoxGeometry(8.0, 3.2, 5.2), materials.concreteWall);
-    bHall.position.set(0, 1.6, 0);
-    bHall.castShadow = true;
-    blowerGroup.add(bHall);
+    // Blower foundation equipment pad
+    const bSkidPad = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.26, 2.8), materials.concreteWall);
+    bSkidPad.position.set(0, 0.13, 0);
+    bSkidPad.receiveShadow = true;
+    blowerSkidGroup.add(bSkidPad);
 
-    // Parapet roof rim
-    const bRoof = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.22, 5.4), materials.concreteCapping);
-    bRoof.position.set(0, 3.25, 0);
-    blowerGroup.add(bRoof);
+    // Duty and Standby Sound-Attenuated Enclosure Units (Grey acoustic cabinets)
+    const blowerEnclosureMat = new THREE.MeshStandardMaterial({ color: '#64748b', roughness: 0.4, metalness: 0.5 });
+    for (let b = -0.7; b <= 0.7; b += 1.4) {
+      const blowerUnit = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.15, 1.05), blowerEnclosureMat);
+      blowerUnit.position.set(0, 0.70, b);
+      blowerUnit.castShadow = true;
+      blowerSkidGroup.add(blowerUnit);
 
-    // Louvered Air Intake Grilles
-    for (let l = -2.6; l <= 2.6; l += 1.8) {
-      const louver = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 0.08), materials.structuralSteel);
-      louver.position.set(l, 1.8, 2.64);
-      blowerGroup.add(louver);
+      // Air intake filter cowl with weather hood
+      const intakeHood = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.35, 16), materials.structuralSteel);
+      intakeHood.position.set(0, 1.45, b);
+      blowerSkidGroup.add(intakeHood);
+
+      // Louvered ventilation side panel
+      const ventPanel = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 0.75), new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.8 }));
+      ventPanel.position.set(-0.43, 0.70, b);
+      ventPanel.rotation.y = -Math.PI / 2;
+      blowerSkidGroup.add(ventPanel);
+
+      // High-pressure discharge connection into air manifold
+      const disch = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.65, 16), materials.processPipeBlue);
+      disch.position.set(0.15, 1.05, b);
+      disch.rotation.z = Math.PI / 3;
+      blowerSkidGroup.add(disch);
     }
 
-    // Electrical Substation Yard
-    const subYard = new THREE.Group();
-    subYard.position.set(-5.2, 0, 0);
-    for (let t = -1.2; t <= 1.2; t += 1.2) {
-      const trans = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 0.9), materials.structuralSteel);
-      trans.position.set(0, 0.6, t);
-      trans.castShadow = true;
-      subYard.add(trans);
-    }
-    blowerGroup.add(subYard);
+    // Safety yellow perimeter railing around blower skid
+    const bRailWest = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.85, 2.7), materials.safetyYellow);
+    bRailWest.position.set(-0.75, 0.68, 0);
+    blowerSkidGroup.add(bRailWest);
+    const bRailEnd1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.85, 0.04), materials.safetyYellow);
+    bRailEnd1.position.set(0, 0.68, -1.35);
+    blowerSkidGroup.add(bRailEnd1);
 
-    // Complete Structural Pipe Gantry Truss Bridge across Roadway (Spanning from Blower Building east wall x=4.0 to Aeration Basin west wall x=10.5)
-    // Runs at z = -2.8 to align with the northern longitudinal air header of Aeration Basin
-    const pipeBridge = new THREE.Group();
-    pipeBridge.name = "Low-Pressure Air Header Pipe Gantry Bridge";
-    pipeBridge.userData = { subsystem: "Aeration Air Distribution", spec: "Structural steel pipe trestle spanning roadway (clearance 4.2m) with 500mm insulated header" };
-    
-    // West Tower (Verge of Roadway)
-    const towerW = new THREE.Group();
-    towerW.position.set(5.1, 0, -2.8);
-    const postW1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.3, 12), materials.structuralSteel);
-    postW1.position.set(0, 2.15, -0.4);
-    const postW2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.3, 12), materials.structuralSteel);
-    postW2.position.set(0, 2.15, 0.4);
-    towerW.add(postW1, postW2);
-    pipeBridge.add(towerW);
+    // Direct vertical air riser connecting Blower Skid to Main Air Header
+    const airRiserWest = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 1.15, 20), materials.processPipeBlue);
+    airRiserWest.position.set(-7.6, 1.40, -2.8);
+    airRiserWest.castShadow = true;
+    aerationGroup.add(airRiserWest);
 
-    // East Tower (Verge of Aeration Basin)
-    const towerE = new THREE.Group();
-    towerE.position.set(9.7, 0, -2.8);
-    const postE1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.3, 12), materials.structuralSteel);
-    postE1.position.set(0, 2.15, -0.4);
-    const postE2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.3, 12), materials.structuralSteel);
-    postE2.position.set(0, 2.15, 0.4);
-    towerE.add(postE1, postE2);
-    pipeBridge.add(towerE);
-
-    // Main Overhead Truss Beam (Spans 6.6m from x=4.0 to x=10.6 at z=-2.8)
-    const bridgeTruss = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.22, 1.0), materials.structuralSteel);
-    bridgeTruss.position.set(7.25, 4.15, -2.8);
-    bridgeTruss.castShadow = true;
-    pipeBridge.add(bridgeTruss);
-
-    // Yellow/Black Hazard Stripes on Roadway Underpass
-    const hazardBar = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.16, 1.02), materials.safetyYellow);
-    hazardBar.position.set(7.4, 4.02, -2.8);
-    pipeBridge.add(hazardBar);
-
-    // Main Air Header Pipe (Horizontal run across full span)
-    const mainHeaderPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 6.6, 24), materials.processPipeBlue);
-    mainHeaderPipe.rotation.z = Math.PI / 2;
-    mainHeaderPipe.position.set(7.25, 4.45, -2.8);
-    mainHeaderPipe.castShadow = true;
-    pipeBridge.add(mainHeaderPipe);
-
-    // West Vertical Drop into Blower Compressor Roof (at x=4.0, z=-2.8)
-    const elbowW = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 1.4, 24), materials.processPipeBlue);
-    elbowW.position.set(4.0, 3.75, -2.8);
-    elbowW.castShadow = true;
-    pipeBridge.add(elbowW);
-
-    // East Vertical Drop connecting into Aeration Basin Header (at x=10.5, z=-2.8)
-    const elbowE = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 2.6, 24), materials.processPipeBlue);
-    elbowE.position.set(10.5, 3.15, -2.8);
-    elbowE.castShadow = true;
-    pipeBridge.add(elbowE);
-
-    blowerGroup.add(pipeBridge);
+    const airElbowWest = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 12), materials.processPipeBlue);
+    airElbowWest.position.set(-7.6, 1.95, -2.8);
+    aerationGroup.add(airElbowWest);
 
     // =========================================================================
     // FLOW SPLITTER & VALVE VAULT (Sits between Aeration Basin and Clarifiers)
@@ -2051,31 +2081,39 @@
     cascade2.rotation.x = 0.72;
     outfallGroup.add(cascade2);
 
-    const splashGeom = new THREE.PlaneGeometry(2.4, 1.2, 16, 16);
+    // Submerged stone energy dissipator sill at waterfall base
+    const dissipatorSill = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.10, 1.2), materials.concreteWall);
+    dissipatorSill.position.set(0, 0.05, -3.5);
+    outfallGroup.add(dissipatorSill);
+
+    const splashGeom = new THREE.PlaneGeometry(2.4, 1.3, 16, 16);
     const splashMat = new THREE.MeshStandardMaterial({
       color: '#ffffff',
       roughness: 0.15,
       metalness: 0.1,
       transparent: true,
-      opacity: 0.82
+      opacity: 0.88
     });
     const splashMesh = new THREE.Mesh(splashGeom, splashMat);
     splashMesh.rotation.x = -Math.PI / 2;
-    splashMesh.position.set(0, 0.10, -3.6);
+    splashMesh.position.set(0, 0.10, -3.5);
     outfallGroup.add(splashMesh);
 
-    // Shoreline Boulders around Outfall Basin
+    // Engineered Rip-Rap Boulder Training Wingwalls flanking the Outfall Spillway
+    // (Protects canal banks from scouring while leaving the center mouth completely open to the lagoon)
     const boulderGeom = new THREE.DodecahedronGeometry(0.38, 1);
     const boulderMat = new THREE.MeshStandardMaterial({ color: '#64748b', roughness: 0.88, metalness: 0.05 });
-    const boulderInst = new THREE.InstancedMesh(boulderGeom, boulderMat, 20);
+    const boulderInst = new THREE.InstancedMesh(boulderGeom, boulderMat, 24);
     const bDummy = new THREE.Object3D();
-    for (let b = 0; b < 20; b++) {
-      const bAngle = (b / 20) * Math.PI * 1.4 - 0.5;
-      const bx = Math.sin(bAngle) * 3.0 + (Math.random() - 0.5) * 0.3;
-      const bz = -3.4 - Math.cos(bAngle) * 2.2;
-      const bs = 0.6 + Math.random() * 0.8;
-      bDummy.position.set(bx, bs * 0.28, bz);
-      bDummy.scale.set(bs * 1.2, bs * 0.7, bs);
+    for (let b = 0; b < 24; b++) {
+      const isLeft = b < 12;
+      const progress = (b % 12) / 11;
+      const sideSign = isLeft ? -1 : 1;
+      const bx = sideSign * (1.35 + progress * 1.6 + (Math.random() - 0.5) * 0.3);
+      const bz = -2.6 - progress * 2.2 + (Math.random() - 0.5) * 0.3;
+      const bs = 0.55 + Math.random() * 0.65;
+      bDummy.position.set(bx, bs * 0.22, bz);
+      bDummy.scale.set(bs * 1.1, bs * 0.7, bs);
       bDummy.rotation.set(Math.random(), Math.random(), Math.random());
       bDummy.updateMatrix();
       boulderInst.setMatrixAt(b, bDummy.matrix);
@@ -2091,6 +2129,156 @@
     const outSign = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.42, 0.04), outSignMat);
     outSign.position.set(0, 0.7, 2.65);
     outfallGroup.add(outSign);
+
+    // =========================================================================
+    // DYNAMIC CLEAN WATER DISPERSION & WETLAND LAGOON MIXING SYSTEM
+    // (Visibly connects treated outfall directly into natural wetland water body)
+    // =========================================================================
+    // 1. Dynamic Effluent Mixing Plume (Aquamarine-to-Lagoon Dilution Fan)
+    const plumeTex = generateMixingPlumeTexture(512, 512);
+    const plumeMat = new THREE.MeshStandardMaterial({
+      map: plumeTex,
+      transparent: true,
+      opacity: 0.92,
+      roughness: 0.08,
+      metalness: 0.15,
+      depthWrite: false
+    });
+    const plumeGeom = new THREE.PlaneGeometry(6.6, 8.0, 24, 24);
+    const plumeMesh = new THREE.Mesh(plumeGeom, plumeMat);
+    plumeMesh.name = "Clean Effluent Lagoon Mixing Plume";
+    plumeMesh.userData = { subsystem: "Effluent Outfall", spec: "Active hydrodynamic dispersion & dilution plume mixing into environmental wetland" };
+    plumeMesh.rotation.x = -Math.PI / 2;
+    plumeMesh.position.set(0.5, 0.088, -21.3);
+    facilityGroup.add(plumeMesh);
+
+    // 2. Concentric Hydraulic Mixing Shockwave Rings
+    const surgeRingGroup = new THREE.Group();
+    surgeRingGroup.position.set(0.5, 0.089, -17.4);
+    facilityGroup.add(surgeRingGroup);
+
+    const surgeRings = [];
+    for (let r = 0; r < 4; r++) {
+      const ringGeom = new THREE.RingGeometry(0.3, 0.52, 36);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: '#e0f2fe',
+        transparent: true,
+        opacity: 0.65,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      const ringMesh = new THREE.Mesh(ringGeom, ringMat);
+      ringMesh.rotation.x = -Math.PI / 2;
+      surgeRingGroup.add(ringMesh);
+      surgeRings.push({ mesh: ringMesh, mat: ringMat, phase: r / 4 });
+    }
+
+    // 3. Active Effluent Fluid Current Particles (Streaming from outfall weir into lagoon)
+    const particleCount = 50;
+    const streamGeom = new THREE.BufferGeometry();
+    const streamPositions = new Float32Array(particleCount * 3);
+    const streamParticlesData = [];
+
+    for (let i = 0; i < particleCount; i++) {
+      const prog = Math.random();
+      const angle = (Math.random() - 0.5) * 1.35;
+      const dist = 0.2 + prog * 6.8;
+      const px = 0.5 + Math.sin(angle) * dist * 0.55;
+      const pz = -17.4 - Math.cos(angle) * dist;
+      streamPositions[i * 3] = px;
+      streamPositions[i * 3 + 1] = 0.092;
+      streamPositions[i * 3 + 2] = pz;
+      streamParticlesData.push({
+        prog: prog,
+        angle: angle,
+        speed: 0.22 + Math.random() * 0.18
+      });
+    }
+    streamGeom.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
+
+    const streamMat = new THREE.PointsMaterial({
+      color: '#e0f2fe',
+      size: 0.22,
+      transparent: true,
+      opacity: 0.80,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const streamParticles = new THREE.Points(streamGeom, streamMat);
+    streamParticles.name = "Effluent Hydrodynamic Streamlines";
+    streamParticles.userData = { subsystem: "Effluent Outfall", spec: "Hydraulic current tracers showing active effluent dispersion into wetlands" };
+    facilityGroup.add(streamParticles);
+
+    // 4. Riparian Wetland Cattails (Typha latifolia) & Marsh Reeds
+    const wetlandPlants = new THREE.Group();
+    wetlandPlants.name = "Wetland Emergent Riparian Vegetation";
+    wetlandPlants.userData = { subsystem: "Environmental Buffer", spec: "Naturalized wetland vegetation (cattails, bulrushes, water lilies) sustained by high-purity clean effluent" };
+    facilityGroup.add(wetlandPlants);
+
+    const cattailStemMat = new THREE.MeshStandardMaterial({ color: '#3f6212', roughness: 0.85 });
+    const cattailHeadMat = new THREE.MeshStandardMaterial({ color: '#451a03', roughness: 0.95 });
+    const cattailStemGeom = new THREE.CylinderGeometry(0.018, 0.022, 1.35, 6);
+    const cattailHeadGeom = new THREE.CylinderGeometry(0.045, 0.045, 0.32, 8);
+
+    const cattailClusters = [
+      { cx: -5.0, cz: -20.5, count: 8 },
+      { cx: 5.5, cz: -21.0, count: 8 },
+      { cx: -4.0, cz: -26.5, count: 7 },
+      { cx: 4.5, cz: -26.0, count: 7 },
+      { cx: -2.8, cz: -18.2, count: 6 },
+      { cx: 2.8, cz: -18.2, count: 6 }
+    ];
+
+    cattailClusters.forEach(cl => {
+      for (let k = 0; k < cl.count; k++) {
+        const kx = cl.cx + (Math.random() - 0.5) * 1.1;
+        const kz = cl.cz + (Math.random() - 0.5) * 1.1;
+        const kh = 0.85 + Math.random() * 0.4;
+
+        const stem = new THREE.Mesh(cattailStemGeom, cattailStemMat);
+        stem.scale.set(1, kh, 1);
+        stem.position.set(kx, (1.35 * kh) / 2, kz);
+        stem.rotation.set((Math.random() - 0.5) * 0.15, Math.random() * Math.PI, (Math.random() - 0.5) * 0.15);
+        wetlandPlants.add(stem);
+
+        const head = new THREE.Mesh(cattailHeadGeom, cattailHeadMat);
+        head.scale.set(1, kh, 1);
+        head.position.set(kx, 1.35 * kh - 0.2, kz);
+        head.rotation.set((Math.random() - 0.5) * 0.15, Math.random() * Math.PI, (Math.random() - 0.5) * 0.15);
+        wetlandPlants.add(head);
+      }
+    });
+
+    // 5. Floating Water Lily Pads (Nymphaea) on Calm Wetland Margins
+    const lilyPadMat = new THREE.MeshStandardMaterial({
+      color: '#15803d',
+      roughness: 0.6,
+      metalness: 0.05,
+      side: THREE.DoubleSide
+    });
+    const lilyPadGeom = new THREE.CircleGeometry(0.26, 14, 0, Math.PI * 1.88);
+
+    const lilyClusters = [
+      { cx: -3.6, cz: -23.5, count: 5 },
+      { cx: 4.0, cz: -23.8, count: 5 },
+      { cx: -1.6, cz: -27.5, count: 4 },
+      { cx: 2.2, cz: -27.2, count: 4 }
+    ];
+
+    lilyClusters.forEach(lc => {
+      for (let j = 0; j < lc.count; j++) {
+        const lx = lc.cx + (Math.random() - 0.5) * 1.3;
+        const lz = lc.cz + (Math.random() - 0.5) * 1.3;
+        const ls = 0.75 + Math.random() * 0.5;
+
+        const pad = new THREE.Mesh(lilyPadGeom, lilyPadMat);
+        pad.rotation.x = -Math.PI / 2;
+        pad.rotation.z = Math.random() * Math.PI * 2;
+        pad.scale.set(ls, ls, ls);
+        pad.position.set(lx, 0.084, lz);
+        wetlandPlants.add(pad);
+      }
+    });
 
     // =========================================================================
     // WATER TREATMENT STAGE 6: ANAEROBIC DIGESTERS (SPACED ON EAST BIO-PAD)
@@ -2245,12 +2433,12 @@
     // =========================================================================
     const annotationPins = [
       { id: "01", text: "Raw Influent & Headworks", worldPos: new THREE.Vector3(18.0, 2.0, 7.5), desc: "Raw municipal sewer line with mechanical bar screens & screenings hopper" },
-      { id: "02", text: "Aeration Bio-Reactors & Blowers", worldPos: new THREE.Vector3(6.0, 2.2, 7.5), desc: "Activated sludge biological treatment fed by overhead compressed air gantry bridge" },
+      { id: "02", text: "Biological Aeration Basins", worldPos: new THREE.Vector3(6.0, 2.2, 7.5), desc: "Activated sludge bio-oxidation fed by compact on-skid fine-bubble aeration blowers" },
       { id: "03", text: "Flow Splitter & Clarifiers", worldPos: new THREE.Vector3(0.5, 2.0, -4.5), desc: "Dual 16m center-feed circular clarifiers with rotating scraper bridges" },
       { id: "04", text: "RAS/WAS Sludge Pump Station", worldPos: new THREE.Vector3(11.5, 1.8, -4.5), desc: "Recycles Return Sludge (RAS) to Aeration & pumps Waste Sludge (WAS) to Digesters" },
       { id: "05", text: "Tertiary Filtration & UV Disinfection", worldPos: new THREE.Vector3(0.5, 2.0, -9.6), desc: "Dual-media sand filters & actinic UV lamp disinfection reducing turbidity to <1 NTU" },
       { id: "06", text: "Clean Effluent Cascade Outfall", worldPos: new THREE.Vector3(0.5, 1.8, -14.2), desc: "Calibrated Parshall flume discharging sparkling clean water over stepped weir" },
-      { id: "07", text: "Environmental Wetland Lagoon", worldPos: new THREE.Vector3(0.5, 0.8, -22.5), desc: "Natural polishing wetland pond with emergent vegetation and riparian boulders" },
+      { id: "07", text: "Environmental Wetland Lagoon", worldPos: new THREE.Vector3(0.5, 0.8, -21.5), desc: "Polishing wetland lagoon with dynamic mixing plume, expanding ripples, and riparian flora" },
       { id: "08", text: "Anaerobic Digestion & Biogas Flare", worldPos: new THREE.Vector3(20.5, 5.2, -5.5), desc: "Solids stabilization, dewatered cake storage & surplus methane flare stack" },
       { id: "09", text: "Operations & Water Testing Lab", worldPos: new THREE.Vector3(-15.5, 2.6, -4.5), desc: "Certified EPA water quality laboratory & SCADA facility monitoring center" }
     ];
@@ -2373,13 +2561,13 @@
         badgeClass: "badge clean",
         status: "CLEAN WATER OUTFLOW",
         title: "5. Pristine Treated Water Discharge Outfall & Wetlands",
-        desc: "Disinfected crystal-clear treated effluent overflows into the calibrated Parshall flume outfall, tumbling over a 2-tier natural stone cascade with sparkling foam into the environmental wetland lagoon at 99.4% purity!",
+        desc: "Disinfected crystal-clear treated effluent overflows into the calibrated Parshall flume outfall, tumbling over a stepped stone cascade directly into the wetland lagoon. Watch the dynamic aquamarine effluent plume disperse, propagate wave ripples, and nourish thriving riparian reeds and water lilies at 99.4% purity!",
         turbidity: "0.4 NTU (Pristine)",
         bod: "< 2.0 mg/L (99.4% Removal)",
         eff: "99.4% Pristine Outflow",
         valClass: "clean-val",
-        camPos: new THREE.Vector3(0.5, 3.2, -10.5),
-        camTarget: new THREE.Vector3(0.5, 0.4, -16.5)
+        camPos: new THREE.Vector3(0.5, 4.2, -10.5),
+        camTarget: new THREE.Vector3(0.5, 0.2, -18.8)
       },
       {
         step: "STAGE 06 / 06",
@@ -2703,6 +2891,12 @@
       origDirtyZ[i] = dPosAttr.getZ(i);
     }
 
+    const pPosAttr = pondGeom.attributes.position;
+    const origPondZ = new Float32Array(pPosAttr.count);
+    for (let i = 0; i < pPosAttr.count; i++) {
+      origPondZ[i] = pPosAttr.getZ(i);
+    }
+
     let totalFacilityTriangles = 0;
     facilityGroup.traverse((obj) => {
       if (obj.isMesh && obj.geometry) {
@@ -2757,6 +2951,49 @@
             dPosAttr.setZ(i, origDirtyZ[i] + wave);
           }
           dPosAttr.needsUpdate = true;
+
+          // 3D Concentric Propagating Waves on Wetland Lagoon Surface (Emanating from Outfall Plunge)
+          for (let i = 0; i < pPosAttr.count; i++) {
+            const vx = pPosAttr.getX(i);
+            const vy = pPosAttr.getY(i);
+            // Local (0, -5.0) on rotated circle corresponds to World (0.5, -17.5) where outfall waterfall discharges
+            const dist = Math.hypot(vx, vy - (-5.0));
+            const wave = Math.sin(dist * 3.8 - elapsed * 4.8) * Math.exp(-dist * 0.20) * 0.038
+                       + Math.sin(vx * 0.7 + elapsed * 1.6) * Math.cos(vy * 0.7 - elapsed * 1.3) * 0.010;
+            pPosAttr.setZ(i, origPondZ[i] + wave);
+          }
+          pPosAttr.needsUpdate = true;
+
+          // Animate Effluent Mixing Plume Dynamics
+          if (typeof plumeTex !== 'undefined') {
+            plumeTex.offset.x = Math.sin(elapsed * 0.8) * 0.015;
+            plumeMat.opacity = 0.88 + Math.sin(elapsed * 2.2) * 0.06;
+          }
+
+          // Animate Concentric Shockwave Mixing Rings
+          if (typeof surgeRings !== 'undefined') {
+            surgeRings.forEach(ring => {
+              let p = (ring.phase + elapsed * 0.35) % 1.0;
+              const scale = 1.0 + p * 8.5;
+              ring.mesh.scale.set(scale, scale, 1.0);
+              ring.mesh.position.z = -p * 2.4;
+              ring.mat.opacity = (1.0 - p) * 0.65;
+            });
+          }
+
+          // Animate Effluent Dispersion Streamline Current Particles
+          if (typeof streamParticles !== 'undefined') {
+            const sPosAttr = streamGeom.attributes.position;
+            for (let i = 0; i < particleCount; i++) {
+              const data = streamParticlesData[i];
+              data.prog = (data.prog + delta * data.speed) % 1.0;
+              const dist = 0.1 + data.prog * 7.2;
+              const px = 0.5 + Math.sin(data.angle) * dist * 0.55;
+              const pz = -17.4 - Math.cos(data.angle) * dist;
+              sPosAttr.setXYZ(i, px, 0.092, pz);
+            }
+            sPosAttr.needsUpdate = true;
+          }
         }
       }
 
@@ -2790,7 +3027,7 @@
       aeration: { pos: new THREE.Vector3(12.5, 5.8, 13.5), target: new THREE.Vector3(6.0, 1.2, 7.5) },
       clarifier: { pos: new THREE.Vector3(0.5, 9.5, 5.0), target: new THREE.Vector3(0.5, 1.0, -4.5) },
       tertiary: { pos: new THREE.Vector3(5.5, 6.8, -4.5), target: new THREE.Vector3(0.5, 1.0, -9.6) },
-      outfall: { pos: new THREE.Vector3(0.5, 3.2, -10.5), target: new THREE.Vector3(0.5, 0.4, -16.5) },
+      outfall: { pos: new THREE.Vector3(0.5, 4.2, -10.5), target: new THREE.Vector3(0.5, 0.2, -18.8) },
       digesters: { pos: new THREE.Vector3(27.0, 9.5, 8.5), target: new THREE.Vector3(19.5, 3.0, -6.5) },
       ground: { pos: new THREE.Vector3(-4.0, 1.6, 12.0), target: new THREE.Vector3(-4.0, 3.5, 5.0) }
     };
