@@ -688,134 +688,200 @@
       return new THREE.CanvasTexture(canvas);
     }
 
-    // (E) Spatially Accurate Site Ground: Distinct concrete pads, asphalt roadway, green lawn
+    // (E) Spatially Accurate Photorealistic Site Ground: Engineered foundations, marked asphalt, and civil hardscapes
     function generateSiteTerrainCanvas(w = 2048, h = 2048) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
 
-      // 1. Lush deep green turf across the entire 120m landscape
-      ctx.fillStyle = '#2d5219';
+      // 1. Lush natural turf base across landscape with subtle organic hue variations
+      ctx.fillStyle = '#2d501a';
       ctx.fillRect(0, 0, w, h);
 
       for (let i = 0; i < 90000; i++) {
         const x = Math.random() * w;
         const y = Math.random() * h;
-        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(38, 72, 22, 0.45)' : 'rgba(68, 115, 42, 0.45)';
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(36, 68, 20, 0.45)' : 'rgba(64, 108, 38, 0.45)';
         ctx.fillRect(x, y, 3, 3);
       }
 
       // Natural earth and loam variations
-      for (let p = 0; p < 28; p++) {
+      for (let p = 0; p < 32; p++) {
         const px = Math.random() * w;
         const py = Math.random() * h;
-        const pr = 40 + Math.random() * 90;
+        const pr = 40 + Math.random() * 110;
         const pGrad = ctx.createRadialGradient(px, py, 4, px, py, pr);
-        pGrad.addColorStop(0, 'rgba(84, 68, 44, 0.38)');
-        pGrad.addColorStop(1, 'rgba(45, 82, 25, 0)');
+        pGrad.addColorStop(0, 'rgba(84, 68, 44, 0.42)');
+        pGrad.addColorStop(0.6, 'rgba(60, 52, 34, 0.20)');
+        pGrad.addColorStop(1, 'rgba(45, 80, 26, 0)');
         ctx.fillStyle = pGrad;
         ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
       }
 
-      // Helper function to map world coordinates (X, Z) to Canvas Pixel (PX, PY)
-      // Site: 120m wide -> center (0,0) is at (1024, 1024). 1m = 17.06 px
+      // Helper function: World coordinates (X, Z) in meters to Canvas Pixels
+      // 120m site pad -> center (0,0) at (1024, 1024). 1m = 17.06 px
       function toPx(x, z) {
-        return {
-          px: 1024 + x * 17.06,
-          py: 1024 + z * 17.06
-        };
+        return { px: 1024 + x * 17.06, py: 1024 + z * 17.06 };
       }
 
+      // Helper function: Draw concrete equipment pads with expansion joints and gravel margins
       function drawConcretePad(x, z, width, depth, label) {
         const p = toPx(x - width/2, z - depth/2);
         const pw = width * 17.06;
         const pd = depth * 17.06;
 
-        ctx.fillStyle = '#78848f';
+        // Crushed stone gravel drainage perimeter around pad
+        ctx.fillStyle = '#5c5b52';
         ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(p.px, p.py, pw, pd, 12);
+        if (ctx.roundRect) ctx.roundRect(p.px - 14, p.py - 14, pw + 28, pd + 28, 16);
+        else ctx.rect(p.px - 14, p.py - 14, pw + 28, pd + 28);
+        ctx.fill();
+
+        // Concrete slab
+        ctx.fillStyle = '#7a8691';
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(p.px, p.py, pw, pd, 10);
         else ctx.rect(p.px, p.py, pw, pd);
         ctx.fill();
 
-        ctx.strokeStyle = 'rgba(50, 60, 70, 0.30)';
+        // Saw-cut concrete expansion joints (1.5m grid)
+        ctx.strokeStyle = 'rgba(40, 48, 56, 0.35)';
         ctx.lineWidth = 2;
-        for (let gx = p.px + 40; gx < p.px + pw; gx += 50) {
+        for (let gx = p.px + 35; gx < p.px + pw; gx += 45) {
           ctx.beginPath(); ctx.moveTo(gx, p.py); ctx.lineTo(gx, p.py + pd); ctx.stroke();
         }
-        for (let gy = p.py + 40; gy < p.py + pd; gy += 50) {
+        for (let gy = p.py + 35; gy < p.py + pd; gy += 45) {
           ctx.beginPath(); ctx.moveTo(p.px, gy); ctx.lineTo(p.px + pw, gy); ctx.stroke();
         }
 
-        ctx.strokeStyle = '#9ca9b5';
-        ctx.lineWidth = 4;
+        // Chamfered concrete edge border
+        ctx.strokeStyle = '#9ca9b6';
+        ctx.lineWidth = 3.5;
         ctx.stroke();
       }
 
-      // Draw separated concrete equipment foundations (100% Engineered Sequence)
-      // 1. Aeration Basin Pad (Biological Activation) - accommodates on-skid blowers
-      drawConcretePad(6.0, 7.5, 18.0, 9.0);
-      // 2. Preliminary Headworks Pad (Raw Influent & Screens)
-      drawConcretePad(18.0, 7.5, 6.0, 7.0);
-      // 3. Clarifier CL-01 Pad (Sedimentation)
-      drawConcretePad(-4.5, -4.5, 9.2, 9.2);
-      // 4. Clarifier CL-02 Pad (Sedimentation)
-      drawConcretePad(5.5, -4.5, 9.2, 9.2);
-      // 5. Central Flow Splitter & Hydraulic Vault
-      drawConcretePad(0.5, 1.2, 4.5, 3.8);
-      // 6. RAS/WAS Sludge Pump Station Pad
-      drawConcretePad(11.5, -4.5, 4.8, 4.8);
-      // 7. Tertiary Filtration & UV Disinfection Complex Pad (DIRECTLY IN PROCESS FLOW!)
-      drawConcretePad(0.5, -9.6, 12.5, 6.2);
-      // 8. Administration & Water Quality Laboratory Pad (West Campus)
-      drawConcretePad(-15.5, -4.5, 9.5, 9.5);
-      // 9. Anaerobic Digesters & Biosolids Solids Handling Pad (East Campus)
-      drawConcretePad(20.5, -5.5, 18.0, 13.5);
+      // Draw separated concrete equipment foundations
+      drawConcretePad(6.0, 7.5, 18.0, 9.0);   // 1. Aeration Basin Pad
+      drawConcretePad(18.0, 7.5, 6.0, 7.0);   // 2. Preliminary Headworks Pad
+      drawConcretePad(-4.5, -4.5, 9.2, 9.2);  // 3. Clarifier CL-01 Pad
+      drawConcretePad(5.5, -4.5, 9.2, 9.2);   // 4. Clarifier CL-02 Pad
+      drawConcretePad(0.5, 1.2, 4.5, 3.8);    // 5. Flow Splitter Vault
+      drawConcretePad(11.5, -4.5, 4.8, 4.8);  // 6. RAS/WAS Pump Station Pad
+      drawConcretePad(0.5, -9.6, 12.5, 6.2);  // 7. Tertiary Filter & UV Complex Pad
+      drawConcretePad(-15.5, -4.5, 9.5, 9.5); // 8. Operations & EPA Lab Pad
+      drawConcretePad(20.5, -5.5, 18.0, 13.5);// 9. Digesters & Biosolids Pad
 
-      // Paved Asphalt Access Roadway Loop & Dedicated Spur Aprons
-      ctx.strokeStyle = '#22272e';
-      ctx.lineWidth = 84;
+      // Roadway path coordinates
+      const roadPath = () => {
+        ctx.beginPath();
+        ctx.moveTo(1024, 2048);
+        ctx.lineTo(1024, 1550);
+        ctx.lineTo(450, 1550);
+        ctx.lineTo(450, 600);
+        ctx.lineTo(1620, 600);
+        ctx.lineTo(1620, 1550);
+        ctx.lineTo(1024, 1550);
+        // Spurs
+        ctx.moveTo(450, 1024 + (-4.5) * 17.06);
+        ctx.lineTo(toPx(-15.5, -4.5).px + 80, toPx(-15.5, -4.5).py);
+        ctx.moveTo(1620, 1024 + (-4.5) * 17.06);
+        ctx.lineTo(toPx(11.5, -4.5).px, toPx(11.5, -4.5).py);
+      };
+
+      // 1. Crushed stone aggregate shoulder (104px wide)
+      ctx.strokeStyle = '#5a584e';
+      ctx.lineWidth = 104;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.beginPath();
-      // Main Entrance road from South
-      ctx.moveTo(1024, 2048);
-      ctx.lineTo(1024, 1550);
-      // Outer perimeter road loop connecting all process zones with wide turning radiuses
-      ctx.lineTo(450, 1550);
-      ctx.lineTo(450, 600);
-      ctx.lineTo(1620, 600);
-      ctx.lineTo(1620, 1550);
-      ctx.lineTo(1024, 1550);
-      // Service access spur to Admin Lab (West)
-      ctx.moveTo(450, 1024 + (-4.5) * 17.06);
-      ctx.lineTo(toPx(-15.5, -4.5).px, toPx(-15.5, -4.5).py);
-      // Service access spur to Sludge Station & Digesters (East)
-      ctx.moveTo(1620, 1024 + (-4.5) * 17.06);
-      ctx.lineTo(toPx(11.5, -4.5).px, toPx(11.5, -4.5).py);
+      roadPath();
       ctx.stroke();
 
-      // Roadway concrete curbs
-      ctx.strokeStyle = '#8a949e';
-      ctx.lineWidth = 6;
+      // 2. High-grade paved asphalt roadbed (84px wide)
+      ctx.strokeStyle = '#25292f';
+      ctx.lineWidth = 84;
+      roadPath();
       ctx.stroke();
 
-      // Roadway safety yellow dashed centerlines
-      ctx.strokeStyle = 'rgba(234, 179, 8, 0.85)';
-      ctx.lineWidth = 4;
-      ctx.setLineDash([26, 18]);
+      // Asphalt fine aggregate surface texture
+      for (let i = 0; i < 40000; i++) {
+        const ax = 400 + Math.random() * 1280;
+        const ay = 550 + Math.random() * 1500;
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(15, 18, 22, 0.45)' : 'rgba(65, 75, 85, 0.35)';
+        ctx.fillRect(ax, ay, 2, 2);
+      }
+
+      // 3. Concrete curbs
+      ctx.strokeStyle = '#828c96';
+      ctx.lineWidth = 5;
+      roadPath();
+      ctx.stroke();
+
+      // 4. Solid white shoulder edge lines (fog lines, 2px wide, offset 36px)
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.82)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // 5. Roadway yellow dashed centerlines
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 3.5;
+      ctx.setLineDash([26, 16]);
+      roadPath();
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Retention Wetland Pond Rim at (0.5, -22.5)
+      // 6. Pedestrian Crosswalks (White zebra stripes)
+      function drawCrosswalk(cx, cy, isVertical = false) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+        for (let s = -32; s <= 32; s += 16) {
+          if (isVertical) {
+            ctx.fillRect(cx - 36, cy + s - 5, 72, 10);
+          } else {
+            ctx.fillRect(cx + s - 5, cy - 36, 10, 72);
+          }
+        }
+      }
+      // Crosswalk to Operations Lab
+      drawCrosswalk(450, 1024 + (-4.5) * 17.06 - 45, true);
+      // Crosswalk across south entrance road
+      drawCrosswalk(1024, 1620, false);
+
+      // 7. Painted "STOP" Bar & Stencil at Main Entrance
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.fillRect(1024 - 36, 1595, 72, 8); // Stop bar
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('STOP', 1024, 1630);
+
+      // 8. Angled Parking Stalls in front of Operations Lab
+      const parkX = toPx(-10.5, -4.5).px;
+      const parkY = toPx(-10.5, -4.5).py;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
+      ctx.lineWidth = 3;
+      for (let pk = -30; pk <= 30; pk += 20) {
+        ctx.beginPath();
+        ctx.moveTo(parkX - 25, parkY + pk);
+        ctx.lineTo(parkX + 25, parkY + pk);
+        ctx.stroke();
+      }
+
+      // 9. Retention Wetland Pond Rim & Naturalized Shoreline
       const pondP = toPx(0.5, -22.5);
       const pondR = 8.5 * 17.06;
 
-      ctx.fillStyle = '#998f78';
+      // River gravel & pebble shoreline buffer
+      ctx.fillStyle = '#6e6552';
       ctx.beginPath();
-      ctx.arc(pondP.px, pondP.py, pondR + 24, 0, Math.PI * 2);
+      ctx.arc(pondP.px, pondP.py, pondR + 32, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = '#164e63';
+      // Sandy wet loam beach ring
+      ctx.fillStyle = '#8f8268';
+      ctx.beginPath();
+      ctx.arc(pondP.px, pondP.py, pondR + 18, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Deep lagoon basin floor
+      ctx.fillStyle = '#114457';
       ctx.beginPath();
       ctx.arc(pondP.px, pondP.py, pondR, 0, Math.PI * 2);
       ctx.fill();
@@ -858,6 +924,131 @@
       ctx.fillStyle = '#94a3b8';
       ctx.font = '600 17px monospace';
       ctx.fillText(subtitle, 32, 92);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // (F2) Galvanized Security Chain-Link Fence Texture
+    function generateChainLinkFenceTexture(size = 64) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, size, size);
+
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.5, 0); ctx.lineTo(size, size * 0.5); ctx.lineTo(size * 0.5, size); ctx.lineTo(0, size * 0.5); ctx.closePath();
+      ctx.stroke();
+
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.0;
+      ctx.stroke();
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(24, 2);
+      return tex;
+    }
+
+    // (F3) Natural Tree Bark Texture
+    function generateTreeBarkTexture(w = 256, h = 512) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#3c2b1d';
+      ctx.fillRect(0, 0, w, h);
+
+      for (let i = 0; i < 450; i++) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        const len = 25 + Math.random() * 90;
+        ctx.strokeStyle = Math.random() > 0.5 ? 'rgba(26, 18, 11, 0.70)' : 'rgba(88, 66, 46, 0.55)';
+        ctx.lineWidth = 1.2 + Math.random() * 2.8;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + (Math.random() - 0.5) * 5, y + len);
+        ctx.stroke();
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(2, 4);
+      return tex;
+    }
+
+    // (F4) NFPA 704 Fire & Hazard Diamond Placard
+    function generateNFPAHazardTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+
+      ctx.save();
+      ctx.translate(64, 64);
+      ctx.rotate(Math.PI / 4);
+
+      ctx.fillStyle = '#dc2626'; // Red: Flammability
+      ctx.fillRect(-28, -58, 28, 28);
+      ctx.fillStyle = '#2563eb'; // Blue: Health
+      ctx.fillRect(-58, -28, 28, 28);
+      ctx.fillStyle = '#eab308'; // Yellow: Instability
+      ctx.fillRect(2, -28, 28, 28);
+      ctx.fillStyle = '#f8fafc'; // White: Special
+      ctx.fillRect(-28, 2, 28, 28);
+
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-58, -58, 88, 88);
+      ctx.restore();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('4', 64, 38);
+      ctx.fillText('2', 38, 64);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText('0', 90, 64);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // (F5) OSHA Safety & Equipment Hazard Sign
+    function generateOSHAWarningTexture(type = "DANGER", title = "HIGH VOLTAGE", desc = "AUTHORIZED PERSONNEL ONLY") {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256; canvas.height = 160;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 256, 160);
+
+      const headerColor = type === 'DANGER' ? '#dc2626' : (type === 'CAUTION' ? '#eab308' : '#2563eb');
+      ctx.fillStyle = headerColor;
+      ctx.fillRect(8, 8, 240, 48);
+
+      ctx.fillStyle = type === 'CAUTION' ? '#0f172a' : '#ffffff';
+      ctx.font = '900 24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(type, 128, 40);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.fillText(title, 128, 92);
+
+      ctx.fillStyle = '#475569';
+      ctx.font = '600 13px sans-serif';
+      ctx.fillText(desc, 128, 128);
+
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(4, 4, 248, 152);
 
       const tex = new THREE.CanvasTexture(canvas);
       tex.needsUpdate = true;
@@ -1037,6 +1228,12 @@
 
     const grassTuftMap = generateNaturalGrassTuftTexture();
     const siteTerrainMap = generateSiteTerrainCanvas(2048, 2048);
+    const chainLinkMap = generateChainLinkFenceTexture(64);
+    const treeBarkMap = generateTreeBarkTexture(256, 512);
+    const nfpaMap = generateNFPAHazardTexture();
+    const dangerHighVoltMap = generateOSHAWarningTexture('DANGER', 'HIGH VOLTAGE', 'KEEP OUT - 13.8kV');
+    const confinedSpaceMap = generateOSHAWarningTexture('DANGER', 'CONFINED SPACE', 'ENTER BY PERMIT ONLY');
+    const eyewashSignMap = generateOSHAWarningTexture('NOTICE', 'SAFETY EYEWASH', 'TESTED WEEKLY - KEEP CLEAR');
 
     const materials = {
       siteTerrain: new THREE.MeshStandardMaterial({
@@ -1155,21 +1352,201 @@
         roughness: 0.88,
         metalness: 0.02
       }),
+      coniferCanopy: new THREE.MeshStandardMaterial({
+        color: '#1a3818',
+        roughness: 0.88,
+        metalness: 0.02
+      }),
+      shrubCanopy: new THREE.MeshStandardMaterial({
+        color: '#2a481c',
+        roughness: 0.85,
+        metalness: 0.02
+      }),
       treeTrunk: new THREE.MeshStandardMaterial({
-        color: '#5c452d',
-        roughness: 0.92,
-        metalness: 0.04
+        map: treeBarkMap,
+        color: '#4e3b2b',
+        roughness: 0.90,
+        metalness: 0.02
+      }),
+      // Perimeter Chain-Link Security Fencing
+      chainLinkFence: new THREE.MeshStandardMaterial({
+        map: chainLinkMap,
+        transparent: true,
+        alphaTest: 0.35,
+        side: THREE.DoubleSide,
+        roughness: 0.35,
+        metalness: 0.85
+      }),
+      // Architecture & Commercial Building Materials
+      labWallPanels: new THREE.MeshStandardMaterial({
+        color: '#6f7b88',
+        roughness: 0.45,
+        metalness: 0.55
+      }),
+      commercialGlass: new THREE.MeshStandardMaterial({
+        color: '#1e3852',
+        roughness: 0.05,
+        metalness: 0.92,
+        transparent: true,
+        opacity: 0.78
+      }),
+      // Utility Pickup Vehicle Materials
+      truckWhitePaint: new THREE.MeshStandardMaterial({
+        color: '#f8fafc',
+        roughness: 0.22,
+        metalness: 0.75
+      }),
+      truckToolbox: new THREE.MeshStandardMaterial({
+        color: '#94a3b8',
+        roughness: 0.32,
+        metalness: 0.85
+      }),
+      truckAmberLight: new THREE.MeshStandardMaterial({
+        color: '#f59e0b',
+        emissive: '#d97706',
+        emissiveIntensity: 0.8,
+        roughness: 0.2
+      }),
+      // Civil & Industrial Yard Equipment Materials
+      transformerGreen: new THREE.MeshStandardMaterial({
+        color: '#1b3b22',
+        roughness: 0.45,
+        metalness: 0.55
+      }),
+      fireHydrantRed: new THREE.MeshStandardMaterial({
+        color: '#dc2626',
+        roughness: 0.35,
+        metalness: 0.50
+      }),
+      lifeRingOrange: new THREE.MeshStandardMaterial({
+        color: '#ea580c',
+        roughness: 0.40,
+        metalness: 0.10
+      }),
+      safetySignNFPA: new THREE.MeshStandardMaterial({
+        map: nfpaMap,
+        roughness: 0.3,
+        metalness: 0.2
+      }),
+      safetySignHighVolt: new THREE.MeshStandardMaterial({
+        map: dangerHighVoltMap,
+        roughness: 0.3,
+        metalness: 0.2
+      }),
+      safetySignConfined: new THREE.MeshStandardMaterial({
+        map: confinedSpaceMap,
+        roughness: 0.3,
+        metalness: 0.2
+      }),
+      safetySignEyewash: new THREE.MeshStandardMaterial({
+        map: eyewashSignMap,
+        roughness: 0.3,
+        metalness: 0.2
       })
     };
 
     // =========================================================================
     // 4. ARCHITECTURAL & INDUSTRIAL ENVIRONMENT GENERATION (CLEAN SPACING)
     // =========================================================================
+    // 4. ARCHITECTURAL & INDUSTRIAL ENVIRONMENT GENERATION
+    // =========================================================================
     const facilityGroup = new THREE.Group();
     facilityGroup.name = "Industrial Wastewater Facility";
     scene.add(facilityGroup);
 
-    // --- (A) Natural Landscape Ground ---
+    // --- (A1) Expansive Regional Horizon Topography & Rolling Countryside Skirt ---
+    // Eliminates the floating square tray; extends rolling green countryside to the horizon (r = 800m)
+    // smoothly merging into atmospheric Rayleigh sky and horizon fog (#9dc4ea)
+    function getRegionalElevation(x, y) {
+      const r = Math.hypot(x, y);
+      if (r <= 65) return -0.05;
+      const blend = Math.min(1.0, (r - 65) / 85.0);
+      const hillNoise = (
+        Math.sin(x * 0.007 + 0.35) * Math.cos(y * 0.006) * 22.0 +
+        Math.sin(x * 0.015 - y * 0.012) * 11.0 +
+        Math.cos(x * 0.0035 + y * 0.004) * 16.0
+      );
+      return Math.max(-1.2, hillNoise) * blend - 0.05 * (1.0 - blend);
+    }
+
+    const regionalSize = 1600;
+    const regionalGeom = new THREE.PlaneGeometry(regionalSize, regionalSize, 96, 96);
+    const regPosAttr = regionalGeom.attributes.position;
+    const regColors = new Float32Array(regPosAttr.count * 3);
+    const fogColor = new THREE.Color('#9dc4ea');
+    const turfBorderColor = new THREE.Color('#324724');
+    const pastureGreenColor = new THREE.Color('#3d552a');
+    const ridgeForestColor = new THREE.Color('#28391d');
+    const tempCol = new THREE.Color();
+
+    for (let i = 0; i < regPosAttr.count; i++) {
+      const vx = regPosAttr.getX(i);
+      const vy = regPosAttr.getY(i);
+      const elevation = getRegionalElevation(vx, vy);
+      regPosAttr.setZ(i, elevation);
+
+      const vr = Math.hypot(vx, vy);
+      if (vr < 90) {
+        tempCol.copy(turfBorderColor);
+      } else if (vr < 360) {
+        const factor = (vr - 90) / 270.0;
+        tempCol.copy(turfBorderColor).lerp(elevation > 8 ? ridgeForestColor : pastureGreenColor, factor);
+      } else {
+        const fogFactor = Math.min(1.0, (vr - 360) / 180.0);
+        tempCol.copy(pastureGreenColor).lerp(fogColor, fogFactor);
+      }
+      regColors[i * 3] = tempCol.r;
+      regColors[i * 3 + 1] = tempCol.g;
+      regColors[i * 3 + 2] = tempCol.b;
+    }
+    regionalGeom.setAttribute('color', new THREE.BufferAttribute(regColors, 3));
+    regionalGeom.computeVertexNormals();
+
+    const regionalMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.95,
+      metalness: 0.01
+    });
+    const regionalMesh = new THREE.Mesh(regionalGeom, regionalMat);
+    regionalMesh.name = "Expansive Regional Countryside & Horizon Hills";
+    regionalMesh.rotation.x = -Math.PI / 2;
+    regionalMesh.receiveShadow = true;
+    scene.add(regionalMesh);
+
+    // Distant Ridgeline Conifer Silhouettes (Adds authentic depth on outer horizon ridges)
+    const distantTreeCount = 140;
+    const distTrunkGeom = new THREE.CylinderGeometry(0.25, 0.45, 3.2, 5);
+    const distCanopyGeom = new THREE.ConeGeometry(2.2, 7.8, 6);
+    distCanopyGeom.translate(0, 4.6, 0);
+    const distTreeGeom = BufferGeometryUtils.mergeGeometries([distTrunkGeom, distCanopyGeom]);
+
+    const distTreeMat = new THREE.MeshStandardMaterial({
+      color: '#1a2e19',
+      roughness: 0.9,
+      metalness: 0.05
+    });
+    const distantTreesInst = new THREE.InstancedMesh(distTreeGeom, distTreeMat, distantTreeCount);
+    distantTreesInst.name = "Distant Horizon Ridge Conifers";
+    const dtDummy = new THREE.Object3D();
+
+    for (let i = 0; i < distantTreeCount; i++) {
+      const angle = (i / distantTreeCount) * Math.PI * 2 + Math.random() * 0.15;
+      const radius = 160 + (i % 9) * 28 + Math.random() * 25;
+      const dtx = Math.cos(angle) * radius;
+      const dtz = Math.sin(angle) * radius;
+      const dty = getRegionalElevation(dtx, -dtz); // Plane Y becomes -Z in world coords
+      const dScale = 0.9 + Math.random() * 0.65;
+
+      dtDummy.position.set(dtx, dty + 0.2, dtz);
+      dtDummy.scale.set(dScale, dScale, dScale);
+      dtDummy.rotation.y = Math.random() * Math.PI * 2;
+      dtDummy.updateMatrix();
+      distantTreesInst.setMatrixAt(i, dtDummy.matrix);
+    }
+    distantTreesInst.instanceMatrix.needsUpdate = true;
+    scene.add(distantTreesInst);
+
+    // --- (A2) Graded Industrial Civil Site Pad (130x130m with Asphalt Roads & Gravel Aprons) ---
     const terrainSize = 130;
     const terrainGeom = new THREE.PlaneGeometry(terrainSize, terrainSize, 48, 48);
     const posAttr = terrainGeom.attributes.position;
@@ -1201,9 +1578,132 @@
     pondMesh.position.set(0.5, 0.08, -22.5);
     facilityGroup.add(pondMesh);
 
-    // --- (B) Natural Low-Cut Lawn Grass (2,800 Volumetric Star-Tufts, Height 14-17cm, Zero Concrete Overlap) ---
+    // --- (B) Industrial Perimeter Security Chain-Link Fence & Vehicle Access Gate ---
+    // Protects critical wastewater infrastructure (8-foot galvanized tubular posts + diamond mesh + access gate)
+    const fenceGroup = new THREE.Group();
+    fenceGroup.name = "Perimeter Chain-Link Security Fence & Gate";
+    facilityGroup.add(fenceGroup);
+
+    const postGeom = new THREE.CylinderGeometry(0.045, 0.045, 2.45, 8);
+    postGeom.translate(0, 1.225, 0);
+
+    // Define perimeter boundary line segments around the active facility footprint
+    // Gate opening is at south road (z = 18.5, x = -4.0 to +4.0)
+    const fenceSegments = [
+      // North fence: from (-37.5, -28.5) to (37.5, -28.5)
+      { x1: -37.5, z1: -28.5, x2: 37.5, z2: -28.5 },
+      // East fence: from (37.5, -28.5) to (37.5, 18.5)
+      { x1: 37.5, z1: -28.5, x2: 37.5, z2: 18.5 },
+      // West fence: from (-37.5, -28.5) to (-37.5, 18.5)
+      { x1: -37.5, z1: -28.5, x2: -37.5, z2: 18.5 },
+      // South fence west wing: from (-37.5, 18.5) to (-4.0, 18.5)
+      { x1: -37.5, z1: 18.5, x2: -4.0, z2: 18.5 },
+      // South fence east wing: from (4.0, 18.5) to (37.5, 18.5)
+      { x1: 4.0, z1: 18.5, x2: 37.5, z2: 18.5 }
+    ];
+
+    const fencePosts = [];
+    const fenceRails = [];
+    const fencePanels = [];
+
+    fenceSegments.forEach(seg => {
+      const dx = seg.x2 - seg.x1;
+      const dz = seg.y2 ? (seg.y2 - seg.y1) : (seg.z2 - seg.z1);
+      const len = Math.hypot(dx, dz);
+      const angle = Math.atan2(dx, dz);
+      const numPosts = Math.ceil(len / 3.8);
+
+      for (let p = 0; p <= numPosts; p++) {
+        const frac = p / numPosts;
+        const px = seg.x1 + dx * frac;
+        const pz = seg.z1 + dz * frac;
+        const post = new THREE.Mesh(postGeom, materials.structuralSteel);
+        post.position.set(px, 0, pz);
+        post.castShadow = true;
+        fenceGroup.add(post);
+      }
+
+      // Horizontal top rail pipe (2.4m elevation)
+      const topRail = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.03, 0.03, len, 8),
+        materials.structuralSteel
+      );
+      topRail.position.set(seg.x1 + dx * 0.5, 2.38, seg.z1 + dz * 0.5);
+      topRail.rotation.x = Math.PI / 2;
+      topRail.rotation.z = -angle + Math.PI / 2;
+      fenceGroup.add(topRail);
+
+      // Chain-link mesh fabric panel
+      const panelGeom = new THREE.PlaneGeometry(len, 2.3);
+      panelGeom.translate(0, 1.15, 0);
+      const meshMat = materials.chainLinkFence.clone();
+      meshMat.map = materials.chainLinkFence.map.clone();
+      meshMat.map.repeat.set(len * 2.2, 4.8);
+      meshMat.map.needsUpdate = true;
+
+      const panel = new THREE.Mesh(panelGeom, meshMat);
+      panel.position.set(seg.x1 + dx * 0.5, 0, seg.z1 + dz * 0.5);
+      panel.rotation.y = angle - Math.PI / 2;
+      fenceGroup.add(panel);
+    });
+
+    // Main Security Vehicular Gate (South Entrance Roadway: x = -4.0 to +4.0, z = 18.5)
+    // Heavy gate posts with OSHA yellow/black hazard chevron decals
+    const gatePostL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.7, 12), materials.structuralSteel);
+    gatePostL.position.set(-4.0, 1.35, 18.5);
+    fenceGroup.add(gatePostL);
+    const gatePostR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.7, 12), materials.structuralSteel);
+    gatePostR.position.set(4.0, 1.35, 18.5);
+    fenceGroup.add(gatePostR);
+
+    // Cantilever Gate Leaves (Open 35° inwards to welcome authorized plant traffic)
+    function createGateLeaf(width, height) {
+      const leafGroup = new THREE.Group();
+      const frameMat = materials.structuralSteel;
+      // Perimeter tubular frame
+      const bot = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, width, 8), frameMat);
+      bot.rotation.z = Math.PI / 2; bot.position.set(width / 2, 0.1, 0); leafGroup.add(bot);
+      const top = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, width, 8), frameMat);
+      top.rotation.z = Math.PI / 2; top.position.set(width / 2, height, 0); leafGroup.add(top);
+      const side1 = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, height, 8), frameMat);
+      side1.position.set(0, height / 2, 0); leafGroup.add(side1);
+      const side2 = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, height, 8), frameMat);
+      side2.position.set(width, height / 2, 0); leafGroup.add(side2);
+      // Diagonal brace
+      const diagLen = Math.hypot(width, height);
+      const diag = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, diagLen, 8), frameMat);
+      diag.position.set(width / 2, height / 2, 0);
+      diag.rotation.z = Math.atan2(height, width);
+      leafGroup.add(diag);
+      // Infill mesh
+      const infill = new THREE.Mesh(new THREE.PlaneGeometry(width - 0.08, height - 0.1), materials.chainLinkFence);
+      infill.position.set(width / 2, height / 2, 0);
+      leafGroup.add(infill);
+      return leafGroup;
+    }
+
+    const gateLeafWest = createGateLeaf(3.8, 2.3);
+    gateLeafWest.position.set(-4.0, 0, 18.5);
+    gateLeafWest.rotation.y = -0.55; // Swung inwards toward plant
+    fenceGroup.add(gateLeafWest);
+
+    const gateLeafEast = createGateLeaf(3.8, 2.3);
+    gateLeafEast.position.set(4.0, 0, 18.5);
+    gateLeafEast.rotation.y = Math.PI + 0.55; // Swung inwards toward plant
+    fenceGroup.add(gateLeafEast);
+
+    // Industrial Gate Security Warning Sign
+    const gateSignMat = new THREE.MeshStandardMaterial({
+      map: generateSignageTexture("RESTRICTED FACILITY", "AUTHORIZED UTILITY PERSONNEL ONLY", 512, 128, '#f59e0b'),
+      roughness: 0.35, metalness: 0.5
+    });
+    const gateSign = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.42, 0.04), gateSignMat);
+    gateSign.position.set(-2.0, 1.45, 18.5);
+    gateSign.rotation.y = -0.55;
+    fenceGroup.add(gateSign);
+
+    // --- (C) Natural Low-Cut Lawn Grass (2,800 Volumetric Star-Tufts, Zero Concrete Overlap) ---
     const grassCount = 2800;
-    // True 3D volumetric star-tuft: 3 intersecting planes (0, 60, 120 deg) merged via BufferGeometryUtils
     const p1 = new THREE.PlaneGeometry(0.22, 0.16);
     p1.translate(0, 0.08, 0);
     const p2 = new THREE.PlaneGeometry(0.22, 0.16);
@@ -1216,61 +1716,35 @@
 
     const grassInst = new THREE.InstancedMesh(starTuftGeom, materials.grassBladeMat, grassCount);
     grassInst.name = "3D Natural Lawn Grass Tufts";
-    grassInst.castShadow = false; // Disable self-shadow on micro blades for high performance
+    grassInst.castShadow = false;
 
     // Strict Zone Masking: Return true ONLY if (x, z) is in valid natural green turf
-    // ZERO grass blades in water, flumes, concrete foundations, gravel aprons, or asphalt roadways!
     function isGrassAllowed(x, z) {
-      // 1. Must be inside site bounds
       if (Math.abs(x) > 56 || Math.abs(z) > 56) return false;
-
-      // 2. Concrete equipment pads & hydraulic channels (STRICT EXCLUSIONS WITH CLEAR BUFFER)
-      // (a) Biological Aeration Basin Pad & Perimeter (accommodates on-skid blowers)
       if (x >= -3.5 && x <= 15.2 && z >= 2.6 && z <= 12.4) return false;
-      // (b) Preliminary Headworks Pad (18.0, 7.5)
       if (x >= 14.6 && x <= 21.4 && z >= 3.6 && z <= 11.4) return false;
-      // (c) Connecting Inflow Flume (from Headworks 18.0 to Aeration 13.0)
       if (x >= 12.5 && x <= 18.5 && z >= 6.4 && z <= 8.6) return false;
-      // (d) Clarifier CL-01 Pad & Center Basin (-4.5, -4.5, radius 4.8m)
       if (Math.hypot(x - (-4.5), z - (-4.5)) < 4.8) return false;
       if (x >= -9.5 && x <= 0.5 && z >= -9.5 && z <= 0.5) return false;
-      // (e) Clarifier CL-02 Pad & Center Basin (5.5, -4.5, radius 4.8m)
       if (Math.hypot(x - 5.5, z - (-4.5)) < 4.8) return false;
       if (x >= 0.5 && x <= 10.5 && z >= -9.5 && z <= 0.5) return false;
-      // (f) Central Mixed Liquor (MLSS) Channel & Flow Splitter Vault
       if (x >= -2.4 && x <= 3.4 && z >= -1.2 && z <= 7.8) return false;
-      // (g) Clarifier to Tertiary Effluent Launders & Flumes
       if (x >= -4.8 && x <= 5.8 && z >= -8.2 && z <= -4.0) return false;
-      // (h) RAS/WAS Sludge Pump Station & Piezometer Vault (11.5, -4.5)
       if (x >= 8.5 && x <= 14.5 && z >= -7.5 && z <= -1.5) return false;
-      // (i) Return Activated Sludge (RAS) Pipe Corridor
       if (x >= 11.0 && x <= 13.5 && z >= -4.8 && z <= 8.0) return false;
-      // (j) Tertiary Filtration & UV Disinfection Complex Pad (0.5, -9.6)
       if (x >= -6.2 && x <= 7.2 && z >= -13.0 && z <= -6.2) return false;
-      // (k) Parshall Flume Outfall & Cascade Waterfall Channel (0.5, -14.2 to -17.5)
       if (x >= -1.6 && x <= 2.6 && z >= -18.0 && z <= -11.0) return false;
-      // (l) West Administration & Environmental Testing Lab (-15.5, -4.5)
       if (x >= -21.0 && x <= -10.0 && z >= -9.8 && z <= 0.8) return false;
-      // (m) East Anaerobic Digesters TK-101, TK-102 & Biogas Handling Pad
       if (x >= 11.0 && x <= 30.0 && z >= -13.5 && z <= 1.5) return false;
-
-      // 3. Retention Wetland Pond & Riparian Rocky Bank (radius 8.5m + 1.2m bank buffer at (0.5, -22.5))
       const dPond = Math.hypot(x - 0.5, z - (-22.5));
       if (dPond < 9.8) return false;
-
-      // 4. Asphalt Roadways & Access Spurs (corridor width 5.2m -> exclusion buffer 3.2m)
-      // Main South Entrance road
       if (Math.abs(x - 0.0) < 3.2 && z >= 14.5) return false;
-      // Perimeter Loop Roads
       if (Math.abs(z - 15.5) < 3.2 && x >= -35.0 && x <= 36.0) return false;
       if (Math.abs(z - (-25.0)) < 3.2 && x >= -35.0 && x <= 36.0) return false;
       if (Math.abs(x - (-34.0)) < 3.2 && z >= -25.5 && z <= 16.0) return false;
       if (Math.abs(x - 35.0) < 3.2 && z >= -25.5 && z <= 16.0) return false;
-      // Road Spur to West Admin Lab
       if (Math.abs(z - (-4.5)) < 3.0 && x >= -34.0 && x <= -15.0) return false;
-      // Road Spur to East Sludge Handling & Digesters
       if (Math.abs(z - (-4.5)) < 3.0 && x >= 11.0 && x <= 35.0) return false;
-
       return true;
     }
 
@@ -1281,10 +1755,7 @@
       attempts++;
       const gx = (Math.random() - 0.5) * 110;
       const gz = (Math.random() - 0.5) * 110;
-
       if (!isGrassAllowed(gx, gz)) continue;
-
-      // Low realistic blade height: 0.12m - 0.18m (5 to 7 inches)
       const gScale = 0.75 + Math.random() * 0.40;
       gDummy.position.set(gx, 0.01, gz);
       gDummy.scale.set(gScale, gScale, gScale);
@@ -1300,44 +1771,180 @@
     grassInst.instanceMatrix.needsUpdate = true;
     facilityGroup.add(grassInst);
 
-    // Background Multi-tier Trees
-    const treeCount = 80;
-    const trunkGeom = new THREE.CylinderGeometry(0.18, 0.28, 2.2, 7);
-    const trunkInst = new THREE.InstancedMesh(trunkGeom, materials.treeTrunk, treeCount);
-    trunkInst.name = "Background Tree Trunks";
+    // --- (D) High-Fidelity 3D Vegetation: Mature Deciduous Oaks & Tiered Conifers ---
+    // Replaces primitive dodecahedron spheres with realistic multi-lobed leafy canopies and conifers
+
+    // 1. Mature Deciduous Broadleaf Tree (Organic split trunk + multi-lobed compound crown)
+    function buildMatureDeciduousGeometries() {
+      // Main trunk + branching limbs
+      const tMain = new THREE.CylinderGeometry(0.24, 0.38, 2.8, 8);
+      tMain.translate(0, 1.4, 0);
+      const tBranch1 = new THREE.CylinderGeometry(0.12, 0.20, 1.6, 6);
+      tBranch1.rotateZ(0.55);
+      tBranch1.translate(0.55, 2.5, 0);
+      const tBranch2 = new THREE.CylinderGeometry(0.11, 0.18, 1.5, 6);
+      tBranch2.rotateZ(-0.52);
+      tBranch2.rotateY(1.4);
+      tBranch2.translate(-0.45, 2.45, 0.35);
+      const mergedTrunk = BufferGeometryUtils.mergeGeometries([tMain, tBranch1, tBranch2]);
+
+      // Multi-lobed compound organic foliage canopy
+      const cCenter = new THREE.IcosahedronGeometry(1.45, 2);
+      cCenter.translate(0, 3.8, 0);
+      const cSide1 = new THREE.IcosahedronGeometry(1.25, 2);
+      cSide1.translate(1.0, 3.2, 0.2);
+      const cSide2 = new THREE.IcosahedronGeometry(1.20, 2);
+      cSide2.translate(-0.9, 3.1, -0.4);
+      const cSide3 = new THREE.IcosahedronGeometry(1.15, 2);
+      cSide3.translate(0.2, 3.0, 1.0);
+      const mergedCanopy = BufferGeometryUtils.mergeGeometries([cCenter, cSide1, cSide2, cSide3]);
+
+      // Organic vertex perturbation for realistic foliage fluff
+      const cPos = mergedCanopy.attributes.position;
+      for (let v = 0; v < cPos.count; v++) {
+        const nx = cPos.getX(v);
+        const ny = cPos.getY(v);
+        const nz = cPos.getZ(v);
+        const noise = (Math.sin(nx * 4.2) + Math.cos(ny * 3.8) + Math.sin(nz * 4.5)) * 0.08;
+        cPos.setXYZ(v, nx + noise, ny + noise * 0.8, nz + noise);
+      }
+      mergedCanopy.computeVertexNormals();
+
+      return { trunk: mergedTrunk, canopy: mergedCanopy };
+    }
+
+    // 2. Evergreen Tiered Conifer / Pine (Conical tiered branch layers)
+    function buildTieredConiferGeometries() {
+      const cTrunk = new THREE.CylinderGeometry(0.12, 0.24, 5.2, 7);
+      cTrunk.translate(0, 2.6, 0);
+
+      const cone1 = new THREE.ConeGeometry(1.9, 2.0, 8); cone1.translate(0, 2.3, 0);
+      const cone2 = new THREE.ConeGeometry(1.5, 1.8, 8); cone2.translate(0, 3.3, 0);
+      const cone3 = new THREE.ConeGeometry(1.15, 1.5, 8); cone3.translate(0, 4.2, 0);
+      const cone4 = new THREE.ConeGeometry(0.70, 1.3, 8); cone4.translate(0, 5.1, 0);
+      const mergedCones = BufferGeometryUtils.mergeGeometries([cone1, cone2, cone3, cone4]);
+      mergedCones.computeVertexNormals();
+
+      return { trunk: cTrunk, canopy: mergedCones };
+    }
+
+    const deciduousGeom = buildMatureDeciduousGeometries();
+    const coniferGeom = buildTieredConiferGeometries();
+
+    const deciduousCount = 55;
+    const coniferCount = 42;
+
+    const trunkInst = new THREE.InstancedMesh(deciduousGeom.trunk, materials.treeTrunk, deciduousCount);
+    trunkInst.name = "Mature Deciduous Tree Trunks";
     trunkInst.castShadow = true;
 
-    const foliageGeom = new THREE.DodecahedronGeometry(1.6, 1);
-    const foliageInst = new THREE.InstancedMesh(foliageGeom, materials.vegetationCanopy, treeCount);
-    foliageInst.name = "Background Tree Canopy";
+    const foliageInst = new THREE.InstancedMesh(deciduousGeom.canopy, materials.vegetationCanopy, deciduousCount);
+    foliageInst.name = "Mature Deciduous Leafy Canopies";
     foliageInst.castShadow = true;
 
-    const dummy = new THREE.Object3D();
-    let treeIdx = 0;
-    for (let i = 0; i < treeCount; i++) {
-      const angle = (i / treeCount) * Math.PI * 1.5 - 0.2;
-      const radius = 38 + (i % 7) * 4.5 + Math.random() * 5;
-      const tx = Math.cos(angle) * radius;
-      const tz = -Math.sin(angle) * radius * 0.85 - 10;
-      const scale = 0.8 + Math.random() * 0.6;
+    const coniferTrunkInst = new THREE.InstancedMesh(coniferGeom.trunk, materials.treeTrunk, coniferCount);
+    coniferTrunkInst.name = "Evergreen Conifer Trunks";
+    coniferTrunkInst.castShadow = true;
 
-      dummy.position.set(tx, scale * 1.1, tz);
-      dummy.scale.set(scale, scale, scale);
-      dummy.rotation.y = Math.random() * Math.PI;
-      dummy.updateMatrix();
-      trunkInst.setMatrixAt(treeIdx, dummy.matrix);
+    const coniferCanopyInst = new THREE.InstancedMesh(coniferGeom.canopy, materials.coniferCanopy, coniferCount);
+    coniferCanopyInst.name = "Evergreen Conifer Branch Tiers";
+    coniferCanopyInst.castShadow = true;
 
-      dummy.position.set(tx, scale * 2.8, tz);
-      dummy.scale.set(scale * 1.2, scale * 1.3, scale * 1.2);
-      dummy.updateMatrix();
-      foliageInst.setMatrixAt(treeIdx, dummy.matrix);
+    // Organic Tree Placements (Groves along perimeter buffer, riparian wetland bank, and western forest)
+    const treeDummy = new THREE.Object3D();
 
-      treeIdx++;
+    // Natural Deciduous Groves
+    for (let i = 0; i < deciduousCount; i++) {
+      let tx, tz;
+      if (i < 18) {
+        // Riparian grove along Wetland Lagoon (x: -16 to 18, z: -32 to -19)
+        const a = (i / 18) * Math.PI + 0.1;
+        const r = 12.0 + (i % 4) * 3.2 + Math.random() * 2.5;
+        tx = 0.5 + Math.cos(a) * r;
+        tz = -22.5 - Math.sin(a) * (r * 0.75 + 1.5);
+      } else if (i < 38) {
+        // Western forest screening grove (x: -42 to -22, z: -16 to 14)
+        tx = -25.0 - (i % 6) * 3.5 - Math.random() * 4.0;
+        tz = -14.0 + (i - 18) * 1.5 + (Math.random() - 0.5) * 3.0;
+      } else {
+        // Outer perimeter buffer screen
+        const a = ((i - 38) / 17) * Math.PI * 1.8 - 0.4;
+        const r = 42.0 + (i % 5) * 3.0 + Math.random() * 4.0;
+        tx = Math.cos(a) * r;
+        tz = Math.sin(a) * (r * 0.85);
+      }
+
+      const tScale = 0.82 + Math.random() * 0.45;
+      treeDummy.position.set(tx, 0, tz);
+      treeDummy.scale.set(tScale, tScale * (0.95 + Math.random() * 0.2), tScale);
+      treeDummy.rotation.y = Math.random() * Math.PI * 2;
+      treeDummy.updateMatrix();
+
+      trunkInst.setMatrixAt(i, treeDummy.matrix);
+      foliageInst.setMatrixAt(i, treeDummy.matrix);
     }
     trunkInst.instanceMatrix.needsUpdate = true;
     foliageInst.instanceMatrix.needsUpdate = true;
     facilityGroup.add(trunkInst);
     facilityGroup.add(foliageInst);
+
+    // Natural Conifer / Pine Stands (North & East ridges)
+    for (let i = 0; i < coniferCount; i++) {
+      let cx, cz;
+      if (i < 20) {
+        // North-east hillside backdrop (x: 14 to 45, z: -35 to -15)
+        cx = 16.0 + (i % 6) * 4.8 + Math.random() * 3.5;
+        cz = -18.0 - Math.floor(i / 6) * 4.5 - Math.random() * 3.0;
+      } else {
+        // East property screen buffer (x: 38 to 52, z: -10 to 18)
+        cx = 38.0 + (i % 4) * 3.5 + Math.random() * 3.0;
+        cz = -8.0 + (i - 20) * 1.3 + (Math.random() - 0.5) * 2.5;
+      }
+
+      const cScale = 0.85 + Math.random() * 0.45;
+      treeDummy.position.set(cx, 0, cz);
+      treeDummy.scale.set(cScale, cScale * (0.95 + Math.random() * 0.25), cScale);
+      treeDummy.rotation.y = Math.random() * Math.PI * 2;
+      treeDummy.updateMatrix();
+
+      coniferTrunkInst.setMatrixAt(i, treeDummy.matrix);
+      coniferCanopyInst.setMatrixAt(i, treeDummy.matrix);
+    }
+    coniferTrunkInst.instanceMatrix.needsUpdate = true;
+    coniferCanopyInst.instanceMatrix.needsUpdate = true;
+    facilityGroup.add(coniferTrunkInst);
+    facilityGroup.add(coniferCanopyInst);
+
+    // Foundation Landscaping Shrubs (Curated mulch beds around Operations Lab & Entrance)
+    const shrubCount = 26;
+    const shrubGeom = new THREE.IcosahedronGeometry(0.48, 1);
+    const shrubInst = new THREE.InstancedMesh(shrubGeom, materials.shrubCanopy, shrubCount);
+    shrubInst.name = "Foundation Landscaping Shrubs";
+    shrubInst.castShadow = true;
+
+    const shrubPositions = [
+      // Lab Entrance Plaza curb mulch beds
+      { x: -13.2, z: -0.8 }, { x: -14.0, z: -0.8 }, { x: -17.0, z: -0.8 }, { x: -17.8, z: -0.8 },
+      { x: -13.2, z: -8.2 }, { x: -14.2, z: -8.2 }, { x: -16.8, z: -8.2 }, { x: -17.8, z: -8.2 },
+      { x: -20.2, z: -2.5 }, { x: -20.2, z: -4.0 }, { x: -20.2, z: -5.5 }, { x: -20.2, z: -7.0 },
+      // Driveway apron decorative shrubs
+      { x: -2.2, z: 12.5 }, { x: -2.2, z: 14.0 }, { x: 2.2, z: 12.5 }, { x: 2.2, z: 14.0 },
+      // Headworks & Walkway corners
+      { x: 15.0, z: 2.8 }, { x: 15.8, z: 2.8 }, { x: 21.0, z: 2.8 }, { x: 21.8, z: 2.8 },
+      { x: 11.2, z: -1.2 }, { x: 12.0, z: -1.2 }, { x: -9.8, z: -1.2 }, { x: -10.6, z: -1.2 },
+      { x: 8.8, z: -7.8 }, { x: 9.6, z: -7.8 }
+    ];
+
+    shrubPositions.forEach((sp, idx) => {
+      const ss = 0.75 + Math.random() * 0.45;
+      treeDummy.position.set(sp.x, 0.28 * ss, sp.z);
+      treeDummy.scale.set(ss * (1.0 + Math.random() * 0.25), ss * 0.75, ss * (1.0 + Math.random() * 0.25));
+      treeDummy.rotation.set((Math.random() - 0.5) * 0.2, Math.random() * Math.PI * 2, (Math.random() - 0.5) * 0.2);
+      treeDummy.updateMatrix();
+      shrubInst.setMatrixAt(idx, treeDummy.matrix);
+    });
+    shrubInst.instanceMatrix.needsUpdate = true;
+    facilityGroup.add(shrubInst);
 
     // =========================================================================
     // WATER TREATMENT STAGE 1: RAW INFLUENT HEADWORKS (DIRTY WATER INLET)
@@ -1431,6 +2038,37 @@
     hopper.position.set(0, 1.68, -0.15);
     headworksGroup.add(hopper);
 
+    // Screenings Roll-Off Trash Dumpster Container (Captures raked screenings from hopper chute)
+    const dumpsterGroup = new THREE.Group();
+    dumpsterGroup.position.set(1.45, 0.42, -0.15);
+    const dumpsterBody = new THREE.Mesh(
+      new THREE.BoxGeometry(1.1, 0.75, 1.6),
+      new THREE.MeshStandardMaterial({ color: '#166534', roughness: 0.5, metalness: 0.35 })
+    );
+    dumpsterBody.castShadow = true;
+    dumpsterGroup.add(dumpsterBody);
+    // Heavy steel trunnion lifting bars
+    const trunnionL = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.3, 8), materials.structuralSteel);
+    trunnionL.rotation.x = Math.PI / 2; trunnionL.position.set(-0.56, 0.15, 0); dumpsterGroup.add(trunnionL);
+    const trunnionR = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.3, 8), materials.structuralSteel);
+    trunnionR.rotation.x = Math.PI / 2; trunnionR.position.set(0.56, 0.15, 0); dumpsterGroup.add(trunnionR);
+    // Caster steel wheels
+    [-0.45, 0.45].forEach(wx => {
+      [-0.65, 0.65].forEach(wz => {
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.06, 12), materials.structuralSteel);
+        wheel.rotation.z = Math.PI / 2; wheel.position.set(wx, -0.38, wz); dumpsterGroup.add(wheel);
+      });
+    });
+    headworksGroup.add(dumpsterGroup);
+
+    // Overhead Ultrasonic Level Sensor Transducer (Monitors incoming channel flow rate)
+    const sensorBracket = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.75, 0.4), materials.structuralSteel);
+    sensorBracket.position.set(0, 1.55, 1.1);
+    headworksGroup.add(sensorBracket);
+    const sensorHead = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.18, 12), materials.safetyYellow);
+    sensorHead.position.set(0, 1.25, 0.95);
+    headworksGroup.add(sensorHead);
+
     // Overhead Catwalk & Handrails
     const hwWalkway = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.06, 0.6), materials.structuralSteel);
     hwWalkway.position.set(0, 1.28, -1.6);
@@ -1442,6 +2080,12 @@
     const hwRailR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.6, 0.6), materials.safetyYellow);
     hwRailR.position.set(1.15, 1.58, -1.6);
     headworksGroup.add(hwRailR);
+
+    // Confined space warning placard on intake chamber
+    const hwHazardSign = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.35, 0.5), materials.safetySignConfined);
+    hwHazardSign.position.set(-1.21, 0.85, 0.5);
+    hwHazardSign.rotation.y = -Math.PI / 2;
+    headworksGroup.add(hwHazardSign);
 
     // Connecting Inflow Flume bridging Headworks (18.0, 0, 7.5) to Aeration Basin inlet (13.0, 0, 7.5)
     // Runs 5.0m westward from x = 0.0 to x = -5.0 relative to Headworks (from world x=18.0 to x=13.0)
@@ -1640,30 +2284,105 @@
     bubbleSprayPoints.name = "Bursting Surface Bubble Spray";
     aerationGroup.add(bubbleSprayPoints);
 
-    // Walkway with Safety Rails
-    const walkGeom = new THREE.BoxGeometry(basinL, 0.08, 0.75);
+    // Center Walkway with Diamond Grating & OSHA Handrails with Kickplates/Toeboards
+    const walkGeom = new THREE.BoxGeometry(basinL, 0.08, 0.85);
     const walkMesh = new THREE.Mesh(walkGeom, materials.structuralSteel);
     walkMesh.position.set(0, basinH + 0.04, 0);
+    walkMesh.castShadow = true;
     aerationGroup.add(walkMesh);
 
-    const railGeom = new THREE.BoxGeometry(basinL, 0.04, 0.04);
-    const railN = new THREE.Mesh(railGeom, materials.safetyYellow);
-    railN.position.set(0, basinH + 0.85, -0.35);
-    aerationGroup.add(railN);
-    const railS = new THREE.Mesh(railGeom, materials.safetyYellow);
-    railS.position.set(0, basinH + 0.85, 0.35);
-    aerationGroup.add(railS);
+    // OSHA Toeboards (100mm kickplates along edges)
+    const toeBoardN = new THREE.Mesh(new THREE.BoxGeometry(basinL, 0.10, 0.02), materials.safetyYellow);
+    toeBoardN.position.set(0, basinH + 0.12, -0.41);
+    aerationGroup.add(toeBoardN);
+    const toeBoardS = new THREE.Mesh(new THREE.BoxGeometry(basinL, 0.10, 0.02), materials.safetyYellow);
+    toeBoardS.position.set(0, basinH + 0.12, 0.41);
+    aerationGroup.add(toeBoardS);
 
-    // Air Supply Headers (600mm Blue Steel)
+    // Handrail top and mid rails
+    const railNTop = new THREE.Mesh(new THREE.BoxGeometry(basinL, 0.04, 0.04), materials.safetyYellow);
+    railNTop.position.set(0, basinH + 1.05, -0.40); aerationGroup.add(railNTop);
+    const railNMid = new THREE.Mesh(new THREE.BoxGeometry(basinL, 0.03, 0.03), materials.safetyYellow);
+    railNMid.position.set(0, basinH + 0.53, -0.40); aerationGroup.add(railNMid);
+
+    const railSTop = new THREE.Mesh(new THREE.BoxGeometry(basinL, 0.04, 0.04), materials.safetyYellow);
+    railSTop.position.set(0, basinH + 1.05, 0.40); aerationGroup.add(railSTop);
+    const railSMid = new THREE.Mesh(new THREE.BoxGeometry(basinL, 0.03, 0.03), materials.safetyYellow);
+    railSMid.position.set(0, basinH + 0.53, 0.40); aerationGroup.add(railSMid);
+
+    // Vertical handrail stanchions every 1.5m
+    for (let st = -basinL / 2 + 0.3; st <= basinL / 2 - 0.3; st += 1.5) {
+      const stanN = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 1.05, 8), materials.safetyYellow);
+      stanN.position.set(st, basinH + 0.55, -0.40); aerationGroup.add(stanN);
+      const stanS = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 1.05, 8), materials.safetyYellow);
+      stanS.position.set(st, basinH + 0.55, 0.40); aerationGroup.add(stanS);
+    }
+
+    // OSHA Combined Emergency Safety Shower & Eyewash Station (Mounted on center walkway)
+    const showerGroup = new THREE.Group();
+    showerGroup.position.set(2.2, basinH + 0.08, 0);
+    const showerPipeMat = new THREE.MeshStandardMaterial({ color: '#15803d', roughness: 0.4, metalness: 0.6 });
+    const showerStand = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.3, 8), showerPipeMat);
+    showerStand.position.set(0, 1.15, -0.28); showerGroup.add(showerStand);
+    // Overhead deluge shower head
+    const showerArm = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.45, 8), showerPipeMat);
+    showerArm.rotation.x = Math.PI / 2; showerArm.position.set(0, 2.25, -0.05); showerGroup.add(showerArm);
+    const showerHead = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.08, 12), materials.structuralSteel);
+    showerHead.position.set(0, 2.22, 0.15); showerGroup.add(showerHead);
+    // Eyewash bowl & dual aerated spray heads
+    const eyeBowl = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.11, 0.09, 14), materials.structuralSteel);
+    eyeBowl.position.set(0, 1.12, -0.12); showerGroup.add(eyeBowl);
+    // Safety eyewash notice sign
+    const eyeSign = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.35, 0.45), materials.safetySignEyewash);
+    eyeSign.position.set(0, 1.65, -0.28); eyeSign.rotation.y = Math.PI / 2; showerGroup.add(eyeSign);
+    aerationGroup.add(showerGroup);
+
+    // Exterior Caged Safety Access Ladder (South wall)
+    const ladderGroup = new THREE.Group();
+    ladderGroup.position.set(-3.5, 0, basinW / 2 + 0.22);
+    [-0.22, 0.22].forEach(lx => {
+      const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, basinH + 1.1, 8), materials.structuralSteel);
+      rail.position.set(lx, (basinH + 1.1) / 2, 0); ladderGroup.add(rail);
+    });
+    for (let r = 0.3; r <= basinH + 0.9; r += 0.3) {
+      const rung = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.42, 8), materials.structuralSteel);
+      rung.rotation.z = Math.PI / 2; rung.position.set(0, r, 0); ladderGroup.add(rung);
+    }
+    for (let ch = 1.6; ch <= basinH + 1.0; ch += 0.45) {
+      const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.015, 8, 16, Math.PI * 1.2), materials.structuralSteel);
+      hoop.rotation.x = Math.PI / 2; hoop.rotation.z = -Math.PI * 0.6; hoop.position.set(0, ch, 0.25);
+      ladderGroup.add(hoop);
+    }
+    aerationGroup.add(ladderGroup);
+
+    // Air Supply Headers (600mm Blue Steel with Flanged Joints & Butterfly Valves)
     const airPipeMain = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, basinL + 1.2, 24), materials.processPipeBlue);
     airPipeMain.rotation.z = Math.PI / 2;
     airPipeMain.position.set(0, basinH + 0.35, -basinW / 2 + 0.45);
     aerationGroup.add(airPipeMain);
 
+    // Flanged weld joints on main header
+    for (let fj = -basinL / 2; fj <= basinL / 2; fj += 3.5) {
+      const flange = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.06, 20), materials.structuralSteel);
+      flange.rotation.z = Math.PI / 2; flange.position.set(fj, basinH + 0.35, -basinW / 2 + 0.45);
+      aerationGroup.add(flange);
+    }
+
+    const valveWheelMat = new THREE.MeshStandardMaterial({ color: '#dc2626', roughness: 0.35, metalness: 0.5 });
     for (let d = -5.5; d <= 5.5; d += 1.8) {
       const dropLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.4, 12), materials.processPipeBlue);
       dropLeg.position.set(d, basinH - 0.35, -basinW / 2 + 0.45);
       aerationGroup.add(dropLeg);
+
+      // Flanged butterfly isolation valve body
+      const vBody = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.12, 12), materials.structuralSteel);
+      vBody.position.set(d, basinH - 0.15, -basinW / 2 + 0.45);
+      aerationGroup.add(vBody);
+
+      // Red cast-iron operating handwheel
+      const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.016, 8, 16), valveWheelMat);
+      wheel.rotation.y = Math.PI / 2; wheel.position.set(d + 0.14, basinH - 0.15, -basinW / 2 + 0.45);
+      aerationGroup.add(wheel);
     }
 
     // Aeration ID Signage
@@ -1807,14 +2526,24 @@
       cRim.position.y = cHeight;
       cGroup.add(cRim);
 
+      // Peripheral Effluent Launder Trough & Scum Baffle Wall
+      const scumBaffle = new THREE.Mesh(
+        new THREE.CylinderGeometry(cRad - 0.36, cRad - 0.36, 0.32, 48, 1, true),
+        materials.structuralSteel
+      );
+      scumBaffle.position.y = cHeight - 0.06;
+      cGroup.add(scumBaffle);
+
+      // Stainless Steel V-notch Weir Plate Lip
       const weirMesh = new THREE.Mesh(
-        new THREE.TorusGeometry(cRad - 0.22, 0.10, 8, 48),
+        new THREE.TorusGeometry(cRad - 0.34, 0.035, 8, 48),
         materials.structuralSteel
       );
       weirMesh.rotation.x = Math.PI / 2;
       weirMesh.position.y = cHeight - 0.08;
       cGroup.add(weirMesh);
 
+      // Center Feed Well (Dissipates inlet kinetic energy)
       const feedWell = new THREE.Mesh(
         new THREE.CylinderGeometry(0.72, 0.72, 1.1, 24, 1, true),
         materials.structuralSteel
@@ -1830,24 +2559,59 @@
       cGroup.add(cWaterMesh);
       clarifierWaterMeshes.push(cWaterMesh);
 
+      // Concrete Center Pier & Drive Motor Reducer
       const centerPier = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.30, cHeight + 0.45, 16), materials.concreteWall);
       centerPier.position.y = (cHeight + 0.45) / 2;
       cGroup.add(centerPier);
 
+      // Center Drive Planetary Gearbox & Electric Motor
+      const driveGearbox = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 0.32, 16), materials.structuralSteel);
+      driveGearbox.position.y = cHeight + 0.58;
+      cGroup.add(driveGearbox);
+
+      const driveMotor = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.36, 12), materials.safetyYellow);
+      driveMotor.position.set(0, cHeight + 0.88, 0);
+      cGroup.add(driveMotor);
+
+      // Rotating Scraper Bridge with Grating Deck, OSHA Handrails & Lifebuoy
       const bridgeGroup = new THREE.Group();
       bridgeGroup.position.y = cHeight + 0.18;
 
-      const bridgeWalk = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.08, 0.65), materials.structuralSteel);
+      const bridgeWalk = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.08, 0.72), materials.structuralSteel);
       bridgeWalk.castShadow = true;
       bridgeGroup.add(bridgeWalk);
 
-      const bRail1 = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.04, 0.04), materials.safetyYellow);
-      bRail1.position.set(0, 0.55, -0.30);
-      bridgeGroup.add(bRail1);
-      const bRail2 = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.04, 0.04), materials.safetyYellow);
-      bRail2.position.set(0, 0.55, 0.30);
-      bridgeGroup.add(bRail2);
+      // OSHA Safety Toeboards (100mm kickplates)
+      const bToe1 = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.10, 0.02), materials.safetyYellow);
+      bToe1.position.set(0, 0.08, -0.35); bridgeGroup.add(bToe1);
+      const bToe2 = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.10, 0.02), materials.safetyYellow);
+      bToe2.position.set(0, 0.08, 0.35); bridgeGroup.add(bToe2);
 
+      // Top and mid rails
+      const bRail1 = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.04, 0.04), materials.safetyYellow);
+      bRail1.position.set(0, 0.95, -0.35); bridgeGroup.add(bRail1);
+      const bRail1Mid = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.03, 0.03), materials.safetyYellow);
+      bRail1Mid.position.set(0, 0.48, -0.35); bridgeGroup.add(bRail1Mid);
+
+      const bRail2 = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.04, 0.04), materials.safetyYellow);
+      bRail2.position.set(0, 0.95, 0.35); bridgeGroup.add(bRail2);
+      const bRail2Mid = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.03, 0.03), materials.safetyYellow);
+      bRail2Mid.position.set(0, 0.48, 0.35); bridgeGroup.add(bRail2Mid);
+
+      // Vertical handrail stanchions
+      for (let st = -cRad + 0.2; st <= cRad - 0.2; st += 1.1) {
+        const stan1 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.95, 8), materials.safetyYellow);
+        stan1.position.set(st, 0.48, -0.35); bridgeGroup.add(stan1);
+        const stan2 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.95, 8), materials.safetyYellow);
+        stan2.position.set(st, 0.48, 0.35); bridgeGroup.add(stan2);
+      }
+
+      // 30-inch Orange Safety Lifebuoy with retrieval rope (Mounted on bridge stanchion)
+      const lifeRing = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.065, 12, 24), materials.lifeRingOrange);
+      lifeRing.position.set(1.4, 0.55, 0.38);
+      bridgeGroup.add(lifeRing);
+
+      // Submerged sludge rake scraper blades
       for (let s = -cRad + 0.6; s < cRad - 0.6; s += 0.85) {
         const blade = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.7, 0.02), materials.structuralSteel);
         blade.position.set(s, -0.65, 0);
@@ -2085,69 +2849,253 @@
     labGroup.position.set(-15.5, 0, -4.5);
     facilityGroup.add(labGroup);
 
-    // Foundation concrete slab pad
-    const labPad = new THREE.Mesh(new THREE.BoxGeometry(8.8, 0.25, 7.8), materials.concreteWall);
+    // Foundation concrete slab pad with ADA curb ramps
+    const labPad = new THREE.Mesh(new THREE.BoxGeometry(9.6, 0.25, 8.6), materials.concreteWall);
     labPad.position.set(0, 0.125, 0);
     labPad.receiveShadow = true;
     labGroup.add(labPad);
 
-    // Modern Administrative & Lab Facility Building
-    const labBuilding = new THREE.Mesh(new THREE.BoxGeometry(7.6, 3.4, 6.4), materials.concreteWall);
-    labBuilding.position.set(0, 1.825, 0);
-    labBuilding.castShadow = true;
-    labGroup.add(labBuilding);
+    // Architectural Precast Concrete Base Wainscot (Lower 1.1m band)
+    const labWainscot = new THREE.Mesh(new THREE.BoxGeometry(7.6, 1.1, 6.4), materials.concreteWall);
+    labWainscot.position.set(0, 0.675, 0);
+    labWainscot.castShadow = true;
+    labGroup.add(labWainscot);
+
+    // Wainscot chamfered architectural drip sill
+    const wainscotSill = new THREE.Mesh(new THREE.BoxGeometry(7.72, 0.08, 6.52), materials.concreteCapping);
+    wainscotSill.position.set(0, 1.25, 0);
+    labGroup.add(wainscotSill);
+
+    // Upper Building Envelope: Ribbed Insulated Metal Wall Panels
+    const labUpperWalls = new THREE.Mesh(new THREE.BoxGeometry(7.55, 2.35, 6.35), materials.labWallPanels);
+    labUpperWalls.position.set(0, 2.45, 0);
+    labUpperWalls.castShadow = true;
+    labGroup.add(labUpperWalls);
 
     // Parapet roof cap rim
-    const labRoofRim = new THREE.Mesh(new THREE.BoxGeometry(7.8, 0.18, 6.6), materials.concreteCapping);
-    labRoofRim.position.set(0, 3.58, 0);
+    const labRoofRim = new THREE.Mesh(new THREE.BoxGeometry(7.85, 0.22, 6.65), materials.concreteCapping);
+    labRoofRim.position.set(0, 3.65, 0);
     labGroup.add(labRoofRim);
 
-    // Entrance Plaza Canopy & Glass Ribbon Facade
-    const labCanopy = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.16, 1.6), materials.structuralSteel);
-    labCanopy.position.set(0, 2.6, 3.8);
+    // Commercial Ribbon Windows & Dark Bronze Aluminum Mullion Grids
+    // South Facade Ribbon Windows (Facing Process Complex)
+    const winFrameS = new THREE.Mesh(new THREE.BoxGeometry(6.6, 1.05, 0.08), materials.structuralSteel);
+    winFrameS.position.set(0, 2.25, 3.20);
+    labGroup.add(winFrameS);
+
+    const winGlassS = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 0.92), materials.commercialGlass);
+    winGlassS.position.set(0, 2.25, 3.25);
+    labGroup.add(winGlassS);
+
+    // Vertical bronze mullions every 1.6m
+    for (let m = -2.4; m <= 2.4; m += 1.6) {
+      const mullion = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.0, 0.09), materials.structuralSteel);
+      mullion.position.set(m, 2.25, 3.22);
+      labGroup.add(mullion);
+    }
+
+    // North Facade Quality Assurance Clerestory Windows
+    const winGlassN = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 0.75), materials.commercialGlass);
+    winGlassN.rotation.y = Math.PI;
+    winGlassN.position.set(0, 2.45, -3.20);
+    labGroup.add(winGlassN);
+
+    // Storefront Entrance Vestibule & Double Glass Doors
+    const vestibuleFrame = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.4, 0.12), materials.structuralSteel);
+    vestibuleFrame.position.set(0, 1.32, 3.20);
+    labGroup.add(vestibuleFrame);
+
+    const doorGlassL = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 2.15), materials.commercialGlass);
+    doorGlassL.position.set(-0.46, 1.32, 3.27);
+    labGroup.add(doorGlassL);
+    const doorGlassR = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 2.15), materials.commercialGlass);
+    doorGlassR.position.set(0.46, 1.32, 3.27);
+    labGroup.add(doorGlassR);
+
+    // Stainless steel vertical door pull handles
+    const handleL = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.65, 8), materials.structuralSteel);
+    handleL.position.set(-0.12, 1.25, 3.32); labGroup.add(handleL);
+    const handleR = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.65, 8), materials.structuralSteel);
+    handleR.position.set(0.12, 1.25, 3.32); labGroup.add(handleR);
+
+    // Entrance Plaza Canopy & Architectural Columns
+    const labCanopy = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.16, 1.8), materials.structuralSteel);
+    labCanopy.position.set(0, 2.75, 4.05);
     labCanopy.castShadow = true;
     labGroup.add(labCanopy);
 
-    const canopyPoles1 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.6, 12), materials.structuralSteel);
-    canopyPoles1.position.set(-1.2, 1.3, 4.4);
+    const canopyPoles1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.75, 12), materials.structuralSteel);
+    canopyPoles1.position.set(-1.4, 1.375, 4.8);
     labGroup.add(canopyPoles1);
-    const canopyPoles2 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.6, 12), materials.structuralSteel);
-    canopyPoles2.position.set(1.2, 1.3, 4.4);
+    const canopyPoles2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.75, 12), materials.structuralSteel);
+    canopyPoles2.position.set(1.4, 1.375, 4.8);
     labGroup.add(canopyPoles2);
 
-    const labDoor = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.2), new THREE.MeshStandardMaterial({ color: "#0f172a", roughness: 0.15, metalness: 0.8 }));
-    labDoor.position.set(0, 1.25, 3.22);
-    labGroup.add(labDoor);
+    // ADA Yellow Tactile Warning Curb Pad
+    const adaMat = new THREE.MeshStandardMaterial({ color: '#eab308', roughness: 0.6, metalness: 0.1 });
+    const adaTile = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.9), adaMat);
+    adaTile.rotation.x = -Math.PI / 2;
+    adaTile.position.set(0, 0.252, 4.6);
+    labGroup.add(adaTile);
 
-    // Laboratory Ribbon Windows (South and North faces)
-    const windowMat = new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.1, metalness: 0.9 });
-    const winS = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 0.9), windowMat);
-    winS.position.set(0, 2.2, 3.22);
-    labGroup.add(winS);
+    // Packaged Commercial Rooftop HVAC Air Handling Units (RTU-1 and RTU-2)
+    function createRooftopRTU(x, z) {
+      const rtu = new THREE.Group();
+      rtu.position.set(x, 3.75, z);
+      const rtuBox = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.95, 1.4), materials.structuralSteel);
+      rtuBox.position.set(0, 0.475, 0); rtu.add(rtuBox);
+      // Condenser fan circular cowl
+      const fanCowl = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.18, 16), materials.structuralSteel);
+      fanCowl.position.set(0.35, 1.02, 0); rtu.add(fanCowl);
+      // Electrical disconnect switch box
+      const disc = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.32, 0.12), materials.safetyYellow);
+      disc.position.set(-0.95, 0.55, 0.2); rtu.add(disc);
+      return rtu;
+    }
+    labGroup.add(createRooftopRTU(-1.8, 0.8));
+    labGroup.add(createRooftopRTU(1.8, -0.6));
 
-    // HVAC Rooftop Air Handling Unit
-    const hvacUnit = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.1, 1.6), materials.structuralSteel);
-    hvacUnit.position.set(-1.6, 4.15, 0.5);
-    labGroup.add(hvacUnit);
+    // Roof Access Scuttle Hatch
+    const scuttle = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.25, 0.9), materials.structuralSteel);
+    scuttle.position.set(-2.2, 3.85, -1.8);
+    labGroup.add(scuttle);
 
-    // SCADA Telemetry Antenna Mast
-    const antennaMast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 4.2, 10), materials.structuralSteel);
-    antennaMast.position.set(2.4, 5.6, -1.8);
+    // SCADA Wireless Telemetry Tower & Parabolic Microwave Antenna
+    const antennaMast = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 6.2, 10), materials.structuralSteel);
+    antennaMast.position.set(2.6, 6.6, -1.8);
     labGroup.add(antennaMast);
 
-    const antennaDish = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), materials.structuralSteel);
-    antennaDish.position.set(2.4, 7.2, -1.8);
-    antennaDish.rotation.x = Math.PI / 4;
-    labGroup.add(antennaDish);
+    // Directional parabolic drum antenna (for remote lift station communication)
+    const microwaveDrum = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.32, 16), materials.structuralSteel);
+    microwaveDrum.rotation.z = Math.PI / 2;
+    microwaveDrum.position.set(2.8, 8.2, -1.8);
+    labGroup.add(microwaveDrum);
+
+    // Omnidirectional VHF whip antenna
+    const whipAntenna = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1.8, 8), materials.structuralSteel);
+    whipAntenna.position.set(2.6, 9.8, -1.8);
+    labGroup.add(whipAntenna);
 
     // Laboratory ID Signage
     const labSignMat = new THREE.MeshStandardMaterial({
       map: generateSignageTexture("OPERATIONS & EPA TESTING LAB", "STAGE 07: SCADA TELEMETRY & QC COMPLIANCE", 512, 128, '#38bdf8'),
       roughness: 0.3, metalness: 0.6
     });
-    const labSign = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.45, 0.04), labSignMat);
-    labSign.position.set(0, 2.95, 3.23);
+    const labSign = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.52, 0.04), labSignMat);
+    labSign.position.set(0, 3.15, 3.24);
     labGroup.add(labSign);
+
+    // --- Municipal Public Works Utility Pickup Truck ---
+    // Parked in marked visitor/operator parking stall in front of the Operations Lab (x=4.8, z=0.5 relative to labGroup)
+    const truckGroup = new THREE.Group();
+    truckGroup.name = "Municipal Water Utility Crew Pickup Truck";
+    truckGroup.userData = { subsystem: "Plant Fleet Operations", spec: "Ford Super Duty 4x4 municipal utility maintenance truck with toolboxes and emergency beacon" };
+    truckGroup.position.set(4.8, 0, 0.5);
+    truckGroup.rotation.y = -Math.PI / 2 - 0.12; // Parked squarely inside angled parking stall
+    labGroup.add(truckGroup);
+
+    // Rubber tires with steel hubcaps
+    const tireGeom = new THREE.CylinderGeometry(0.34, 0.34, 0.22, 16);
+    const hubGeom = new THREE.CylinderGeometry(0.18, 0.18, 0.23, 16);
+    const tireMat = new THREE.MeshStandardMaterial({ color: '#1e242b', roughness: 0.9, metalness: 0.1 });
+    const hubMat = new THREE.MeshStandardMaterial({ color: '#cbd5e1', roughness: 0.3, metalness: 0.8 });
+
+    const wheelOffsets = [
+      { x: -0.85, z: 1.45 }, { x: 0.85, z: 1.45 },   // Front wheels
+      { x: -0.85, z: -1.35 }, { x: 0.85, z: -1.35 }  // Rear dual-track wheels
+    ];
+    wheelOffsets.forEach(wo => {
+      const tire = new THREE.Mesh(tireGeom, tireMat);
+      tire.rotation.z = Math.PI / 2;
+      tire.position.set(wo.x, 0.34, wo.z);
+      tire.castShadow = true;
+      truckGroup.add(tire);
+
+      const hub = new THREE.Mesh(hubGeom, hubMat);
+      hub.rotation.z = Math.PI / 2;
+      hub.position.set(wo.x, 0.34, wo.z);
+      truckGroup.add(hub);
+    });
+
+    // Lower chassis & drivetrain beam
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.22, 4.4), materials.structuralSteel);
+    chassis.position.set(0, 0.38, 0);
+    truckGroup.add(chassis);
+
+    // Front engine bay and hood
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.65, 1.35), materials.truckWhitePaint);
+    hood.position.set(0, 0.82, 1.45);
+    hood.castShadow = true;
+    truckGroup.add(hood);
+
+    // Front grille & heavy chrome bumper
+    const bumper = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.32, 0.24), materials.structuralSteel);
+    bumper.position.set(0, 0.52, 2.18);
+    truckGroup.add(bumper);
+
+    const grille = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.38, 0.08), new THREE.MeshStandardMaterial({ color: '#0f172a', roughness: 0.8 }));
+    grille.position.set(0, 0.88, 2.14);
+    truckGroup.add(grille);
+
+    // LED Headlights
+    const headlightMat = new THREE.MeshStandardMaterial({ color: '#fef08a', roughness: 0.1, emissive: '#fef08a', emissiveIntensity: 0.4 });
+    [-0.62, 0.62].forEach(hx => {
+      const hl = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.18, 0.05), headlightMat);
+      hl.position.set(hx, 0.88, 2.15);
+      truckGroup.add(hl);
+    });
+
+    // Crew cab with passenger seating
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.95, 1.75), materials.truckWhitePaint);
+    cab.position.set(0, 1.15, -0.05);
+    cab.castShadow = true;
+    truckGroup.add(cab);
+
+    // Tinted windshield & windows
+    const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.62, 0.12), materials.commercialGlass);
+    windshield.rotation.x = -0.38;
+    windshield.position.set(0, 1.32, 0.78);
+    truckGroup.add(windshield);
+
+    const rearGlass = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.48, 0.08), materials.commercialGlass);
+    rearGlass.position.set(0, 1.35, -0.92);
+    truckGroup.add(rearGlass);
+
+    // Pickup cargo bed
+    const bed = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.65, 1.55), materials.truckWhitePaint);
+    bed.position.set(0, 0.82, -1.55);
+    bed.castShadow = true;
+    truckGroup.add(bed);
+
+    // Rear bumper & red taillights
+    const rBumper = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.28, 0.22), materials.structuralSteel);
+    rBumper.position.set(0, 0.52, -2.35);
+    truckGroup.add(rBumper);
+
+    const taillightMat = new THREE.MeshStandardMaterial({ color: '#dc2626', roughness: 0.2, emissive: '#991b1b', emissiveIntensity: 0.3 });
+    [-0.72, 0.72].forEach(tx => {
+      const tl = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.28, 0.05), taillightMat);
+      tl.position.set(tx, 0.85, -2.34);
+      truckGroup.add(tl);
+    });
+
+    // Diamond-Plate Crossbed Contractor Tool Box (Mounted behind cab)
+    const toolbox = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.48, 0.52), materials.truckToolbox);
+    toolbox.position.set(0, 1.12, -1.05);
+    toolbox.castShadow = true;
+    truckGroup.add(toolbox);
+
+    // Amber LED Emergency Rooftop Warning Strobe Bar
+    const strobeLight = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.12, 0.22), materials.truckAmberLight);
+    strobeLight.position.set(0, 1.68, 0.1);
+    truckGroup.add(strobeLight);
+
+    // Dual side view mirrors
+    [-0.92, 0.92].forEach(mx => {
+      const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.18, 0.08), materials.structuralSteel);
+      mirror.position.set(mx, 1.15, 0.65);
+      truckGroup.add(mirror);
+    });
 
     // =========================================================================
     // WATER TREATMENT STAGE 5: FINAL CLEAN WATER DISCHARGE OUTFALL (CLEAN WATER OUT!)
@@ -2461,22 +3409,44 @@
       dCyl.receiveShadow = true;
       dtGroup.add(dCyl);
 
+      // Horizontal Welded Steel Plate Seam Bands (Course joints)
+      for (let w = 1.2; w < d.h; w += 1.2) {
+        const seam = new THREE.Mesh(new THREE.TorusGeometry(d.r + 0.015, 0.02, 6, 36), materials.structuralSteel);
+        seam.rotation.x = Math.PI / 2;
+        seam.position.y = w;
+        dtGroup.add(seam);
+      }
+
+      // Conical fixed steel cover dome
       const roofCone = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.12, d.r + 0.06, 0.45, 36),
+        new THREE.CylinderGeometry(0.12, d.r + 0.06, 0.55, 36),
         materials.structuralSteel
       );
-      roofCone.position.y = d.h + 0.225;
+      roofCone.position.y = d.h + 0.275;
       roofCone.castShadow = true;
       dtGroup.add(roofCone);
 
-      const vent = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.65, 16), materials.structuralSteel);
-      vent.position.y = d.h + 0.65;
-      dtGroup.add(vent);
+      // Gas Collection Dome & Pressure / Vacuum Relief Valve (PVRV)
+      const gasDome = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.45, 16), materials.structuralSteel);
+      gasDome.position.y = d.h + 0.65;
+      dtGroup.add(gasDome);
 
+      // Weighted PVRV breather hood
+      const pvrvHood = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.16, 0.28, 12), materials.safetyYellow);
+      pvrvHood.position.set(0.25, d.h + 0.88, 0);
+      dtGroup.add(pvrvHood);
+
+      // Lightning protection rod finial
+      const lightningRod = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1.2, 8), materials.structuralSteel);
+      lightningRod.position.y = d.h + 1.25;
+      dtGroup.add(lightningRod);
+
+      // Biogas collection takeoff pipe
       const gasPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.4, 12), materials.safetyYellow);
       gasPipe.position.set(d.r * 0.7, d.h * 0.7, 0);
       dtGroup.add(gasPipe);
 
+      // Tank Identification Signage Plaque
       const dtSignMat = new THREE.MeshStandardMaterial({
         map: generateSignageTexture(d.label, "METHANE RECOVERY | 38°C MESOPHILIC", 512, 128, '#06b6d4'),
         roughness: 0.3, metalness: 0.6
@@ -2485,6 +3455,12 @@
       dtSign.position.set(0, d.h * 0.62, d.r + 0.06);
       dtGroup.add(dtSign);
 
+      // NFPA 704 Fire Hazard Diamond Placard (Flammability 4 - Severe Methane Hazard)
+      const nfpaPlacard = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.03), materials.safetySignNFPA);
+      nfpaPlacard.position.set(1.1, d.h * 0.62, d.r + 0.06);
+      dtGroup.add(nfpaPlacard);
+
+      // Spiral Staircase with yellow safety steps to dome
       const numSteps = 22;
       for (let s = 0; s < numSteps; s++) {
         const sProg = s / numSteps;
@@ -2512,10 +3488,32 @@
     flareBase.position.y = 0.2;
     flareGroup.add(flareBase);
 
+    // Flame arrestor drum at base
+    const flameArrestor = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.6, 16), materials.structuralSteel);
+    flameArrestor.position.set(0.65, 0.45, 0);
+    flareGroup.add(flameArrestor);
+
     const flareStack = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 10.5, 16), materials.structuralSteel);
     flareStack.position.y = 5.45;
     flareStack.castShadow = true;
     flareGroup.add(flareStack);
+
+    // 3-Point Stainless Steel Guy-Wire Support Stays (Anchored at 120 deg)
+    for (let g = 0; g < 3; g++) {
+      const gAngle = (g / 3) * Math.PI * 2;
+      const gAnchorX = Math.cos(gAngle) * 3.8;
+      const gAnchorZ = Math.sin(gAngle) * 3.8;
+      // Concrete anchor deadman
+      const anchorBlock = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.4), materials.concreteWall);
+      anchorBlock.position.set(gAnchorX, 0.125, gAnchorZ);
+      flareGroup.add(anchorBlock);
+      // Guy cable
+      const cableLen = Math.hypot(3.8, 7.5);
+      const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, cableLen, 6), materials.structuralSteel);
+      cable.position.set(gAnchorX * 0.5, 3.85, gAnchorZ * 0.5);
+      cable.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-gAnchorX, 7.5, -gAnchorZ).normalize());
+      flareGroup.add(cable);
+    }
 
     const flareTip = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.18, 1.4, 16), materials.structuralSteel);
     flareTip.position.y = 11.2;
@@ -2551,6 +3549,117 @@
       dewaterGroup.add(rollDoor);
     }
     facilityGroup.add(dewaterGroup);
+
+    // =========================================================================
+    // CIVIL & INDUSTRIAL YARD EQUIPMENT INFRASTRUCTURE
+    // =========================================================================
+    const yardPropsGroup = new THREE.Group();
+    yardPropsGroup.name = "Civil & Industrial Yard Infrastructure";
+    facilityGroup.add(yardPropsGroup);
+
+    // 1. Pad-Mounted 3-Phase Main Utility Electrical Transformer (13.8kV to 480V)
+    // Located on concrete pad at (-10.5, 0, -1.2) between Operations Lab and Process area
+    const xformerGroup = new THREE.Group();
+    xformerGroup.name = "Pad-Mounted 3-Phase Utility Transformer";
+    xformerGroup.position.set(-10.5, 0, -1.2);
+    yardPropsGroup.add(xformerGroup);
+
+    const xformerPad = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.22, 2.2), materials.concreteWall);
+    xformerPad.position.y = 0.11; xformerPad.receiveShadow = true; xformerGroup.add(xformerPad);
+
+    const xformerCabinet = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.45, 1.5), materials.transformerGreen);
+    xformerCabinet.position.y = 0.94; xformerCabinet.castShadow = true; xformerGroup.add(xformerCabinet);
+
+    // Cooling radiator fins on rear
+    for (let fin = -0.55; fin <= 0.55; fin += 0.18) {
+      const radFin = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.1, 0.28), materials.transformerGreen);
+      radFin.position.set(fin, 0.94, -0.85); xformerGroup.add(radFin);
+    }
+
+    // High Voltage Warning Placard
+    const xfWarn = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.24, 0.02), materials.safetySignHighVolt);
+    xfWarn.position.set(0, 1.15, 0.76); xformerGroup.add(xfWarn);
+
+    // 2. Heavy-Duty Emergency Standby Diesel Generator Acoustic Enclosure
+    // Located on concrete pad behind Operations Lab at (-19.5, 0, -9.0)
+    const genGroup = new THREE.Group();
+    genGroup.name = "Emergency Standby Diesel Generator (800kW)";
+    genGroup.position.set(-19.5, 0, -9.0);
+    yardPropsGroup.add(genGroup);
+
+    const genPad = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.25, 2.6), materials.concreteWall);
+    genPad.position.y = 0.125; genPad.receiveShadow = true; genGroup.add(genPad);
+
+    const genHousingMat = new THREE.MeshStandardMaterial({ color: '#475569', roughness: 0.5, metalness: 0.6 });
+    const genCabinet = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.85, 2.0), genHousingMat);
+    genCabinet.position.y = 1.05; genCabinet.castShadow = true; genGroup.add(genCabinet);
+
+    // Exhaust muffler silencer pipe with rain cap
+    const genExhaust = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 1.4, 12), materials.structuralSteel);
+    genExhaust.position.set(1.2, 2.55, 0); genGroup.add(genExhaust);
+    const rainCap = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.12, 10), materials.structuralSteel);
+    rainCap.position.set(1.2, 3.3, 0); genGroup.add(rainCap);
+
+    // 3. Coagulant & Polymer Chemical IBC Tote Pallet Station (Near Tertiary Filters)
+    // Located at (-3.8, 0, -10.8)
+    const ibcGroup = new THREE.Group();
+    ibcGroup.name = "Coagulant Dosing IBC Tote Station";
+    ibcGroup.position.set(-3.8, 0, -10.8);
+    yardPropsGroup.add(ibcGroup);
+
+    // Yellow secondary containment spill pallet
+    const spillPallet = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.28, 1.4), materials.safetyYellow);
+    spillPallet.position.y = 0.14; ibcGroup.add(spillPallet);
+
+    // Translucent polyethylene chemical bottle
+    const ibcTankMat = new THREE.MeshStandardMaterial({
+      color: '#f8fafc',
+      roughness: 0.25,
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.85
+    });
+    const ibcTank = new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.15, 1.15), ibcTankMat);
+    ibcTank.position.y = 0.85; ibcGroup.add(ibcTank);
+
+    // Steel cage frame around IBC tote
+    const ibcCage = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), materials.structuralSteel);
+    ibcCage.position.y = 0.85;
+    ibcGroup.add(new THREE.BoxHelper(ibcTank, 0x64748b));
+
+    // 4. Municipal Fire Hydrants (Authentic civil water distribution points)
+    function createFireHydrant(x, z) {
+      const hyd = new THREE.Group();
+      hyd.name = "Municipal Fire Hydrant";
+      hyd.position.set(x, 0, z);
+
+      // Hydrant barrel
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.72, 14), materials.fireHydrantRed);
+      barrel.position.y = 0.36; barrel.castShadow = true; hyd.add(barrel);
+
+      // Bonnet cap & pentagon nut
+      const bonnet = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), materials.fireHydrantRed);
+      bonnet.position.y = 0.72; hyd.add(bonnet);
+      const nut = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.08, 5), materials.safetyYellow);
+      nut.position.y = 0.88; hyd.add(nut);
+
+      // Pumper nozzle (4.5 inch front)
+      const pumperNozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.15, 12), materials.safetyYellow);
+      pumperNozzle.rotation.x = Math.PI / 2; pumperNozzle.position.set(0, 0.48, 0.15); hyd.add(pumperNozzle);
+
+      // Side hose nozzles (2.5 inch)
+      const sideNozzleL = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.12, 10), materials.safetyYellow);
+      sideNozzleL.rotation.z = Math.PI / 2; sideNozzleL.position.set(-0.15, 0.48, 0); hyd.add(sideNozzleL);
+      const sideNozzleR = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.12, 10), materials.safetyYellow);
+      sideNozzleR.rotation.z = Math.PI / 2; sideNozzleR.position.set(0.15, 0.48, 0); hyd.add(sideNozzleR);
+
+      return hyd;
+    }
+
+    // Hydrant 1: Main entrance roadway access apron
+    yardPropsGroup.add(createFireHydrant(-2.8, 14.2));
+    // Hydrant 2: In front of Operations Lab
+    yardPropsGroup.add(createFireHydrant(-11.8, -2.8));
 
     // Perimeter High-Mast Industrial Floodlights
     function createFloodlightPole(x, z) {
@@ -2861,6 +3970,16 @@
       const modeBadge = document.getElementById('render-mode-badge');
       const statShading = document.getElementById('stat-shading');
 
+      const toggleAllVegetation = (vis) => {
+        trunkInst.visible = vis;
+        foliageInst.visible = vis;
+        grassInst.visible = vis;
+        if (typeof coniferTrunkInst !== 'undefined') coniferTrunkInst.visible = vis;
+        if (typeof coniferCanopyInst !== 'undefined') coniferCanopyInst.visible = vis;
+        if (typeof shrubInst !== 'undefined') shrubInst.visible = vis;
+        if (typeof distantTreesInst !== 'undefined') distantTreesInst.visible = vis;
+      };
+
       if (mode === 'pbr') {
         modeBadge.textContent = 'PROCESS SIMULATION';
         modeBadge.className = 'badge flow';
@@ -2868,9 +3987,7 @@
         sky.visible = true;
         cloudDome.visible = true;
         scene.fog = new THREE.Fog('#9dc4ea', 90, 520);
-        trunkInst.visible = true;
-        foliageInst.visible = true;
-        grassInst.visible = true;
+        toggleAllVegetation(true);
         bloomPass.strength = parseFloat(document.getElementById('bloom-strength').value) / 100.0;
 
         facilityGroup.traverse((obj) => {
@@ -2886,9 +4003,7 @@
         cloudDome.visible = false;
         scene.background = new THREE.Color('#06090f');
         scene.fog = new THREE.FogExp2('#06090f', 0.015);
-        trunkInst.visible = false;
-        foliageInst.visible = false;
-        grassInst.visible = false;
+        toggleAllVegetation(false);
         bloomPass.strength = 0.04;
 
         facilityGroup.traverse((obj) => {
@@ -2914,9 +4029,7 @@
         cloudDome.visible = false;
         scene.background = new THREE.Color('#10141c');
         scene.fog = null;
-        trunkInst.visible = true;
-        foliageInst.visible = true;
-        grassInst.visible = true;
+        toggleAllVegetation(true);
 
         const normalMat = new THREE.MeshNormalMaterial();
         facilityGroup.traverse((obj) => {
@@ -2929,9 +4042,7 @@
         sky.visible = true;
         cloudDome.visible = true;
         scene.fog = new THREE.Fog('#9dc4ea', 90, 520);
-        trunkInst.visible = true;
-        foliageInst.visible = true;
-        grassInst.visible = true;
+        toggleAllVegetation(true);
 
         const clayMat = new THREE.MeshStandardMaterial({ color: '#f1f5f9', roughness: 0.9, metalness: 0.05 });
         facilityGroup.traverse((obj) => {
