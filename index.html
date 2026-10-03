@@ -4,21 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Municipal Water Treatment Facility — Guided Process Tour & Simulation</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💧</text></svg>">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
+    html, body {
+      width: 100%;
+      height: 100%;
       overflow: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
       background: #080c10;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: #e6edf3;
       user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
     }
     #canvas-container {
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
       position: absolute;
       top: 0;
       left: 0;
+      overflow: hidden;
       touch-action: none;
     }
 
@@ -321,6 +330,7 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
+      overflow: hidden;
       z-index: 5;
     }
     .annotation-pin {
@@ -3443,9 +3453,9 @@
     gantryLegR.position.set(1.0, 0.95, 0.5);
     outfallGroup.add(gantryLegR);
 
-    const sensorHead = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.28, 12), materials.safetyYellow);
-    sensorHead.position.set(0, 1.25, 0.5);
-    outfallGroup.add(sensorHead);
+    const outfallSensorHead = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.28, 12), materials.safetyYellow);
+    outfallSensorHead.position.set(0, 1.25, 0.5);
+    outfallGroup.add(outfallSensorHead);
 
     const flowDisplay = new THREE.Mesh(
       new THREE.BoxGeometry(0.42, 0.26, 0.04),
@@ -4033,9 +4043,16 @@
         const isBehind = tempV.z > 1.0;
         const sx = (tempV.x * 0.5 + 0.5) * w;
         const sy = (-(tempV.y * 0.5) + 0.5) * h;
+        const isOffscreen = isBehind || sx < -80 || sx > w + 80 || sy < -80 || sy > h + 80;
 
+        if (isOffscreen) {
+          item.el.style.display = 'none';
+          continue;
+        }
+
+        item.el.style.display = 'flex';
         const camDist = camera.position.distanceTo(item.worldPos);
-        const opacity = isBehind ? 0 : Math.max(0, Math.min(1, (130 - camDist) / 50));
+        const opacity = Math.max(0, Math.min(1, (130 - camDist) / 50));
         const scale = Math.max(0.72, Math.min(1.05, 36 / camDist));
 
         item.el.style.left = `${sx}px`;
