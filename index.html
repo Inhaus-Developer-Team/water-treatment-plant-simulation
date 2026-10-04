@@ -955,6 +955,61 @@
       return tex;
     }
 
+    // (C3) Photorealistic Procedural Water Normal Map Texture (Harmonic Multi-Wave Tangent Space Normals)
+    function generateWaterNormalTexture(w = 512, h = 512) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      const imgData = ctx.createImageData(w, h);
+      const data = imgData.data;
+
+      const heights = new Float32Array(w * h);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const u = (x / w) * Math.PI * 2;
+          const v = (y / h) * Math.PI * 2;
+          const wave1 = Math.sin(u * 4.0 + v * 3.0);
+          const wave2 = Math.cos(u * 7.0 - v * 5.0) * 0.6;
+          const wave3 = Math.sin(u * 12.0 + v * 10.0) * 0.35;
+          const wave4 = Math.cos(u * 22.0 - v * 18.0) * 0.18;
+          const wave5 = Math.sin(u * 38.0 + v * 34.0) * 0.08;
+          heights[y * w + x] = wave1 + wave2 + wave3 + wave4 + wave5;
+        }
+      }
+
+      const strength = 2.4;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const xPrev = (x - 1 + w) % w;
+          const xNext = (x + 1) % w;
+          const yPrev = (y - 1 + h) % h;
+          const yNext = (y + 1) % h;
+
+          const dX = (heights[y * w + xNext] - heights[y * w + xPrev]) * strength;
+          const dY = (heights[yNext * w + x] - heights[yPrev * w + x]) * strength;
+
+          const len = Math.hypot(dX, dY, 1.0);
+          const nx = (-dX / len);
+          const ny = (-dY / len);
+          const nz = (1.0 / len);
+
+          const idx = (y * w + x) * 4;
+          data[idx] = Math.floor((nx * 0.5 + 0.5) * 255);
+          data[idx + 1] = Math.floor((ny * 0.5 + 0.5) * 255);
+          data[idx + 2] = Math.floor((nz * 0.5 + 0.5) * 255);
+          data[idx + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(4, 4);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
     // (D) Natural Low-Cut Lawn Blade Texture (Realistic blade tuft with color gradation)
     function generateNaturalGrassTuftTexture() {
       const canvas = document.createElement('canvas');
@@ -1069,14 +1124,14 @@
       drawConcretePad(-15.5, -4.5, 9.5, 9.5); // 8. Operations & EPA Lab Pad
       drawConcretePad(20.5, -5.5, 18.0, 13.5);// 9. Digesters & Biosolids Pad
 
-      // Roadway path coordinates
+      // Roadway path coordinates (Rerouted north road to py = 370 / Z = -38.3m to completely separate from lagoon)
       const roadPath = () => {
         ctx.beginPath();
         ctx.moveTo(1024, 2048);
         ctx.lineTo(1024, 1550);
         ctx.lineTo(450, 1550);
-        ctx.lineTo(450, 600);
-        ctx.lineTo(1620, 600);
+        ctx.lineTo(450, 370);
+        ctx.lineTo(1620, 370);
         ctx.lineTo(1620, 1550);
         ctx.lineTo(1024, 1550);
         // Spurs
@@ -1103,7 +1158,7 @@
       // Asphalt fine aggregate surface texture
       for (let i = 0; i < 40000; i++) {
         const ax = 400 + Math.random() * 1280;
-        const ay = 550 + Math.random() * 1500;
+        const ay = 320 + Math.random() * 1730;
         ctx.fillStyle = Math.random() > 0.5 ? 'rgba(15, 18, 22, 0.45)' : 'rgba(65, 75, 85, 0.35)';
         ctx.fillRect(ax, ay, 2, 2);
       }
@@ -1528,6 +1583,11 @@
 
     const aerationFoamMap = generateAerationFoamTexture(512, 512);
 
+    const waterNormalMap = generateWaterNormalTexture(512, 512);
+    waterNormalMap.wrapS = THREE.RepeatWrapping;
+    waterNormalMap.wrapT = THREE.RepeatWrapping;
+    waterNormalMap.repeat.set(6, 6);
+
     const grassTuftMap = generateNaturalGrassTuftTexture();
     const siteTerrainMap = generateSiteTerrainCanvas(2048, 2048);
     const chainLinkMap = generateChainLinkFenceTexture(64);
@@ -1579,67 +1639,128 @@
         roughness: 0.35,
         metalness: 0.68
       }),
-      // STAGE 1: DIRTY RAW INFLUENT SEWAGE WATER (Opaque deep muddy sludge brown)
-      dirtyInfluentWater: new THREE.MeshStandardMaterial({
+      // STAGE 1: DIRTY RAW INFLUENT SEWAGE WATER (Opaque deep turbid sludge with surface grease glint)
+      dirtyInfluentWater: new THREE.MeshPhysicalMaterial({
         color: '#3d2611',
-        roughness: 0.75,
-        metalness: 0.02,
-        bumpMap: foamTexture,
-        bumpScale: 0.18,
-        transparent: false
+        roughness: 0.28,
+        metalness: 0.05,
+        transmission: 0.22,
+        ior: 1.333,
+        clearcoat: 0.75,
+        clearcoatRoughness: 0.12,
+        normalMap: waterNormalMap,
+        normalScale: new THREE.Vector2(0.40, 0.40),
+        transparent: true,
+        opacity: 0.96
       }),
-      // STAGE 2: BIOLOGICAL MIXED LIQUOR AERATION WATER & FOAM
-      aerationWater: new THREE.MeshStandardMaterial({
-        color: '#1f536b',
-        roughness: 0.15,
-        metalness: 0.18,
-        bumpMap: aerationFoamMap,
-        bumpScale: 0.02,
+      // STAGE 2: BIOLOGICAL MIXED LIQUOR AERATION WATER & FOAM (Realistic physical water with fluid normal waves)
+      aerationWater: new THREE.MeshPhysicalMaterial({
+        color: '#1a4e63',
+        roughness: 0.10,
+        metalness: 0.08,
+        transmission: 0.58,
+        ior: 1.333,
+        clearcoat: 0.92,
+        clearcoatRoughness: 0.06,
+        normalMap: waterNormalMap,
+        normalScale: new THREE.Vector2(0.38, 0.38),
+        attenuationColor: new THREE.Color('#0b2a38'),
+        attenuationDistance: 1.3,
         transparent: true,
         opacity: 0.92
       }),
       aerationFoam: new THREE.MeshStandardMaterial({
         map: aerationFoamMap,
         transparent: true,
-        opacity: 0.22,
-        roughness: 0.20,
-        metalness: 0.05,
+        opacity: 0.24,
+        roughness: 0.30,
+        metalness: 0.02,
         depthWrite: false,
         polygonOffset: true,
         polygonOffsetFactor: -1,
         polygonOffsetUnits: -1
       }),
-      // STAGE 3: SECONDARY CLARIFIED WATER
-      clarifierWater: new THREE.MeshStandardMaterial({
-        color: '#14637d',
-        roughness: 0.08,
-        metalness: 0.30,
-        bumpMap: foamTexture,
-        bumpScale: 0.02,
-        transparent: true,
-        opacity: 0.86
-      }),
-      // STAGE 5: PRISTINE TREATED CLEAN EFFLUENT WATER
-      cleanEffluentWater: new THREE.MeshStandardMaterial({
-        color: '#38bdf8',
+      // STAGE 3: SECONDARY CLARIFIED WATER (High-clarity physical fluid with Fresnel reflections)
+      clarifierWater: new THREE.MeshPhysicalMaterial({
+        color: '#0e5f78',
         roughness: 0.04,
-        metalness: 0.15,
-        transparent: true,
-        opacity: 0.72
-      }),
-      cleanWaterfall: new THREE.MeshStandardMaterial({
-        color: '#ffffff',
-        roughness: 0.15,
-        metalness: 0.1,
-        transparent: true,
-        opacity: 0.85
-      }),
-      pondWater: new THREE.MeshStandardMaterial({
-        color: '#0e7490',
-        roughness: 0.08,
-        metalness: 0.25,
+        metalness: 0.06,
+        transmission: 0.80,
+        ior: 1.333,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.04,
+        normalMap: waterNormalMap,
+        normalScale: new THREE.Vector2(0.25, 0.25),
+        attenuationColor: new THREE.Color('#063847'),
+        attenuationDistance: 2.4,
         transparent: true,
         opacity: 0.88
+      }),
+      // STAGE 5: PRISTINE TREATED CLEAN EFFLUENT WATER & POLISHING LAGOON
+      cleanEffluentWater: new THREE.MeshPhysicalMaterial({
+        color: '#38bdf8',
+        roughness: 0.02,
+        metalness: 0.04,
+        transmission: 0.90,
+        ior: 1.333,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.03,
+        normalMap: waterNormalMap,
+        normalScale: new THREE.Vector2(0.30, 0.30),
+        attenuationColor: new THREE.Color('#7dd3fc'),
+        attenuationDistance: 4.0,
+        transparent: true,
+        opacity: 0.78
+      }),
+      cleanWaterfall: new THREE.MeshStandardMaterial({
+        color: '#f0f9ff',
+        roughness: 0.15,
+        metalness: 0.08,
+        bumpMap: foamTexture,
+        bumpScale: 0.08,
+        transparent: true,
+        opacity: 0.88
+      }),
+      pondWater: new THREE.MeshPhysicalMaterial({
+        color: '#0d5c75',
+        roughness: 0.05,
+        metalness: 0.06,
+        transmission: 0.84,
+        ior: 1.333,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.04,
+        normalMap: waterNormalMap,
+        normalScale: new THREE.Vector2(0.38, 0.38),
+        attenuationColor: new THREE.Color('#083344'),
+        attenuationDistance: 2.8,
+        transparent: true,
+        opacity: 0.88
+      }),
+      // REALISTIC BIOGAS FLARE MATERIALS (Incandescent methane plume with bloom activation)
+      flameOuter: new THREE.MeshStandardMaterial({
+        color: '#f97316',
+        emissive: '#ea580c',
+        emissiveIntensity: 2.8,
+        roughness: 0.25,
+        transparent: true,
+        opacity: 0.86,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      }),
+      flameCore: new THREE.MeshBasicMaterial({
+        color: '#fef08a',
+        transparent: true,
+        opacity: 0.96,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      }),
+      flamePilotBlue: new THREE.MeshBasicMaterial({
+        color: '#38bdf8',
+        transparent: true,
+        opacity: 0.92,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
       }),
       // Natural 3D Grass Material
       grassBladeMat: new THREE.MeshStandardMaterial({
@@ -1890,14 +2011,15 @@
     postGeom.translate(0, 1.225, 0);
 
     // Define perimeter boundary line segments around the active facility footprint
+    // Extended north boundary to z = -43.5m to fully enclose northern bypass roadway
     // Gate opening is at south road (z = 18.5, x = -4.0 to +4.0)
     const fenceSegments = [
-      // North fence: from (-37.5, -28.5) to (37.5, -28.5)
-      { x1: -37.5, z1: -28.5, x2: 37.5, z2: -28.5 },
-      // East fence: from (37.5, -28.5) to (37.5, 18.5)
-      { x1: 37.5, z1: -28.5, x2: 37.5, z2: 18.5 },
-      // West fence: from (-37.5, -28.5) to (-37.5, 18.5)
-      { x1: -37.5, z1: -28.5, x2: -37.5, z2: 18.5 },
+      // North fence: from (-37.5, -43.5) to (37.5, -43.5)
+      { x1: -37.5, z1: -43.5, x2: 37.5, z2: -43.5 },
+      // East fence: from (37.5, -43.5) to (37.5, 18.5)
+      { x1: 37.5, z1: -43.5, x2: 37.5, z2: 18.5 },
+      // West fence: from (-37.5, -43.5) to (-37.5, 18.5)
+      { x1: -37.5, z1: -43.5, x2: -37.5, z2: 18.5 },
       // South fence west wing: from (-37.5, 18.5) to (-4.0, 18.5)
       { x1: -37.5, z1: 18.5, x2: -4.0, z2: 18.5 },
       // South fence east wing: from (4.0, 18.5) to (37.5, 18.5)
@@ -2004,6 +2126,24 @@
     gateSign.rotation.y = -0.55;
     fenceGroup.add(gateSign);
 
+    // Galvanized W-Beam Highway Guardrail along northern roadway (Z = -35.2m) protecting wetland lagoon buffer
+    const guardrailGroup = new THREE.Group();
+    guardrailGroup.name = "Lagoon Protection Highway Guardrail";
+    const railGeom = new THREE.BoxGeometry(32.0, 0.32, 0.06);
+    const railMesh = new THREE.Mesh(railGeom, materials.tankGalvanized);
+    railMesh.position.set(0.5, 0.65, -35.2);
+    railMesh.castShadow = true;
+    guardrailGroup.add(railMesh);
+    for (let rx = -15.0; rx <= 16.0; rx += 2.0) {
+      const gPost = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.75, 0.1), materials.structuralSteel);
+      gPost.position.set(rx + 0.5, 0.375, -35.2);
+      guardrailGroup.add(gPost);
+      const reflector = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.02), new THREE.MeshBasicMaterial({ color: '#f59e0b' }));
+      reflector.position.set(rx + 0.5, 0.65, -35.16);
+      guardrailGroup.add(reflector);
+    }
+    facilityGroup.add(guardrailGroup);
+
     // --- (C) Natural Low-Cut Lawn Grass (2,800 Volumetric Star-Tufts, Zero Concrete Overlap) ---
     const grassCount = 2800;
     const p1 = new THREE.PlaneGeometry(0.22, 0.16);
@@ -2042,9 +2182,9 @@
       if (dPond < 9.8) return false;
       if (Math.abs(x - 0.0) < 3.2 && z >= 14.5) return false;
       if (Math.abs(z - 15.5) < 3.2 && x >= -35.0 && x <= 36.0) return false;
-      if (Math.abs(z - (-25.0)) < 3.2 && x >= -35.0 && x <= 36.0) return false;
-      if (Math.abs(x - (-34.0)) < 3.2 && z >= -25.5 && z <= 16.0) return false;
-      if (Math.abs(x - 35.0) < 3.2 && z >= -25.5 && z <= 16.0) return false;
+      if (Math.abs(z - (-38.3)) < 3.8 && x >= -35.0 && x <= 36.0) return false;
+      if (Math.abs(x - (-33.6)) < 3.4 && z >= -39.0 && z <= 16.0) return false;
+      if (Math.abs(x - 34.9) < 3.4 && z >= -39.0 && z <= 16.0) return false;
       if (Math.abs(z - (-4.5)) < 3.0 && x >= -34.0 && x <= -15.0) return false;
       if (Math.abs(z - (-4.5)) < 3.0 && x >= 11.0 && x <= 35.0) return false;
       return true;
@@ -2159,11 +2299,12 @@
     for (let i = 0; i < deciduousCount; i++) {
       let tx, tz;
       if (i < 18) {
-        // Riparian grove along Wetland Lagoon (x: -16 to 18, z: -32 to -19)
+        // Riparian grove along Wetland Lagoon buffer (x: -16 to 18, z: -35 to -19)
         const a = (i / 18) * Math.PI + 0.1;
-        const r = 12.0 + (i % 4) * 3.2 + Math.random() * 2.5;
+        const r = 11.5 + (i % 4) * 2.5 + Math.random() * 1.8;
         tx = 0.5 + Math.cos(a) * r;
-        tz = -22.5 - Math.sin(a) * (r * 0.75 + 1.5);
+        tz = -22.5 - Math.sin(a) * (r * 0.75 + 1.2);
+        if (tz <= -35.0) tz = -34.0 - (i % 2) * 0.8;
       } else if (i < 38) {
         // Western forest screening grove (x: -42 to -22, z: -16 to 14)
         tx = -25.0 - (i % 6) * 3.5 - Math.random() * 4.0;
@@ -2197,6 +2338,7 @@
         // North-east hillside backdrop (x: 14 to 45, z: -35 to -15)
         cx = 16.0 + (i % 6) * 4.8 + Math.random() * 3.5;
         cz = -18.0 - Math.floor(i / 6) * 4.5 - Math.random() * 3.0;
+        if (Math.abs(cz - (-38.3)) < 3.2) cz = -42.2;
       } else {
         // East property screen buffer (x: 38 to 52, z: -10 to 18)
         cx = 38.0 + (i % 4) * 3.5 + Math.random() * 3.0;
@@ -2279,17 +2421,115 @@
     hwRearWall.castShadow = true;
     headworksGroup.add(hwRearWall);
 
-    // Incoming Raw Sewage Pipe (600mm conduit entering from East)
-    const rawPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 5.0, 24), materials.processPipeGray);
+    // =========================================================================
+    // INCOMING RAW SEWAGE INTAKE INFRASTRUCTURE (Grounded Subterranean Force Main)
+    // Municipal trunk sewer arrives underground, rises via flanged elbow from concrete vault
+    // =========================================================================
+
+    // 1. Subterranean Reinforced Concrete Influent Junction Vault (Anchored into earth)
+    const vaultGroup = new THREE.Group();
+    vaultGroup.name = "Municipal Sewer Interceptor Vault";
+    
+    // Concrete vault chamber structure embedded into terrain (-0.4m to +0.3m elevation)
+    const vaultChamber = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 2.4), materials.concreteWall);
+    vaultChamber.position.set(0, -0.05, 4.8);
+    vaultChamber.castShadow = true;
+    vaultChamber.receiveShadow = true;
+    vaultGroup.add(vaultChamber);
+
+    // Beveled concrete capping roof slab at ground grade
+    const vaultRoof = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.08, 2.6), materials.concreteCapping);
+    vaultRoof.position.set(0, 0.32, 4.8);
+    vaultRoof.castShadow = true;
+    vaultGroup.add(vaultRoof);
+
+    // Cast-iron heavy-duty municipal manhole access frame & pickhole cover
+    const manholeFrame = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.52, 0.08, 24), materials.structuralSteel);
+    manholeFrame.position.set(0.65, 0.40, 4.8);
+    manholeFrame.castShadow = true;
+    vaultGroup.add(manholeFrame);
+    const manholeLid = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.04, 24), materials.structuralSteel);
+    manholeLid.position.set(0.65, 0.45, 4.8);
+    vaultGroup.add(manholeLid);
+
+    // Concrete thrust block & pipe wall penetration collar with 8 heavy hex bolts
+    const penCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.08, 24), materials.structuralSteel);
+    penCollar.position.set(0, 0.38, 4.6);
+    vaultGroup.add(penCollar);
+    for (let b = 0; b < 8; b++) {
+      const bAngle = (b / 8) * Math.PI * 2;
+      const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.05, 6), materials.structuralSteel);
+      bolt.position.set(Math.cos(bAngle) * 0.38, 0.43, 4.6 + Math.sin(bAngle) * 0.38);
+      vaultGroup.add(bolt);
+    }
+
+    // Vault Identification Placard on safety bollard post
+    const vaultSignMat = new THREE.MeshStandardMaterial({
+      map: generateSignageTexture("TRUNK SEWER INTERCEPTOR", "FORCE MAIN VAULT | INV EL -4.50m", 512, 128, '#0284c7'),
+      roughness: 0.35, metalness: 0.5
+    });
+    const vaultSignPost = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.9, 8), materials.structuralSteel);
+    vaultSignPost.position.set(1.4, 0.45, 4.2);
+    vaultGroup.add(vaultSignPost);
+    const vaultSign = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.30, 0.04), vaultSignMat);
+    vaultSign.position.set(1.4, 0.85, 4.2);
+    vaultGroup.add(vaultSign);
+
+    headworksGroup.add(vaultGroup);
+
+    // 2. Vertical Riser Pipe emerging from subterranean vault
+    const vertRiser = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.50, 24), materials.processPipeGray);
+    vertRiser.position.set(0, 0.61, 4.6);
+    vertRiser.castShadow = true;
+    headworksGroup.add(vertRiser);
+
+    // 3. Flanged 90° Duct Elbow connecting vertical riser to horizontal influent run
+    const elbowKnuckle = new THREE.Mesh(new THREE.SphereGeometry(0.33, 16, 16), materials.processPipeGray);
+    elbowKnuckle.position.set(0, 0.85, 4.6);
+    headworksGroup.add(elbowKnuckle);
+
+    const flangeVert = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.06, 24), materials.structuralSteel);
+    flangeVert.position.set(0, 0.70, 4.6);
+    headworksGroup.add(flangeVert);
+
+    const flangeHoriz = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.06, 24), materials.structuralSteel);
+    flangeHoriz.rotation.x = Math.PI / 2;
+    flangeHoriz.position.set(0, 0.85, 4.45);
+    headworksGroup.add(flangeHoriz);
+
+    // 4. Horizontal 600mm Incoming Ductile Iron Main (From Elbow to Intake Chamber)
+    const rawPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 2.55, 24), materials.processPipeGray);
     rawPipe.rotation.x = Math.PI / 2;
-    rawPipe.position.set(0, 0.85, 3.5);
+    rawPipe.position.set(0, 0.85, 3.175);
     rawPipe.castShadow = true;
     headworksGroup.add(rawPipe);
 
+    // Intermediate flanged coupling ring
+    const midFlange = new THREE.Mesh(new THREE.CylinderGeometry(0.37, 0.37, 0.05, 24), materials.structuralSteel);
+    midFlange.rotation.x = Math.PI / 2;
+    midFlange.position.set(0, 0.85, 3.175);
+    headworksGroup.add(midFlange);
+
+    // Pipe discharge mouth into Headworks wet well
     const pipeMouth = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.12, 24), materials.structuralSteel);
     pipeMouth.rotation.x = Math.PI / 2;
     pipeMouth.position.set(0, 0.85, 1.88);
     headworksGroup.add(pipeMouth);
+
+    // 5. Cast Concrete Pipe Support Saddle Pedestals (Supporting pipe along run)
+    [2.8, 3.8].forEach(pz => {
+      const saddleBase = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.52, 0.30), materials.concreteWall);
+      saddleBase.position.set(0, 0.26, pz);
+      saddleBase.castShadow = true;
+      headworksGroup.add(saddleBase);
+      const saddleCap = new THREE.Mesh(new THREE.BoxGeometry(0.80, 0.08, 0.34), materials.concreteCapping);
+      saddleCap.position.set(0, 0.54, pz);
+      headworksGroup.add(saddleCap);
+      const strap = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.08, 24, 1, true, 0, Math.PI), materials.structuralSteel);
+      strap.rotation.x = Math.PI / 2;
+      strap.position.set(0, 0.85, pz);
+      headworksGroup.add(strap);
+    });
 
     // Dark silt channel bottom
     const siltBottom = new THREE.Mesh(new THREE.PlaneGeometry(1.78, 3.8), new THREE.MeshStandardMaterial({ color: '#261b0c', roughness: 0.9 }));
@@ -3817,16 +4057,79 @@
       flareGroup.add(cable);
     }
 
+    // Flare burner tip shroud & windshield cowl
     const flareTip = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.18, 1.4, 16), materials.structuralSteel);
     flareTip.position.y = 11.2;
     flareGroup.add(flareTip);
 
-    const flarePilot = new THREE.Mesh(
-      new THREE.SphereGeometry(0.24, 12, 12),
-      new THREE.MeshBasicMaterial({ color: '#f97316' })
-    );
-    flarePilot.position.y = 12.0;
-    flareGroup.add(flarePilot);
+    const flareBurnerRing = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.44, 0.35, 16), materials.structuralSteel);
+    flareBurnerRing.position.y = 11.75;
+    flareGroup.add(flareBurnerRing);
+
+    // Continuous Cyan/Blue Electric Pilot Ignition Jet (Stoichiometric methane pilot nozzle)
+    const flareFlamePilot = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.65, 12), materials.flamePilotBlue);
+    flareFlamePilot.position.y = 11.95;
+    flareGroup.add(flareFlamePilot);
+
+    // Incandescent Methane Combustion Flame Core (Brilliant yellow/white center)
+    const flareFlameCore = new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.6, 12), materials.flameCore);
+    flareFlameCore.position.y = 12.5;
+    flareGroup.add(flareFlameCore);
+
+    // Aerodynamic Turbulent Flame Mantle (Primary outer orange plume)
+    const flameGeom = new THREE.ConeGeometry(0.52, 2.4, 14);
+    flameGeom.translate(0, 1.2, 0);
+    const flareFlameOuter = new THREE.Mesh(flameGeom, materials.flameOuter);
+    flareFlameOuter.position.y = 11.85;
+    flareGroup.add(flareFlameOuter);
+
+    // Secondary offset turbulent flame lobe
+    const flameLobeGeom = new THREE.ConeGeometry(0.40, 2.0, 12);
+    flameLobeGeom.translate(0, 1.0, 0);
+    const flareFlameLobe = new THREE.Mesh(flameLobeGeom, materials.flameOuter);
+    flareFlameLobe.position.set(0.08, 11.9, 0.05);
+    flareFlameLobe.scale.set(0.85, 0.9, 0.85);
+    flareGroup.add(flareFlameLobe);
+
+    // Rising Micro-Spark Ember System (Dynamic hot gas convective lift)
+    const sparkCount = 45;
+    const sparkGeom = new THREE.BufferGeometry();
+    const sparkPositions = new Float32Array(sparkCount * 3);
+    const sparkData = [];
+    for (let s = 0; s < sparkCount; s++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = Math.random() * 0.28;
+      const x = Math.cos(angle) * r;
+      const y = 12.0 + Math.random() * 3.0;
+      const z = Math.sin(angle) * r;
+      sparkPositions[s * 3] = x;
+      sparkPositions[s * 3 + 1] = y;
+      sparkPositions[s * 3 + 2] = z;
+      sparkData.push({
+        baseAngle: angle,
+        radius: r,
+        speed: 1.8 + Math.random() * 2.2,
+        swirl: 2.2 + Math.random() * 3.0,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+    sparkGeom.setAttribute('position', new THREE.BufferAttribute(sparkPositions, 3));
+    const sparkMat = new THREE.PointsMaterial({
+      color: '#fed7aa',
+      size: 0.12,
+      transparent: true,
+      opacity: 0.92,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const flareSparks = new THREE.Points(sparkGeom, sparkMat);
+    flareGroup.add(flareSparks);
+
+    // Dynamic flickering methane firelight (Casts warm flickering illumination across digesters)
+    const flarePointLight = new THREE.PointLight('#f97316', 3.6, 38.0);
+    flarePointLight.position.set(0, 13.0, 0);
+    flareGroup.add(flarePointLight);
+
     facilityGroup.add(flareGroup);
 
     // Mechanical Sludge Dewatering & Centrifuge Building (East Bio-Pad)
@@ -4681,6 +4984,52 @@
             }
             sPosAttr.needsUpdate = true;
           }
+
+          // Animate Photorealistic Procedural Water Surface Normal Wave Flow
+          if (typeof waterNormalMap !== 'undefined') {
+            waterNormalMap.offset.x = (elapsed * 0.026) % 1;
+            waterNormalMap.offset.y = (elapsed * 0.018) % 1;
+          }
+
+          // Animate Biogas Flare Stack Realistic Fire, Flame Plumes & Convective Embers
+          if (typeof flarePointLight !== 'undefined') {
+            // Non-linear turbulent firelight flicker
+            flarePointLight.intensity = 3.2 + Math.sin(elapsed * 17.5) * 0.65
+                                       + Math.cos(elapsed * 31.0) * 0.45
+                                       + (Math.random() - 0.5) * 0.35;
+
+            const flameWobbleX = Math.sin(elapsed * 12.0) * 0.07 + Math.sin(elapsed * 23.0) * 0.03;
+            const flameWobbleZ = Math.cos(elapsed * 14.0) * 0.07 + Math.cos(elapsed * 27.0) * 0.03;
+            const flameScaleY = 1.0 + Math.sin(elapsed * 16.0) * 0.16 + Math.cos(elapsed * 25.0) * 0.10;
+            const flameScaleXZ = 1.0 + Math.cos(elapsed * 13.0) * 0.12;
+
+            flareFlameOuter.scale.set(flameScaleXZ, flameScaleY, flameScaleXZ);
+            flareFlameOuter.rotation.y = elapsed * 2.8;
+            flareFlameOuter.position.x = flameWobbleX;
+            flareFlameOuter.position.z = flameWobbleZ;
+
+            flareFlameLobe.scale.set(flameScaleXZ * 0.88, flameScaleY * 0.92, flameScaleXZ * 0.88);
+            flareFlameLobe.rotation.y = -elapsed * 3.4;
+            flareFlameLobe.position.x = -flameWobbleX * 0.7;
+            flareFlameLobe.position.z = -flameWobbleZ * 0.7;
+
+            flareFlameCore.scale.set(1.0 + Math.cos(elapsed * 18.0) * 0.10, 1.0 + Math.sin(elapsed * 21.0) * 0.12, 1.0 + Math.cos(elapsed * 18.0) * 0.10);
+            flareFlamePilot.scale.setScalar(1.0 + Math.sin(elapsed * 28.0) * 0.08);
+
+            // Animate rising convective ember spark particles
+            const spPos = sparkGeom.attributes.position;
+            for (let s = 0; s < sparkCount; s++) {
+              const sd = sparkData[s];
+              let sy = spPos.getY(s) + delta * sd.speed;
+              if (sy > 15.2) {
+                sy = 12.0 + Math.random() * 0.35;
+              }
+              const sa = sd.baseAngle + elapsed * sd.swirl;
+              const sr = sd.radius + (sy - 12.0) * 0.10;
+              spPos.setXYZ(s, Math.cos(sa) * sr, sy, Math.sin(sa) * sr);
+            }
+            sparkGeom.attributes.position.needsUpdate = true;
+          }
         }
       }
 
@@ -4718,6 +5067,10 @@
       digesters: { pos: new THREE.Vector3(27.0, 9.5, 8.5), target: new THREE.Vector3(19.5, 3.0, -6.5) },
       ground: { pos: new THREE.Vector3(-4.0, 1.6, 12.0), target: new THREE.Vector3(-4.0, 3.5, 5.0) }
     };
+
+    window.camera = camera;
+    window.controls = controls;
+    window.cameraPresets = cameraPresets;
 
     function smoothTransitionCamera(preset) {
       const startPos = camera.position.clone();
