@@ -4441,13 +4441,15 @@
         badgeClass: "badge dirty",
         status: "DIRTY WATER INLET",
         title: "1. Raw Sewage Influent & Mechanical Headworks",
-        desc: "Raw untreated municipal wastewater enters the plant via the 600mm incoming sewer conduit. Heavy debris, plastics, and rags are extracted by mechanical bar screens, while vortex grit chambers drop dense sand before primary pumping.",
+        desc: "Raw untreated municipal wastewater enters the plant via the 600mm incoming sewer conduit from the underground interceptor vault. Heavy debris, plastics, and rags are extracted by mechanical bar screens, while vortex grit chambers drop dense sand before primary pumping.",
         turbidity: "340 NTU (Murky)",
         bod: "260 mg/L",
         eff: "0% (Raw Influent)",
         valClass: "dirty-val",
-        camPos: new THREE.Vector3(21.5, 3.8, 10.5),
-        camTarget: new THREE.Vector3(18.0, 0.7, 7.5)
+        camPos: new THREE.Vector3(26.0, 9.0, 18.0),
+        camTarget: new THREE.Vector3(18.0, 1.2, 8.5),
+        mobileCamPos: new THREE.Vector3(28.0, 12.0, 21.0),
+        mobileCamTarget: new THREE.Vector3(18.0, 0.6, 8.5)
       },
       {
         step: "STAGE 02 / 06",
@@ -4459,8 +4461,10 @@
         bod: "75 mg/L (71% reduction)",
         eff: "71% Oxidized",
         valClass: "",
-        camPos: new THREE.Vector3(12.5, 5.8, 13.5),
-        camTarget: new THREE.Vector3(6.0, 1.2, 7.5)
+        camPos: new THREE.Vector3(18.5, 14.0, 22.5),
+        camTarget: new THREE.Vector3(6.0, 1.5, 7.5),
+        mobileCamPos: new THREE.Vector3(21.0, 17.5, 26.0),
+        mobileCamTarget: new THREE.Vector3(6.0, 0.6, 7.5)
       },
       {
         step: "STAGE 03 / 06",
@@ -4472,8 +4476,10 @@
         bod: "22 mg/L (91% reduction)",
         eff: "91% Clarified",
         valClass: "",
-        camPos: new THREE.Vector3(0.5, 8.5, 4.0),
-        camTarget: new THREE.Vector3(0.5, 0.8, -4.5)
+        camPos: new THREE.Vector3(0.5, 17.0, 14.5),
+        camTarget: new THREE.Vector3(0.5, 1.2, -4.5),
+        mobileCamPos: new THREE.Vector3(0.5, 21.0, 18.5),
+        mobileCamTarget: new THREE.Vector3(0.5, 0.5, -4.5)
       },
       {
         step: "STAGE 04 / 06",
@@ -4485,8 +4491,10 @@
         bod: "3.5 mg/L (98% reduction)",
         eff: "98.6% Disinfected",
         valClass: "clean-val",
-        camPos: new THREE.Vector3(5.5, 6.8, -4.5),
-        camTarget: new THREE.Vector3(0.5, 1.0, -9.6)
+        camPos: new THREE.Vector3(10.0, 12.0, -0.5),
+        camTarget: new THREE.Vector3(0.5, 1.2, -9.6),
+        mobileCamPos: new THREE.Vector3(12.0, 15.5, 1.5),
+        mobileCamTarget: new THREE.Vector3(0.5, 0.5, -9.6)
       },
       {
         step: "STAGE 05 / 06",
@@ -4498,8 +4506,10 @@
         bod: "< 2.0 mg/L (99.4% Removal)",
         eff: "99.4% Pristine Outflow",
         valClass: "clean-val",
-        camPos: new THREE.Vector3(0.5, 4.2, -10.5),
-        camTarget: new THREE.Vector3(0.5, 0.2, -18.8)
+        camPos: new THREE.Vector3(0.5, 18.5, -4.0),
+        camTarget: new THREE.Vector3(0.5, 1.0, -22.5),
+        mobileCamPos: new THREE.Vector3(0.5, 23.0, -1.0),
+        mobileCamTarget: new THREE.Vector3(0.5, 0.4, -22.5)
       },
       {
         step: "STAGE 06 / 06",
@@ -4511,8 +4521,10 @@
         bod: "Methane Yield: 65% CH4",
         eff: "Closed Loop Complete",
         valClass: "",
-        camPos: new THREE.Vector3(27.0, 9.5, 8.5),
-        camTarget: new THREE.Vector3(19.5, 3.0, -6.5)
+        camPos: new THREE.Vector3(34.0, 18.0, 13.5),
+        camTarget: new THREE.Vector3(20.5, 4.5, -6.5),
+        mobileCamPos: new THREE.Vector3(37.0, 22.0, 17.0),
+        mobileCamTarget: new THREE.Vector3(20.5, 3.5, -6.5)
       }
     ];
 
@@ -4553,8 +4565,8 @@
       // Progress bar
       document.getElementById('tour-progress-bar').style.width = `${((idx + 1) / tourStages.length) * 100}%`;
 
-      // Smooth camera fly
-      smoothTransitionCamera({ pos: stage.camPos, target: stage.camTarget });
+      // Smooth camera fly (Responsive desktop/mobile framing)
+      smoothTransitionCamera(stage);
     }
 
     function startTour() {
@@ -5058,14 +5070,54 @@
     // 10. CAMERA PRESETS & CONTROLS (OPTIMIZED FOR NO-OVERLAP SPATIAL SPREAD)
     // =========================================================================
     const cameraPresets = {
-      overview: { pos: new THREE.Vector3(28, 20, 32), target: new THREE.Vector3(3.0, 1.2, 0.5) },
-      influent: { pos: new THREE.Vector3(21.5, 3.8, 10.5), target: new THREE.Vector3(18.0, 0.7, 7.5) },
-      aeration: { pos: new THREE.Vector3(12.5, 5.8, 13.5), target: new THREE.Vector3(6.0, 1.2, 7.5) },
-      clarifier: { pos: new THREE.Vector3(0.5, 9.5, 5.0), target: new THREE.Vector3(0.5, 1.0, -4.5) },
-      tertiary: { pos: new THREE.Vector3(5.5, 6.8, -4.5), target: new THREE.Vector3(0.5, 1.0, -9.6) },
-      outfall: { pos: new THREE.Vector3(0.5, 4.2, -10.5), target: new THREE.Vector3(0.5, 0.2, -18.8) },
-      digesters: { pos: new THREE.Vector3(27.0, 9.5, 8.5), target: new THREE.Vector3(19.5, 3.0, -6.5) },
-      ground: { pos: new THREE.Vector3(-4.0, 1.6, 12.0), target: new THREE.Vector3(-4.0, 3.5, 5.0) }
+      overview: {
+        pos: new THREE.Vector3(32.0, 24.0, 36.0),
+        target: new THREE.Vector3(3.0, 1.2, 0.5),
+        mobileCamPos: new THREE.Vector3(36.0, 30.0, 42.0),
+        mobileCamTarget: new THREE.Vector3(2.0, 0.5, 0.5)
+      },
+      influent: {
+        pos: new THREE.Vector3(26.0, 9.0, 18.0),
+        target: new THREE.Vector3(18.0, 1.2, 8.5),
+        mobileCamPos: new THREE.Vector3(28.0, 12.0, 21.0),
+        mobileCamTarget: new THREE.Vector3(18.0, 0.6, 8.5)
+      },
+      aeration: {
+        pos: new THREE.Vector3(18.5, 14.0, 22.5),
+        target: new THREE.Vector3(6.0, 1.5, 7.5),
+        mobileCamPos: new THREE.Vector3(21.0, 17.5, 26.0),
+        mobileCamTarget: new THREE.Vector3(6.0, 0.6, 7.5)
+      },
+      clarifier: {
+        pos: new THREE.Vector3(0.5, 17.0, 14.5),
+        target: new THREE.Vector3(0.5, 1.2, -4.5),
+        mobileCamPos: new THREE.Vector3(0.5, 21.0, 18.5),
+        mobileCamTarget: new THREE.Vector3(0.5, 0.5, -4.5)
+      },
+      tertiary: {
+        pos: new THREE.Vector3(10.0, 12.0, -0.5),
+        target: new THREE.Vector3(0.5, 1.2, -9.6),
+        mobileCamPos: new THREE.Vector3(12.0, 15.5, 1.5),
+        mobileCamTarget: new THREE.Vector3(0.5, 0.5, -9.6)
+      },
+      outfall: {
+        pos: new THREE.Vector3(0.5, 18.5, -4.0),
+        target: new THREE.Vector3(0.5, 1.0, -22.5),
+        mobileCamPos: new THREE.Vector3(0.5, 23.0, -1.0),
+        mobileCamTarget: new THREE.Vector3(0.5, 0.4, -22.5)
+      },
+      digesters: {
+        pos: new THREE.Vector3(34.0, 18.0, 13.5),
+        target: new THREE.Vector3(20.5, 4.5, -6.5),
+        mobileCamPos: new THREE.Vector3(37.0, 22.0, 17.0),
+        mobileCamTarget: new THREE.Vector3(20.5, 3.5, -6.5)
+      },
+      ground: {
+        pos: new THREE.Vector3(-4.0, 2.2, 14.0),
+        target: new THREE.Vector3(-4.0, 3.5, 5.0),
+        mobileCamPos: new THREE.Vector3(-4.0, 2.4, 16.0),
+        mobileCamTarget: new THREE.Vector3(-4.0, 3.0, 5.0)
+      }
     };
 
     window.camera = camera;
@@ -5073,6 +5125,10 @@
     window.cameraPresets = cameraPresets;
 
     function smoothTransitionCamera(preset) {
+      const isMobile = window.innerWidth <= 768 || (window.innerWidth / window.innerHeight) < 1.0;
+      const targetPos = (isMobile && preset.mobileCamPos) ? preset.mobileCamPos : (preset.pos || preset.camPos);
+      const targetLook = (isMobile && preset.mobileCamTarget) ? preset.mobileCamTarget : (preset.target || preset.camTarget);
+
       const startPos = camera.position.clone();
       const startTarget = controls.target.clone();
       const duration = 1.2;
@@ -5083,8 +5139,8 @@
         const progress = Math.min((now - startTime) / (duration * 1000), 1.0);
         const ease = 0.5 - 0.5 * Math.cos(progress * Math.PI);
 
-        camera.position.lerpVectors(startPos, preset.pos, ease);
-        controls.target.lerpVectors(startTarget, preset.target, ease);
+        camera.position.lerpVectors(startPos, targetPos, ease);
+        controls.target.lerpVectors(startTarget, targetLook, ease);
 
         if (progress < 1.0) {
           requestAnimationFrame(step);
@@ -5162,9 +5218,22 @@
       bloomPass.strength = parseFloat(e.target.value) / 100.0;
     });
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+    function updateCameraProjection() {
+      const aspect = window.innerWidth / window.innerHeight;
+      camera.aspect = aspect;
+      // Adaptive FOV: On vertical portrait screens (aspect < 1.0), widen vertical FOV
+      // so horizontal field of view remains natural, wide, and spacious (~30° instead of cramped 21°)
+      if (aspect < 1.0) {
+        camera.fov = Math.min(62, 45 + (1.0 - aspect) * 26);
+      } else {
+        camera.fov = 45;
+      }
       camera.updateProjectionMatrix();
+    }
+    updateCameraProjection();
+
+    window.addEventListener('resize', () => {
+      updateCameraProjection();
       renderer.setSize(window.innerWidth, window.innerHeight);
       composer.setSize(window.innerWidth, window.innerHeight);
       if (typeof updateAnnotationPins === 'function') updateAnnotationPins();
@@ -5180,8 +5249,12 @@
     }
     const camParam = urlParams.get('cam');
     if (camParam && cameraPresets[camParam]) {
-      camera.position.copy(cameraPresets[camParam].pos);
-      controls.target.copy(cameraPresets[camParam].target);
+      const isMobile = window.innerWidth <= 768 || (window.innerWidth / window.innerHeight) < 1.0;
+      const p = cameraPresets[camParam];
+      const targetPos = (isMobile && p.mobileCamPos) ? p.mobileCamPos : p.pos;
+      const targetLook = (isMobile && p.mobileCamTarget) ? p.mobileCamTarget : p.target;
+      camera.position.copy(targetPos);
+      controls.target.copy(targetLook);
       controls.update();
       const b = document.getElementById(`btn-cam-${camParam}`);
       if (b) setBtnActive(`btn-cam-${camParam}`);
