@@ -1219,14 +1219,116 @@
         wireframe: false
       }),
       rawBufferTankSteel: new THREE.MeshStandardMaterial({
-        color: '#71717a', // Weathered matte steel horizontal vessel
-        roughness: 0.65,
-        metalness: 0.45
+        color: '#475569', // Marine-grade epoxy coated pressure vessel steel (slate navy)
+        roughness: 0.38,
+        metalness: 0.58
+      }),
+      structuralSteel: new THREE.MeshStandardMaterial({
+        color: '#334155', // Structural A36 structural steel / dark industrial primer
+        roughness: 0.52,
+        metalness: 0.65
+      }),
+      tankWeldSeam: new THREE.MeshStandardMaterial({
+        color: '#2b3644', // ASME backing ring circumferential weld seam
+        roughness: 0.60,
+        metalness: 0.60
+      }),
+      asmeFlangeSteel: new THREE.MeshStandardMaterial({
+        color: '#cbd5e1', // Machined ASME B16.5 Class 150 RF flange steel
+        roughness: 0.28,
+        metalness: 0.85
       }),
       polyBlackTank: new THREE.MeshStandardMaterial({
-        color: '#18181b', // Heavy black UV-stabilized HDPE poly tank
-        roughness: 0.25,
-        metalness: 0.05
+        color: '#1e293b', // Heavy UV-stabilized rotational molded cross-linked HDPE
+        roughness: 0.30,
+        metalness: 0.08
+      }),
+      valveBodyRed: new THREE.MeshStandardMaterial({
+        color: '#dc2626', // Industrial ductile iron valve body
+        roughness: 0.35,
+        metalness: 0.35
+      }),
+      valveLeverYellow: new THREE.MeshStandardMaterial({
+        color: '#eab308', // OSHA yellow throttle lever handle
+        roughness: 0.32,
+        metalness: 0.25
+      }),
+      camlockAluminum: new THREE.MeshStandardMaterial({
+        color: '#e2e8f0', // Cast aluminum A356 Camlock coupling body
+        roughness: 0.32,
+        metalness: 0.82
+      }),
+      camlockBrass: new THREE.MeshStandardMaterial({
+        color: '#d97706', // Forged brass locking cam arms
+        roughness: 0.28,
+        metalness: 0.75
+      }),
+      rubberExpansion: new THREE.MeshStandardMaterial({
+        color: '#0f172a', // Molded spherical EPDM expansion bellows
+        roughness: 0.92,
+        metalness: 0.04
+      }),
+      pipeRawGrey: new THREE.MeshStandardMaterial({
+        color: '#64748b', // ASME A13.1 grey raw sewage piping
+        roughness: 0.36,
+        metalness: 0.55
+      }),
+      pipeProcessBlue: new THREE.MeshStandardMaterial({
+        color: '#0284c7', // Hydro Blue primary process piping
+        roughness: 0.32,
+        metalness: 0.55
+      }),
+      pipeClarifiedTeal: new THREE.MeshStandardMaterial({
+        color: '#0d9488', // DAF clarified liquor piping
+        roughness: 0.32,
+        metalness: 0.55
+      }),
+      pipeCleanCyan: new THREE.MeshStandardMaterial({
+        color: '#38bdf8', // Final treated water piping
+        roughness: 0.28,
+        metalness: 0.60
+      }),
+      pipeChemicalYellow: new THREE.MeshStandardMaterial({
+        color: '#ca8a04', // Chemical injection dosing line
+        roughness: 0.35,
+        metalness: 0.40
+      }),
+      xrayGhostTank: new THREE.MeshStandardMaterial({
+        color: '#0284c7',
+        transparent: true,
+        opacity: 0.16,
+        roughness: 0.18,
+        metalness: 0.1,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      }),
+      xrayGhostPolyTank: new THREE.MeshStandardMaterial({
+        color: '#0369a1',
+        transparent: true,
+        opacity: 0.18,
+        roughness: 0.20,
+        metalness: 0.08,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      }),
+      liquidRawTurbid: new THREE.MeshPhysicalMaterial({
+        color: '#78350f',
+        transmission: 0.45,
+        roughness: 0.20,
+        transparent: true,
+        opacity: 0.82
+      }),
+      liquidSwirlingChem: new THREE.MeshPhysicalMaterial({
+        color: '#0369a1',
+        transmission: 0.55,
+        roughness: 0.15,
+        transparent: true,
+        opacity: 0.75
+      }),
+      sludgeSediment: new THREE.MeshStandardMaterial({
+        color: '#451a03',
+        roughness: 0.95,
+        metalness: 0.02
       }),
       processPipeBlue: new THREE.MeshStandardMaterial({
         color: '#0284c7',
@@ -1524,6 +1626,7 @@
     const allOuterMeshes = [];
     const animatedInternals = {
       dafScraper: null,
+      agitatorShaft: null,
       ecSparks: [],
       bubbles: []
     };
@@ -1968,181 +2071,802 @@
     tireStackGroup.add(createUtilityTire(-0.35, 0.32, 0.22, Math.PI / 2.8, 0.4, 0.25));
 
     // =========================================================================
-    // 7. RAW FEED EQUALIZATION & BUFFER TANK INFRASTRUCTURE
+    // 7. ENGINEERING STANDARD COMPONENT HELPERS & RAW FEED INFRASTRUCTURE
     // =========================================================================
+    // Helper A: ASME B16.5 Class 150 Raised-Face Weld-Neck Flange with Stud Bolts
+    function createASMEFlange(pipeRadius = 0.06, outerRadius = 0.14, thickness = 0.04, numBolts = 8) {
+      const flGroup = new THREE.Group();
+      // Main flange ring
+      const ringGeom = new THREE.CylinderGeometry(outerRadius, outerRadius, thickness, 24);
+      ringGeom.rotateX(Math.PI / 2);
+      const ringMesh = new THREE.Mesh(ringGeom, materials.asmeFlangeSteel);
+      ringMesh.castShadow = true;
+      flGroup.add(ringMesh);
+
+      // Raised face hub
+      const rfGeom = new THREE.CylinderGeometry(outerRadius * 0.72, outerRadius * 0.72, thickness * 0.35, 24);
+      rfGeom.rotateX(Math.PI / 2);
+      const rfMesh = new THREE.Mesh(rfGeom, materials.asmeFlangeSteel);
+      rfMesh.position.z = thickness * 0.55;
+      flGroup.add(rfMesh);
+
+      // Bolt circle with B7 threaded studs and heavy hex nuts
+      const boltR = (pipeRadius + outerRadius) * 0.54;
+      const boltGeom = new THREE.CylinderGeometry(0.011, 0.011, thickness * 1.5, 6);
+      boltGeom.rotateX(Math.PI / 2);
+      for (let b = 0; b < numBolts; b++) {
+        const ang = (b / numBolts) * Math.PI * 2;
+        const bolt = new THREE.Mesh(boltGeom, materials.stainlessSteel);
+        bolt.position.set(Math.cos(ang) * boltR, Math.sin(ang) * boltR, 0);
+        flGroup.add(bolt);
+      }
+      return flGroup;
+    }
+
+    // Helper B: Lug-Style Resilient-Seated Butterfly Valve with Lockable Throttle Lever
+    function createButterflyValve(sizeRadius = 0.06, withHandwheel = false) {
+      const vGroup = new THREE.Group();
+      // Wafer/lug valve body fitting between pipe flanges
+      const bodyGeom = new THREE.CylinderGeometry(sizeRadius * 1.35, sizeRadius * 1.35, 0.08, 16);
+      bodyGeom.rotateX(Math.PI / 2);
+      const body = new THREE.Mesh(bodyGeom, materials.valveBodyRed);
+      body.castShadow = true;
+      vGroup.add(body);
+
+      // Upper stem housing / neck
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, sizeRadius * 1.5, 10), materials.stainlessSteel);
+      stem.position.y = sizeRadius * 1.05;
+      vGroup.add(stem);
+
+      if (withHandwheel) {
+        // Worm gearbox & cast handwheel for large 6" suction line
+        const gearBox = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.14), materials.valveBodyRed);
+        gearBox.position.y = sizeRadius * 1.8;
+        vGroup.add(gearBox);
+        const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.016, 8, 16), materials.safetyYellow);
+        wheel.position.set(0.12, sizeRadius * 1.8, 0);
+        wheel.rotation.y = Math.PI / 2;
+        vGroup.add(wheel);
+      } else {
+        // Lever operator with 10-position notched throttle plate
+        const notchPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.014, 12), materials.stainlessSteel);
+        notchPlate.position.y = sizeRadius * 1.65;
+        vGroup.add(notchPlate);
+        const lever = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.018, 0.032), materials.valveLeverYellow);
+        lever.position.set(0.11, sizeRadius * 1.7, 0);
+        vGroup.add(lever);
+      }
+      return vGroup;
+    }
+
+    // Helper C: ASME Flanged Swing Check Valve (Non-Return Valve)
+    function createCheckValve(sizeRadius = 0.06) {
+      const cvGroup = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(sizeRadius * 1.25, sizeRadius * 1.25, 0.16, 16), materials.valveBodyRed);
+      body.rotation.z = Math.PI / 2;
+      body.castShadow = true;
+      cvGroup.add(body);
+
+      // Bolted inspection bonnet on top
+      const bonnet = new THREE.Mesh(new THREE.CylinderGeometry(sizeRadius * 0.88, sizeRadius * 0.88, 0.06, 12), materials.valveBodyRed);
+      bonnet.position.y = sizeRadius * 0.95;
+      cvGroup.add(bonnet);
+
+      // Flow direction arrow boss
+      const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.05, 8), materials.safetyYellow);
+      arrow.rotation.z = -Math.PI / 2;
+      arrow.position.set(0, 0, sizeRadius * 1.26);
+      cvGroup.add(arrow);
+      return cvGroup;
+    }
+
+    // Helper D: Dial Pressure Gauge with Bourdon Tube & Pigtail Syphon Coil
+    function createPressureGauge(withSiphon = true, isVacuum = false) {
+      const gGroup = new THREE.Group();
+      if (withSiphon) {
+        // Pigtail syphon coil loop (cooling siphon protecting gauge from pressure pulsations)
+        const coilGeom = new THREE.TorusGeometry(0.042, 0.007, 8, 20, Math.PI * 1.6);
+        const coil = new THREE.Mesh(coilGeom, materials.stainlessSteel);
+        coil.position.y = 0.075;
+        gGroup.add(coil);
+
+        // Needle isolation cock valve
+        const cock = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.05, 8), materials.stainlessSteel);
+        cock.position.y = 0.02;
+        gGroup.add(cock);
+      }
+
+      // 100mm Stainless Dial Gauge Body & White Calibrated Face
+      const gaugeBody = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.028, 20), materials.stainlessSteel);
+      gaugeBody.rotation.x = Math.PI / 2;
+      gaugeBody.position.y = withSiphon ? 0.18 : 0.07;
+      gGroup.add(gaugeBody);
+
+      const dialFace = new THREE.Mesh(new THREE.CircleGeometry(0.058, 20), materials.dialGauge);
+      dialFace.position.set(0, withSiphon ? 0.18 : 0.07, 0.015);
+      gGroup.add(dialFace);
+
+      // Red indication needle
+      const needle = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.042, 0.002), materials.truckTaillightRed);
+      needle.position.set(0.012, (withSiphon ? 0.18 : 0.07) + 0.014, 0.017);
+      needle.rotation.z = isVacuum ? 0.6 : -0.8;
+      gGroup.add(needle);
+      return gGroup;
+    }
+
+    // Helper E: Spherical Rubber Expansion Joint / Vibration Eliminator
+    function createRubberExpansionJoint(pipeRadius = 0.06) {
+      const expGroup = new THREE.Group();
+      // Spherical arch rubber bellows
+      const bellows = new THREE.Mesh(new THREE.SphereGeometry(pipeRadius * 1.45, 16, 12, 0, Math.PI * 2, 0.2, Math.PI - 0.4), materials.rubberExpansion);
+      bellows.rotation.z = Math.PI / 2;
+      expGroup.add(bellows);
+
+      // Retaining flange rings on each side
+      for (let side = -1; side <= 1; side += 2) {
+        const rFlange = new THREE.Mesh(new THREE.CylinderGeometry(pipeRadius * 1.45, pipeRadius * 1.45, 0.022, 16), materials.galvanizedTray);
+        rFlange.rotation.z = Math.PI / 2;
+        rFlange.position.x = side * 0.07;
+        expGroup.add(rFlange);
+      }
+      return expGroup;
+    }
+
+    // Helper F: Aluminum Camlock Quick-Disconnect Coupling (Type C Female + Type E Male)
+    function createCamlockCoupling(pipeRadius = 0.055) {
+      const camGroup = new THREE.Group();
+      // Female Type C Coupler Body with heavy locking collar
+      const femaleBody = new THREE.Mesh(new THREE.CylinderGeometry(pipeRadius * 1.38, pipeRadius * 1.38, 0.11, 18), materials.camlockAluminum);
+      femaleBody.rotation.z = Math.PI / 2;
+      camGroup.add(femaleBody);
+
+      // Dual forged brass locking cam arms (pinned to body, folded closed)
+      for (let side = -1; side <= 1; side += 2) {
+        const camArm = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.016, 0.016), materials.camlockBrass);
+        camArm.position.set(0, side * pipeRadius * 1.42, 0);
+        camGroup.add(camArm);
+      }
+
+      // Male Type E Adapter Spool inserted into coupling
+      const maleSpool = new THREE.Mesh(new THREE.CylinderGeometry(pipeRadius * 1.22, pipeRadius * 1.22, 0.075, 18), materials.camlockAluminum);
+      maleSpool.rotation.z = Math.PI / 2;
+      maleSpool.position.x = -0.085;
+      camGroup.add(maleSpool);
+
+      // Stainless steel Band-It preformed hose clamps
+      for (let b = 0.035; b <= 0.08; b += 0.035) {
+        const band = new THREE.Mesh(new THREE.TorusGeometry(pipeRadius * 1.12, 0.007, 8, 18), materials.stainlessSteel);
+        band.rotation.y = Math.PI / 2;
+        band.position.x = b;
+        camGroup.add(band);
+      }
+      return camGroup;
+    }
+
+    // Helper G: Unistrut P1000 Galvanized Pipe Support Stand with Cushion Strut Clamp
+    function createUnistrutPipeSupport(standHeight, pipeRadius = 0.06) {
+      const supGroup = new THREE.Group();
+      // Galvanized baseplate anchored to floor
+      const baseplate = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.014, 0.20), materials.galvanizedTray);
+      baseplate.position.y = 0.007;
+      supGroup.add(baseplate);
+
+      // P1000 slotted Unistrut channel upright
+      const channel = new THREE.Mesh(new THREE.BoxGeometry(0.045, standHeight, 0.045), materials.galvanizedTray);
+      channel.position.y = standHeight * 0.5;
+      supGroup.add(channel);
+
+      // Two-piece cushioned pipe clamp at top
+      const clamp = new THREE.Mesh(new THREE.TorusGeometry(pipeRadius + 0.008, 0.009, 8, 16), materials.galvanizedTray);
+      clamp.position.y = standHeight;
+      supGroup.add(clamp);
+      return supGroup;
+    }
+
+    // Helper H: Directional Pipe Label Band (ANSI/ASME A13.1 Standard)
+    function createPipeMarker(text, length = 0.32, pipeR = 0.06, bgHex = '#0284c7') {
+      const markerGroup = new THREE.Group();
+      const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(pipeR + 0.004, pipeR + 0.004, length, 16), new THREE.MeshStandardMaterial({ color: bgHex, roughness: 0.35 }));
+      markerGroup.add(sleeve);
+      return markerGroup;
+    }
+
+    // -------------------------------------------------------------------------
+    // 7A. HORIZONTAL RAW WASTEWATER EQUALIZATION VESSEL (ASME SEC VIII DIV 1)
+    // -------------------------------------------------------------------------
     const bufferGroup = new THREE.Group();
     bufferGroup.name = "Raw Feed Equalization & Buffer Storage";
     mobilePlantGroup.add(bufferGroup);
 
-    // 1. Horizontal Cylindrical Raw Wastewater Buffer Tank (Weathered Industrial Steel)
-    // Located to the West/Northwest of the pod array (matches photo)
     const horizTankGroup = new THREE.Group();
     horizTankGroup.name = "Horizontal Raw Wastewater Equalization Vessel";
-    horizTankGroup.userData = { subsystem: "Equalization Storage", spec: "45 m³ horizontal carbon steel buffer vessel damping peak hydraulic surges and equalizing influent chemistry" };
+    horizTankGroup.userData = { subsystem: "Equalization Storage", spec: "45 m³ ASME Sec VIII Div 1 carbon steel buffer vessel damping peak hydraulic surges and equalizing influent chemistry" };
     horizTankGroup.position.set(-7.5, 0, -4.5);
     bufferGroup.add(horizTankGroup);
 
-    // Tank Cylinder Body (Dia 2.2m x Length 7.2m)
-    const hTankGeom = new THREE.CylinderGeometry(1.1, 1.1, 7.2, 32);
+    // Main Cylindrical Shell (Dia 2.2m x Length 7.0m)
+    const hTankGeom = new THREE.CylinderGeometry(1.1, 1.1, 7.0, 48);
     hTankGeom.rotateZ(Math.PI / 2);
     const hTankMesh = new THREE.Mesh(hTankGeom, materials.rawBufferTankSteel);
     hTankMesh.position.y = 1.6;
     hTankMesh.castShadow = true;
     horizTankGroup.add(hTankMesh);
 
-    // Dished Hemispherical End Caps
-    const capGeomL = new THREE.SphereGeometry(1.1, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+    // Torispherical ASME Heads with Smooth Knuckle & Crown Curvature
+    const capGeomL = new THREE.SphereGeometry(1.1, 32, 20, 0, Math.PI * 2, 0, Math.PI / 2);
+    capGeomL.scale(0.55, 1.0, 1.0);
     capGeomL.rotateZ(Math.PI / 2);
     const capL = new THREE.Mesh(capGeomL, materials.rawBufferTankSteel);
-    capL.position.set(-3.6, 1.6, 0);
+    capL.position.set(-3.5, 1.6, 0);
+    capL.castShadow = true;
     horizTankGroup.add(capL);
 
-    const capGeomR = new THREE.SphereGeometry(1.1, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+    const capGeomR = new THREE.SphereGeometry(1.1, 32, 20, 0, Math.PI * 2, 0, Math.PI / 2);
+    capGeomR.scale(0.55, 1.0, 1.0);
     capGeomR.rotateZ(-Math.PI / 2);
     const capR = new THREE.Mesh(capGeomR, materials.rawBufferTankSteel);
-    capR.position.set(3.6, 1.6, 0);
+    capR.position.set(3.5, 1.6, 0);
+    capR.castShadow = true;
     horizTankGroup.add(capR);
 
-    // Structural Saddle Support Cradles
-    for (let s = -2.2; s <= 2.2; s += 4.4) {
-      const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.65, 2.4), materials.galvanizedTray);
-      saddle.position.set(s, 0.325, 0);
-      saddle.castShadow = true;
-      horizTankGroup.add(saddle);
+    // ASME Circumferential Backing Ring Weld Seams at head-to-shell joints
+    for (let wx = -3.5; wx <= 3.5; wx += 7.0) {
+      const weldRing = new THREE.Mesh(new THREE.TorusGeometry(1.108, 0.012, 10, 48), materials.tankWeldSeam);
+      weldRing.rotation.y = Math.PI / 2;
+      weldRing.position.set(wx, 1.6, 0);
+      horizTankGroup.add(weldRing);
     }
 
-    // Top Inspection Manway Dome
-    const manway = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16), materials.rawBufferTankSteel);
-    manway.position.set(0, 2.8, 0);
-    horizTankGroup.add(manway);
+    // External Vacuum / Transport Stiffening Rings (rolled T-profile stiffeners at x = ±1.2m)
+    for (let sx = -1.2; sx <= 1.2; sx += 2.4) {
+      const stiffener = new THREE.Mesh(new THREE.TorusGeometry(1.115, 0.022, 10, 48), materials.structuralSteel);
+      stiffener.rotation.y = Math.PI / 2;
+      stiffener.position.set(sx, 1.6, 0);
+      horizTankGroup.add(stiffener);
+    }
 
-    // 2. Vertical Black HDPE Equalization & Dosing Feed Tank (Identified in foreground left of photo)
+    // Engineered Fabricated Saddle Supports (Zick Analysis Standard)
+    for (let s = -2.2; s <= 2.2; s += 4.4) {
+      const saddleGroup = new THREE.Group();
+      saddleGroup.position.set(s, 0, 0);
+      horizTankGroup.add(saddleGroup);
+
+      // 120° Wear / Doubler Plate welded between tank shell and saddle web
+      const doublerPlate = new THREE.Mesh(new THREE.CylinderGeometry(1.12, 1.12, 0.45, 24, 1, false, Math.PI * 0.65, Math.PI * 0.70), materials.tankWeldSeam);
+      doublerPlate.rotateZ(Math.PI / 2);
+      doublerPlate.position.y = 1.6;
+      saddleGroup.add(doublerPlate);
+
+      // Vertical gusset web plate and stiffening flanges
+      const saddleWeb = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.62, 2.3), materials.galvanizedTray);
+      saddleWeb.position.y = 0.31;
+      saddleWeb.castShadow = true;
+      saddleGroup.add(saddleWeb);
+
+      // Baseplate with anchor bolt clusters (fixed on west, sliding on east)
+      const baseplate = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.03, 2.45), materials.structuralSteel);
+      baseplate.position.y = 0.015;
+      saddleGroup.add(baseplate);
+
+      // Heavy anchor bolts with hex nuts
+      for (let az = -1.05; az <= 1.05; az += 2.1) {
+        const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.08, 6), materials.stainlessSteel);
+        bolt.position.set(0, 0.04, az);
+        saddleGroup.add(bolt);
+      }
+    }
+
+    // Longitudinal H-beam Skid Tie Runners connecting both saddles into a rigid transportable unit
+    for (let rz = -1.0; rz <= 1.0; rz += 2.0) {
+      const skidTie = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.12, 0.10), materials.structuralSteel);
+      skidTie.position.set(0, 0.06, rz);
+      horizTankGroup.add(skidTie);
+    }
+
+    // Grounding Boss with Copper Earth Braid
+    const groundBoss = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.04, 8), materials.camlockBrass);
+    groundBoss.position.set(-2.2, 0.08, 1.25);
+    horizTankGroup.add(groundBoss);
+
+    // 4 Crane Lifting Trunnions / Rigging Pad-Eyes on top of vessel
+    for (let lx = -2.6; lx <= 2.6; lx += 5.2) {
+      for (let lz = -0.55; lz <= 0.55; lz += 1.1) {
+        const trunnion = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.025), materials.structuralSteel);
+        trunnion.position.set(lx, 2.76, lz);
+        horizTankGroup.add(trunnion);
+        const shackleHole = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.012, 8, 16), materials.structuralSteel);
+        shackleHole.position.set(lx, 2.82, lz);
+        horizTankGroup.add(shackleHole);
+      }
+    }
+
+    // --- NOZZLE SCHEDULE (ASME B16.5 CLASS 150 FLANGES) ---
+    // N-01: 24" Top Inspection Manway with Swiveling Davit Arm & Hex Studs
+    const manwayNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.24, 24), materials.rawBufferTankSteel);
+    manwayNeck.position.set(0, 2.76, 0);
+    horizTankGroup.add(manwayNeck);
+    const manwayFlange = createASMEFlange(0.32, 0.44, 0.04, 16);
+    manwayFlange.position.set(0, 2.88, 0);
+    manwayFlange.rotation.x = -Math.PI / 2;
+    horizTankGroup.add(manwayFlange);
+    const manwayCover = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.03, 24), materials.asmeFlangeSteel);
+    manwayCover.position.set(0, 2.91, 0);
+    horizTankGroup.add(manwayCover);
+    // Davit arm crane hinge
+    const davitPost = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.45, 8), materials.structuralSteel);
+    davitPost.position.set(-0.48, 2.92, 0);
+    horizTankGroup.add(davitPost);
+    const davitArm = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.48, 8), materials.structuralSteel);
+    davitArm.rotation.z = Math.PI / 2;
+    davitArm.position.set(-0.24, 3.14, 0);
+    horizTankGroup.add(davitArm);
+
+    // N-02: 6" Top Raw Influent Inlet Nozzle with Internal Drop Pipe
+    const inletNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.22, 16), materials.rawBufferTankSteel);
+    inletNeck.position.set(-2.4, 2.75, 0);
+    horizTankGroup.add(inletNeck);
+    const inletFlange = createASMEFlange(0.08, 0.16, 0.03, 8);
+    inletFlange.position.set(-2.4, 2.86, 0);
+    inletFlange.rotation.x = -Math.PI / 2;
+    horizTankGroup.add(inletFlange);
+
+    // N-03: 4" Top Atmospheric Vent Nozzle with 180° Gooseneck & Flame Screen
+    const ventPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.35, 12), materials.stainlessSteel);
+    ventPipe.position.set(2.4, 2.82, 0);
+    horizTankGroup.add(ventPipe);
+    const gooseneck = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.045, 10, 16, Math.PI), materials.stainlessSteel);
+    gooseneck.position.set(2.49, 3.0, 0);
+    gooseneck.rotation.z = Math.PI;
+    horizTankGroup.add(gooseneck);
+    const bugScreen = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.048, 0.04, 12), materials.steelGrate);
+    bugScreen.position.set(2.58, 2.92, 0);
+    horizTankGroup.add(bugScreen);
+
+    // N-04: 3" Top Radar Level Transmitter with Digital Instrument Housing
+    const radarNozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.18, 12), materials.stainlessSteel);
+    radarNozzle.position.set(1.1, 2.74, 0);
+    horizTankGroup.add(radarNozzle);
+    const radarHead = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.14, 16), materials.hydroBlueSteel);
+    radarHead.position.set(1.1, 2.90, 0);
+    horizTankGroup.add(radarHead);
+    const radarDisplay = new THREE.Mesh(new THREE.CircleGeometry(0.055, 16), materials.tabletScreenGlow);
+    radarDisplay.position.set(1.1, 2.90, 0.076);
+    horizTankGroup.add(radarDisplay);
+
+    // N-05: 6" Bottom Suction Outlet with Flanged Butterfly Valve & Eccentric Reducer
+    const suctionNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.35, 16), materials.pipeRawGrey);
+    suctionNeck.rotation.z = Math.PI / 2;
+    suctionNeck.position.set(3.68, 0.72, 0);
+    horizTankGroup.add(suctionNeck);
+    const suctionFlange1 = createASMEFlange(0.08, 0.16, 0.035, 8);
+    suctionFlange1.position.set(3.86, 0.72, 0);
+    suctionFlange1.rotation.y = Math.PI / 2;
+    horizTankGroup.add(suctionFlange1);
+    // Lug-style butterfly valve with geared handwheel
+    const suctionBfv = createButterflyValve(0.08, true);
+    suctionBfv.position.set(3.96, 0.72, 0);
+    horizTankGroup.add(suctionBfv);
+    const suctionFlange2 = createASMEFlange(0.08, 0.16, 0.035, 8);
+    suctionFlange2.position.set(4.06, 0.72, 0);
+    suctionFlange2.rotation.y = -Math.PI / 2;
+    horizTankGroup.add(suctionFlange2);
+    // Flat-on-Top Eccentric Reducer (6" to 4")
+    const eccReducer = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.22, 16), materials.pipeRawGrey);
+    eccReducer.rotation.z = -Math.PI / 2;
+    eccReducer.position.set(4.20, 0.70, 0);
+    horizTankGroup.add(eccReducer);
+
+    // N-06: 2" Low-Point Drain Nozzle with Ball Valve & Camlock Dust Plug
+    const drainSpool = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.25, 12), materials.stainlessSteel);
+    drainSpool.position.set(0, 0.38, 0);
+    horizTankGroup.add(drainSpool);
+    const drainValve = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 0.06), materials.valveBodyRed);
+    drainValve.position.set(0, 0.24, 0);
+    horizTankGroup.add(drainValve);
+    const drainPlug = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.04, 8), materials.camlockBrass);
+    drainPlug.position.set(0, 0.19, 0);
+    horizTankGroup.add(drainPlug);
+
+    // N-07: 4" Side High-Level Overflow Line with Downspout
+    const overflowSpool = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.32, 12), materials.pipeRawGrey);
+    overflowSpool.rotation.z = Math.PI / 2;
+    overflowSpool.position.set(3.65, 2.30, 0);
+    horizTankGroup.add(overflowSpool);
+    const overflowDown = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1.85, 12), materials.pipeRawGrey);
+    overflowDown.position.set(3.81, 1.35, 0);
+    horizTankGroup.add(overflowDown);
+
+    // Side-Mounted Armored Magnetic Level Indicator (MLI) with Calibrated Metric Scale
+    const mliTube = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 1.65, 12), materials.stainlessSteel);
+    mliTube.position.set(0, 1.6, 1.15);
+    horizTankGroup.add(mliTube);
+    const mliScale = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.62, 0.015), new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.3 }));
+    mliScale.position.set(0, 1.6, 1.17);
+    horizTankGroup.add(mliScale);
+    // Red indicator flag band showing liquid level at 62%
+    const mliFlag = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.98, 0.018), materials.truckTaillightRed);
+    mliFlag.position.set(0, 1.28, 1.172);
+    horizTankGroup.add(mliFlag);
+
+    // Equipment Identification & Safety Stencils
+    // Stamped ASME / CE PED Stainless Data Nameplate
+    const nameplate = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.01), materials.asmeFlangeSteel);
+    nameplate.position.set(1.8, 1.6, 1.11);
+    horizTankGroup.add(nameplate);
+
+    // NFPA 704 4-Diamond Hazard Placard
+    const nfpaPlacard = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.01), materials.safetyYellow);
+    nfpaPlacard.rotation.z = Math.PI / 4;
+    nfpaPlacard.position.set(-1.8, 1.6, 1.11);
+    horizTankGroup.add(nfpaPlacard);
+
+    // --- INTERNAL PROCESS STRUCTURES (REVEALED IN X-RAY PURIFICATION MODE) ---
+    // 1. Internal Liquid Volume (Settled raw sewage liquor at 62% capacity)
+    const rawLiquidGeom = new THREE.CylinderGeometry(1.02, 1.02, 6.7, 32, 1, false, 0, Math.PI);
+    rawLiquidGeom.rotateZ(Math.PI / 2);
+    rawLiquidGeom.rotateX(Math.PI / 2);
+    const rawLiquidMesh = new THREE.Mesh(rawLiquidGeom, materials.liquidRawTurbid);
+    rawLiquidMesh.position.y = 1.55;
+    horizTankGroup.add(rawLiquidMesh);
+
+    // 2. Bottom Settled Sludge Sediment Blanket
+    const sludgeBlanket = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.16, 1.2), materials.sludgeSediment);
+    sludgeBlanket.position.set(0, 0.65, 0);
+    horizTankGroup.add(sludgeBlanket);
+
+    // 3. Internal Longitudinal Anti-Slosh Perforated Equalization Baffle Plates
+    for (let bx = -1.6; bx <= 1.6; bx += 3.2) {
+      const baffle = new THREE.Mesh(new THREE.CircleGeometry(0.98, 24), materials.structuralSteel);
+      baffle.rotation.y = Math.PI / 2;
+      baffle.position.set(bx, 1.6, 0);
+      horizTankGroup.add(baffle);
+    }
+
+    // 4. Anti-Vortex Cross-Plate over Suction Outlet
+    const vortexPlate = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.32, 0.32), materials.stainlessSteel);
+    vortexPlate.position.set(3.4, 0.72, 0);
+    horizTankGroup.add(vortexPlate);
+
+    // Register horizontal vessel shells for X-Ray ghosting
+    allOuterMeshes.push({ mesh: hTankMesh, defaultMat: materials.rawBufferTankSteel, xrayMat: materials.xrayGhostTank });
+    allOuterMeshes.push({ mesh: capL, defaultMat: materials.rawBufferTankSteel, xrayMat: materials.xrayGhostTank });
+    allOuterMeshes.push({ mesh: capR, defaultMat: materials.rawBufferTankSteel, xrayMat: materials.xrayGhostTank });
+
+    // -------------------------------------------------------------------------
+    // 7B. VERTICAL CHEMICAL EQUALIZATION & NEUTRALIZATION TANK (ASTM D1998)
+    // -------------------------------------------------------------------------
     const vertTankGroup = new THREE.Group();
     vertTankGroup.name = "Vertical Polyethylene Chemical & Equalization Tank";
-    vertTankGroup.userData = { subsystem: "Feed Buffer Tank", spec: "12 m³ UV-stabilized heavy polyethylene conical-top buffer vessel with bottom cone drain" };
+    vertTankGroup.userData = { subsystem: "Feed Buffer Tank", spec: "12 m³ ASTM D1998 cross-linked polyethylene reaction vessel with 45° conical bottom, top flash-mixer, and chemical injection headers" };
     vertTankGroup.position.set(-6.8, 0, 1.8);
     bufferGroup.add(vertTankGroup);
 
-    // Heavy black tank body
-    const vTankBody = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 2.8, 28), materials.polyBlackTank);
-    vTankBody.position.y = 1.9;
+    // Rotational Molded HDPE Tank Body with Molded Circumferential Hoop Ribs
+    const vTankBody = new THREE.Mesh(new THREE.CylinderGeometry(1.08, 1.08, 2.6, 36), materials.polyBlackTank);
+    vTankBody.position.y = 2.15;
     vTankBody.castShadow = true;
     vertTankGroup.add(vTankBody);
 
-    // Dome cap
-    const vTankDome = new THREE.Mesh(new THREE.SphereGeometry(1.05, 24, 12, 0, Math.PI * 2, 0, Math.PI / 3), materials.polyBlackTank);
-    vTankDome.position.y = 3.3;
-    vertTankGroup.add(vTankDome);
-
-    // Steel support frame legs
-    for (let l = 0; l < 4; l++) {
-      const lang = (l / 4) * Math.PI * 2;
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.6, 8), materials.hydroBlueSteel);
-      leg.position.set(Math.cos(lang) * 0.95, 0.3, Math.sin(lang) * 0.95);
-      vertTankGroup.add(leg);
+    // 4 External Molded Circumferential Reinforcement Hoop Ribs
+    for (let r = 1.1; r <= 3.2; r += 0.7) {
+      const hoopRib = new THREE.Mesh(new THREE.TorusGeometry(1.095, 0.018, 8, 36), materials.polyBlackTank);
+      hoopRib.rotation.x = Math.PI / 2;
+      hoopRib.position.y = r;
+      vertTankGroup.add(hoopRib);
     }
 
+    // 15° Conical Dished Top Roof
+    const vTankDome = new THREE.Mesh(new THREE.ConeGeometry(1.10, 0.45, 36), materials.polyBlackTank);
+    vTankDome.position.y = 3.67;
+    vTankDome.castShadow = true;
+    vertTankGroup.add(vTankDome);
+
+    // 45° Conical Bottom Hopper (allows 100% full drainage of sediment/slurry)
+    const coneBottom = new THREE.Mesh(new THREE.ConeGeometry(1.08, 0.75, 36), materials.polyBlackTank);
+    coneBottom.rotation.x = Math.PI;
+    coneBottom.position.y = 0.48;
+    vertTankGroup.add(coneBottom);
+
+    // Heavy Structural Steel Tank Stand (Seismic & Wind Restraint)
+    // Heavy circular steel support ring holding the cone knuckle
+    const standRing = new THREE.Mesh(new THREE.TorusGeometry(1.11, 0.045, 8, 32), materials.structuralSteel);
+    standRing.rotation.x = Math.PI / 2;
+    standRing.position.y = 0.85;
+    vertTankGroup.add(standRing);
+
+    // 4 Structural Tubular Steel Columns with Baseplates
+    for (let l = 0; l < 4; l++) {
+      const lang = (l / 4) * Math.PI * 2 + Math.PI / 4;
+      const lx = Math.cos(lang) * 1.08;
+      const lz = Math.sin(lang) * 1.08;
+      const standLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.85, 12), materials.structuralSteel);
+      standLeg.position.set(lx, 0.425, lz);
+      standLeg.castShadow = true;
+      vertTankGroup.add(standLeg);
+
+      // Footplate with anchor bolts
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.015, 0.18), materials.structuralSteel);
+      foot.position.set(lx, 0.008, lz);
+      vertTankGroup.add(foot);
+    }
+
+    // Diagonal Tubular Cross-Bracing (X-Bracing between legs)
+    for (let l = 0; l < 4; l++) {
+      const ang1 = (l / 4) * Math.PI * 2 + Math.PI / 4;
+      const ang2 = ((l + 1) / 4) * Math.PI * 2 + Math.PI / 4;
+      const x1 = Math.cos(ang1) * 1.08, z1 = Math.sin(ang1) * 1.08;
+      const x2 = Math.cos(ang2) * 1.08, z2 = Math.sin(ang2) * 1.08;
+      const braceLen = Math.hypot(x2 - x1, 0.85, z2 - z1);
+      const brace = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, braceLen, 8), materials.structuralSteel);
+      brace.position.set((x1 + x2) * 0.5, 0.425, (z1 + z2) * 0.5);
+      brace.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(x2 - x1, 0.85, z2 - z1).normalize());
+      vertTankGroup.add(brace);
+    }
+
+    // Top Flash-Mixer / Agitator Assembly
+    // Structural steel mounting bridge across tank top
+    const mixerBridge = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 2.45), materials.structuralSteel);
+    mixerBridge.position.set(0, 3.92, 0);
+    vertTankGroup.add(mixerBridge);
+
+    // 2.2 kW TEFC Electric Agitator Motor with cooling fins (Hydro Blue)
+    const mixerMotor = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.34, 16), materials.processPipeBlue);
+    mixerMotor.position.set(0, 4.25, 0);
+    vertTankGroup.add(mixerMotor);
+    const mixerGearbox = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.22, 16), materials.stainlessSteel);
+    mixerGearbox.position.set(0, 4.02, 0);
+    vertTankGroup.add(mixerGearbox);
+
+    // Solid 316L Stainless Agitator Shaft & Dual 3-Blade Axial Hydrofoil Impellers
+    const agitatorShaftGroup = new THREE.Group();
+    agitatorShaftGroup.position.set(0, 3.85, 0);
+    vertTankGroup.add(agitatorShaftGroup);
+    animatedInternals.agitatorShaft = agitatorShaftGroup;
+
+    const aShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 3.1, 12), materials.stainlessSteel);
+    aShaft.position.y = -1.55;
+    agitatorShaftGroup.add(aShaft);
+
+    // Dual 3-Blade Hydrofoil Impellers (at depths y = -1.2m and y = -2.3m)
+    for (let depth of [-1.2, -2.4]) {
+      const impGroup = new THREE.Group();
+      impGroup.position.y = depth;
+      agitatorShaftGroup.add(impGroup);
+      for (let b = 0; b < 3; b++) {
+        const bAng = (b / 3) * Math.PI * 2;
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.06, 0.012), materials.stainlessSteel);
+        blade.rotation.y = bAng;
+        blade.rotation.z = 0.35; // Hydrofoil pitch angle
+        blade.position.set(Math.cos(bAng) * 0.20, 0, Math.sin(bAng) * 0.20);
+        impGroup.add(blade);
+      }
+    }
+
+    // Top 16" Threaded Inspection Manway Access Dome Lid
+    const vManway = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.12, 16), materials.polyBlackTank);
+    vManway.position.set(0.55, 3.75, 0);
+    vertTankGroup.add(vManway);
+
+    // Top Chemical Dosing Quills (PAC Coagulant & pH Neutralization Lines)
+    for (let q = -0.45; q <= -0.25; q += 0.20) {
+      const quill = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.22, 8), materials.pipeChemicalYellow);
+      quill.position.set(q, 3.82, 0.45);
+      vertTankGroup.add(quill);
+      const chk = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.06, 8), materials.valveBodyRed);
+      chk.position.set(q, 3.95, 0.45);
+      vertTankGroup.add(chk);
+    }
+
+    // Bottom Drain Nozzle with Flanged Ball Valve & Camlock Hose Adapter
+    const btmDrain = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.25, 12), materials.pipeProcessBlue);
+    btmDrain.position.set(0, 0.12, 0);
+    vertTankGroup.add(btmDrain);
+    const btmValve = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.10, 0.12), materials.valveBodyRed);
+    btmValve.position.set(0, -0.05, 0);
+    vertTankGroup.add(btmValve);
+    const btmCam = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.08, 12), materials.camlockAluminum);
+    btmCam.position.set(0, -0.12, 0);
+    vertTankGroup.add(btmCam);
+
+    // Side-Mounted Clear Sight Tube with Volume Scale
+    const vSight = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 2.4, 12), materials.clearSightGlass);
+    vSight.position.set(1.12, 2.15, 0);
+    vertTankGroup.add(vSight);
+
+    // 3" Side Overflow Line Piped Down Outside Tank with Air Break
+    const vOverflowTop = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.25, 12), materials.pipeRawGrey);
+    vOverflowTop.rotation.z = Math.PI / 2;
+    vOverflowTop.position.set(1.18, 3.35, 0.45);
+    vertTankGroup.add(vOverflowTop);
+    const vOverflowDown = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 2.8, 12), materials.pipeRawGrey);
+    vOverflowDown.position.set(1.30, 1.95, 0.45);
+    vertTankGroup.add(vOverflowDown);
+
+    // Internal Swirling Chemical Reaction Volume (Revealed in X-Ray)
+    const swirlLiquid = new THREE.Mesh(new THREE.CylinderGeometry(1.02, 1.02, 2.4, 28), materials.liquidSwirlingChem);
+    swirlLiquid.position.y = 2.1;
+    vertTankGroup.add(swirlLiquid);
+
+    // Internal Anti-Vortex Wall Baffles (4 vertical stainless plates)
+    for (let b = 0; b < 4; b++) {
+      const bAng = (b / 4) * Math.PI * 2;
+      const vBaffle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.2, 0.012), materials.stainlessSteel);
+      vBaffle.position.set(Math.cos(bAng) * 0.98, 2.1, Math.sin(bAng) * 0.98);
+      vBaffle.rotation.y = bAng;
+      vertTankGroup.add(vBaffle);
+    }
+
+    // Register vertical tank shells for X-Ray ghosting
+    allOuterMeshes.push({ mesh: vTankBody, defaultMat: materials.polyBlackTank, xrayMat: materials.xrayGhostPolyTank });
+    allOuterMeshes.push({ mesh: vTankDome, defaultMat: materials.polyBlackTank, xrayMat: materials.xrayGhostPolyTank });
+    allOuterMeshes.push({ mesh: coneBottom, defaultMat: materials.polyBlackTank, xrayMat: materials.xrayGhostPolyTank });
+
     // =========================================================================
-    // 8. PC-10 PRIMARY INTAKE & SCREENING PUMP SKID
+    // 8. PC-10 PRIMARY DUPLEX INTAKE PUMPING SKID (ANSI/ASME B73.1 PROCESS SPEC)
     // =========================================================================
-    // Skid-mounted booster pumping unit positioned between raw tanks and pods (labeled PC-10 in photo)
     const skidGroup = new THREE.Group();
     skidGroup.name = "PC-10 Primary Booster Pumping Skid";
     skidGroup.userData = { subsystem: "Influent Pumping", spec: "Duplex end-suction centrifugal booster pumps (35 m³/h) with coarse basket strainers and variable speed drives" };
     skidGroup.position.set(-4.2, 0, -1.8);
     mobilePlantGroup.add(skidGroup);
 
-    // Heavy skid steel frame with "PC-10" stencil on side (exact match to photo!)
+    // Heavy Skid Structural C-Channel Steel Baseplate with Perimeter Drip Lip
     const skidBase = new THREE.Mesh(
-      new THREE.BoxGeometry(2.3, 0.16, 1.5),
+      new THREE.BoxGeometry(2.4, 0.18, 1.6),
       [materials.pc10SkidFrame, materials.pc10SkidFrame, materials.hydroBlueSteel, materials.hydroBlueSteel, materials.pc10SkidFrame, materials.pc10SkidFrame]
     );
-    skidBase.position.y = 0.08;
+    skidBase.position.y = 0.09;
     skidBase.castShadow = true;
     skidGroup.add(skidBase);
 
-    // Dual Pumping Assemblies (Motors + Volutes + Finning + Gauges)
+    // Perimeter Drip Lip Containment Curb with 1" Drain Port
+    const dripLip = new THREE.Mesh(new THREE.BoxGeometry(2.44, 0.04, 1.64), materials.pc10SkidFrame);
+    dripLip.position.y = 0.19;
+    skidGroup.add(dripLip);
+
+    // Duplex Process Pumping Assemblies (Duty Pump 1 at p = -0.55m, Standby Pump 2 at p = +0.55m)
     for (let p = -0.55; p <= 0.55; p += 1.1) {
-      // Electric TEFC motor with cooling fins (Hydro blue)
-      const motorGroup = new THREE.Group();
-      motorGroup.position.set(p, 0.38, -0.2);
-      skidGroup.add(motorGroup);
+      const trainGroup = new THREE.Group();
+      trainGroup.position.set(p, 0, 0);
+      skidGroup.add(trainGroup);
 
-      const motorBody = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.52, 16), materials.processPipeBlue);
-      motorBody.rotation.x = Math.PI / 2;
-      motorBody.castShadow = true;
-      motorGroup.add(motorBody);
+      // --- 1. SUCTION MANIFOLD (From Raw Header to Pump Suction Flange) ---
+      // 4" Suction Spool with Flanged Butterfly Valve
+      const sucSpool = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.35, 16), materials.pipeRawGrey);
+      sucSpool.rotation.x = Math.PI / 2;
+      sucSpool.position.set(0, 0.42, -0.65);
+      trainGroup.add(sucSpool);
 
-      // Cooling fan cowl at rear
-      const fanCowl = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.12, 16), materials.truckTrimBlack);
-      fanCowl.rotation.x = Math.PI / 2;
-      fanCowl.position.z = -0.32;
-      motorGroup.add(fanCowl);
+      const sucBfv = createButterflyValve(0.06, false);
+      sucBfv.position.set(0, 0.42, -0.58);
+      trainGroup.add(sucBfv);
 
-      // Electrical terminal conduit box on top of motor
-      const junctionBox = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.10, 0.14), materials.processPipeBlue);
-      junctionBox.position.set(0, 0.22, 0);
-      motorGroup.add(junctionBox);
-
-      // Pump volute casing
-      const volute = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.22, 16), materials.stainlessSteel);
-      volute.position.set(p, 0.38, 0.22);
-      volute.castShadow = true;
-      skidGroup.add(volute);
-
-      // Suction & discharge flanges with hex bolts
-      const flange = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.06, 12), materials.stainlessSteel);
-      flange.position.set(p, 0.60, 0.22);
-      skidGroup.add(flange);
-
-      // Duplex Basket Strainer canister
-      const strainer = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.48, 14), materials.stainlessSteel);
-      strainer.position.set(p, 0.48, 0.55);
+      // Suction Basket Strainer / Y-Strainer Canister with Handwheel Yoke Cover
+      const strainer = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.42, 16), materials.stainlessSteel);
+      strainer.position.set(0, 0.42, -0.38);
       strainer.castShadow = true;
-      skidGroup.add(strainer);
+      trainGroup.add(strainer);
+      const strCover = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.014, 8, 16), materials.safetyYellow);
+      strCover.rotation.x = Math.PI / 2;
+      strCover.position.set(0, 0.65, -0.38);
+      trainGroup.add(strCover);
 
-      // Handwheel clamp on top of strainer
-      const handwheel = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.015, 8, 16), materials.safetyYellow);
-      handwheel.rotation.x = Math.PI / 2;
-      handwheel.position.set(p, 0.74, 0.55);
-      skidGroup.add(handwheel);
+      // Hydraulic Institute Standard: Flat-on-Top Eccentric Reducer (4" to 3")
+      // Flat side oriented UP to eliminate air pocket accumulation and pump cavitation!
+      const eccRed = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.16, 16), materials.stainlessSteel);
+      eccRed.rotation.x = -Math.PI / 2;
+      eccRed.position.set(0, 0.40, -0.12);
+      trainGroup.add(eccRed);
 
-      // Dial Pressure Gauge mounted on discharge line
-      const gaugeStem = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.18, 8), materials.stainlessSteel);
-      gaugeStem.position.set(p, 0.68, 0.05);
-      skidGroup.add(gaugeStem);
+      // Suction Spherical Rubber Expansion Joint
+      const sucExp = createRubberExpansionJoint(0.05);
+      sucExp.rotation.y = Math.PI / 2;
+      sucExp.position.set(0, 0.40, -0.01);
+      trainGroup.add(sucExp);
 
-      const gaugeDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.035, 16), materials.dialGauge);
-      gaugeDisc.rotation.x = Math.PI / 2;
-      gaugeDisc.position.set(p, 0.80, 0.05);
-      skidGroup.add(gaugeDisc);
+      // Suction Compound Pressure/Vacuum Gauge
+      const vacGauge = createPressureGauge(false, true);
+      vacGauge.position.set(0.08, 0.44, -0.06);
+      trainGroup.add(vacGauge);
 
-      // Quarter-turn ball valve with bright red lever handle
-      const valveBody = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.14, 8), materials.stainlessSteel);
-      valveBody.position.set(p + 0.18, 0.48, 0.22);
-      skidGroup.add(valveBody);
+      // --- 2. CENTRIFUGAL PROCESS PUMP & ELECTRIC MOTOR (ANSI/ASME B73.1) ---
+      // Cast Stainless Volute Casing with Tangential Centerline Discharge
+      const volute = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.20, 20), materials.stainlessSteel);
+      volute.position.set(0, 0.40, 0.18);
+      volute.castShadow = true;
+      trainGroup.add(volute);
 
-      const redHandle = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 0.04), materials.truckTaillightRed);
-      redHandle.position.set(p + 0.26, 0.56, 0.22);
-      skidGroup.add(redHandle);
+      // Bearing Housing Frame with Oil Sight Glass
+      const bearingFrame = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.22), materials.pipeProcessBlue);
+      bearingFrame.position.set(0, 0.40, 0.36);
+      trainGroup.add(bearingFrame);
+      const oilGlass = new THREE.Mesh(new THREE.CircleGeometry(0.02, 12), materials.clearSightGlass);
+      oilGlass.position.set(0.081, 0.40, 0.36);
+      oilGlass.rotation.y = Math.PI / 2;
+      trainGroup.add(oilGlass);
+
+      // OSHA-Compliant Safety Yellow Coupling Guard
+      const coupGuard = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.14, 16), materials.safetyYellow);
+      coupGuard.rotation.x = Math.PI / 2;
+      coupGuard.position.set(0, 0.40, 0.52);
+      trainGroup.add(coupGuard);
+
+      // 15 kW TEFC Premium Efficiency Electric Motor with Cooling Finning
+      const motorBody = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.48, 20), materials.processPipeBlue);
+      motorBody.rotation.x = Math.PI / 2;
+      motorBody.position.set(0, 0.40, 0.82);
+      motorBody.castShadow = true;
+      trainGroup.add(motorBody);
+      // Fan Cowl at Motor Rear
+      const fanCowl = new THREE.Mesh(new THREE.CylinderGeometry(0.175, 0.175, 0.10, 16), materials.truckTrimBlack);
+      fanCowl.rotation.x = Math.PI / 2;
+      fanCowl.position.set(0, 0.40, 1.10);
+      trainGroup.add(fanCowl);
+      // Terminal Conduit Box on Motor Top
+      const termBox = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.12), materials.processPipeBlue);
+      termBox.position.set(0, 0.59, 0.82);
+      trainGroup.add(termBox);
+
+      // --- 3. DISCHARGE MANIFOLD (To Common Pump Header) ---
+      // Discharge Rubber Expansion Joint
+      const disExp = createRubberExpansionJoint(0.045);
+      disExp.rotation.z = Math.PI / 2;
+      disExp.position.set(0, 0.58, 0.18);
+      trainGroup.add(disExp);
+
+      // Concentric Reducer (2.5" to 3")
+      const conRed = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.14, 16), materials.stainlessSteel);
+      conRed.position.set(0, 0.70, 0.18);
+      trainGroup.add(conRed);
+
+      // Flanged Swing Check Valve with Bolted Inspection Bonnet
+      const chkValv = createCheckValve(0.055);
+      chkValv.position.set(0, 0.84, 0.18);
+      trainGroup.add(chkValv);
+
+      // Flanged Lug Butterfly Isolation / Throttling Valve
+      const disBfv = createButterflyValve(0.055, false);
+      disBfv.position.set(0, 0.98, 0.18);
+      trainGroup.add(disBfv);
+
+      // Bourdon Tube Discharge Pressure Gauge with Pigtail Syphon Loop
+      const disGauge = createPressureGauge(true, false);
+      disGauge.position.set(0.07, 1.05, 0.18);
+      trainGroup.add(disGauge);
     }
 
-    // Local Skid Control Panel & E-Stop
+    // Common 3" Discharge Confluence Header Spool
+    const headerPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 1.45, 16), materials.processPipeBlue);
+    headerPipe.rotation.z = Math.PI / 2;
+    headerPipe.position.set(0, 1.12, 0.18);
+    skidGroup.add(headerPipe);
+
+    // Inline Electromagnetic Flow Meter (Magmeter) with Digital Transmitter Head
+    const magBody = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.28, 16), materials.processPipeBlue);
+    magBody.rotation.z = Math.PI / 2;
+    magBody.position.set(0.85, 1.12, 0.18);
+    skidGroup.add(magBody);
+    const magHead = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.16, 16), materials.safetyYellow);
+    magHead.position.set(0.85, 1.28, 0.18);
+    skidGroup.add(magHead);
+    const magLcd = new THREE.Mesh(new THREE.CircleGeometry(0.045, 16), materials.tabletScreenGlow);
+    magLcd.position.set(0.85, 1.28, 0.245);
+    skidGroup.add(magLcd);
+
+    // Local NEMA 4X Skid Control Panel with VFD Readouts & Emergency Stop
     const skidPanel = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.65, 0.22), materials.podWhiteWall);
-    skidPanel.position.set(-0.85, 0.82, -0.42);
+    skidPanel.position.set(-0.88, 0.82, -0.42);
     skidPanel.castShadow = true;
     skidGroup.add(skidPanel);
 
-    // Red E-stop mushroom pushbutton
     const estop = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.04, 12), materials.truckTaillightRed);
     estop.rotation.x = Math.PI / 2;
-    estop.position.set(-0.85, 0.75, -0.30);
+    estop.position.set(-0.88, 0.75, -0.30);
     skidGroup.add(estop);
 
     // =========================================================================
     // 9. ELECTRICAL MARSHALLING & SCADA FIELD CABINET
     // =========================================================================
-    // Freestanding white/cream enclosure on unistrut legs (visible foreground left in photo)
     const electCabinetGroup = new THREE.Group();
     electCabinetGroup.name = "Main Electrical Marshalling & SCADA Field Enclosure";
     electCabinetGroup.userData = { subsystem: "Power & Automation", spec: "NEMA 4X / IP66 stainless distribution cabinet housing 480V 3-phase switchgear, surge suppression & PLC I/O" };
@@ -2154,69 +2878,111 @@
     cabBox.castShadow = true;
     electCabinetGroup.add(cabBox);
 
-    // Support Unistrut Legs
     for (let leg = -0.35; leg <= 0.35; leg += 0.70) {
       const cLeg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.8, 0.06), materials.galvanizedTray);
       cLeg.position.set(leg, 0.4, 0);
       electCabinetGroup.add(cLeg);
     }
 
-    // Heavy orange power conduits running from cabinet into tray
     const conduit = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 3.2, 12), materials.flexibleHoseOrange);
     conduit.rotation.z = Math.PI / 2.3;
     conduit.position.set(1.4, 0.18, 0.4);
     electCabinetGroup.add(conduit);
 
     // =========================================================================
-    // 10. INTERCONNECTING PROCESS HOSE MANIFOLDS & FLUID FLOW PARTICLES
+    // 10. INTERCONNECTING PROCESS PIPING, CAMLOCK HOSES & FLOW TRACERS
     // =========================================================================
     const hoseGroup = new THREE.Group();
     hoseGroup.name = "Flexible Interconnecting Process Hoses";
     mobilePlantGroup.add(hoseGroup);
 
-    // Flexible hose connections with realistic sag and industrial cam-lock fittings
-    function createFlexibleHose(p1, p2, colorMat, sag = 0.25) {
+    // Flexible Industrial Hose Generator with Camlock Quick-Disconnect Fittings & Clamps
+    function createFlexibleProcessHose(p1, p2, colorMat, hoseRadius = 0.052, sag = 0.22, labelText = "") {
       const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
       mid.y = Math.min(p1.y, p2.y) - sag;
       const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
-      const hoseGeom = new THREE.TubeGeometry(curve, 24, 0.045, 8, false);
+      const hoseGeom = new THREE.TubeGeometry(curve, 28, hoseRadius, 12, false);
       const hoseMesh = new THREE.Mesh(hoseGeom, colorMat);
       hoseMesh.castShadow = true;
       hoseGroup.add(hoseMesh);
+
+      // Aluminum Camlock Couplings at both terminal connection bulkheads
+      const cam1 = createCamlockCoupling(hoseRadius);
+      cam1.position.copy(p1);
+      hoseGroup.add(cam1);
+
+      const cam2 = createCamlockCoupling(hoseRadius);
+      cam2.position.copy(p2);
+      hoseGroup.add(cam2);
+
+      // Vinyl Directional Flow Marker Label at midpoint
+      if (labelText) {
+        const marker = createPipeMarker(labelText, 0.28, hoseRadius, '#0284c7');
+        marker.position.copy(mid);
+        hoseGroup.add(marker);
+      }
       return curve;
     }
 
-    // Hose 1: Raw Tank -> PC-10 Pump Skid (Turbid Brown Influent)
-    const curveRaw = createFlexibleHose(
-      new THREE.Vector3(-6.4, 0.6, -3.8),
-      new THREE.Vector3(-4.2, 0.35, -1.6),
-      materials.turbidDirtyWater,
-      0.15
+    // Line 1: Raw Equalization Tank -> PC-10 Pump Skid (4" Suction Line, Turbid Raw Influent)
+    const curveRaw = createFlexibleProcessHose(
+      new THREE.Vector3(-6.4, 0.55, -3.8),
+      new THREE.Vector3(-4.2, 0.38, -1.8),
+      materials.pipeRawGrey,
+      0.055,
+      0.14,
+      "RAW INFLUENT"
     );
 
-    // Hose 2: PC-10 Skid -> Pod 1 (Electrocoagulation Feed)
-    const curveFeed = createFlexibleHose(
-      new THREE.Vector3(-3.8, 0.35, -1.2),
-      new THREE.Vector3(-1.6, 0.35, 0.4),
-      materials.processPipeBlue,
-      0.18
+    // Line 2: PC-10 Skid Common Discharge -> Pod 1 Bulkhead (3" Primary EC Feed, Hydro Blue)
+    const curveFeed = createFlexibleProcessHose(
+      new THREE.Vector3(-3.35, 1.12, -1.62),
+      new THREE.Vector3(-1.6, 0.45, 0.4),
+      materials.pipeProcessBlue,
+      0.048,
+      0.18,
+      "EC FEED"
     );
 
-    // Hose 3: Pod 1 (EC) -> Pod 2 (DAF Clarifier) across central aisle
-    const curveInter = createFlexibleHose(
-      new THREE.Vector3(-0.4, 0.4, 1.6),
-      new THREE.Vector3(0.4, 0.4, 1.6),
-      materials.processPipeBlue,
-      0.12
+    // Line 3: Pod 1 (EC) -> Pod 2 (DAF Clarifier) across central aisle (Coagulated Floc Liquor)
+    const curveInter = createFlexibleProcessHose(
+      new THREE.Vector3(-0.4, 0.45, 1.6),
+      new THREE.Vector3(0.4, 0.45, 1.6),
+      materials.pipeProcessBlue,
+      0.048,
+      0.10,
+      "FLOC TRANSFER"
     );
 
-    // Hose 4: Pod 2 (DAF) -> Pod 3 (Filter)
-    const curveDafToFilt = createFlexibleHose(
-      new THREE.Vector3(1.6, 0.4, 0.4),
-      new THREE.Vector3(0.4, 0.4, -1.6),
-      materials.clearTreatedWater,
-      0.22
+    // Line 4: Pod 2 (DAF) -> Pod 3 (Filter) across aisle (Clarified Water)
+    const curveDafToFilt = createFlexibleProcessHose(
+      new THREE.Vector3(1.6, 0.45, 0.4),
+      new THREE.Vector3(0.4, 0.45, -1.6),
+      materials.pipeClarifiedTeal,
+      0.045,
+      0.20,
+      "CLARIFIED"
     );
+
+    // Line 5: Pod 3 (Filter) -> Pod 4 (Control & Disinfection) to Clean Water Outflow Header
+    const curveFiltToClean = createFlexibleProcessHose(
+      new THREE.Vector3(-0.4, 0.45, -1.6),
+      new THREE.Vector3(1.6, 0.45, -1.6),
+      materials.pipeCleanCyan,
+      0.045,
+      0.12,
+      "TREATED OUTFLOW"
+    );
+
+    // Unistrut Pipe Supports Anchoring Header Spools across Secondary Containment Bund Floor
+    hoseGroup.add(createUnistrutPipeSupport(0.38, 0.055));
+    const sup1 = createUnistrutPipeSupport(0.38, 0.055);
+    sup1.position.set(-5.3, 0, -2.8);
+    hoseGroup.add(sup1);
+
+    const sup2 = createUnistrutPipeSupport(0.35, 0.048);
+    sup2.position.set(-2.5, 0, -0.6);
+    hoseGroup.add(sup2);
 
     // Dynamic Flow Tracers (Animated fluid pulses showing active mobile treatment)
     const fluidParticlesCount = 60;
@@ -3478,9 +4244,9 @@
           statShading.textContent = 'Internal Process Core';
         }
 
-        // Ghost outer pod shells and access doors
+        // Ghost outer pod shells, access doors, and buffer tank envelopes
         allOuterMeshes.forEach(item => {
-          item.mesh.material = materials.xrayGhostWall;
+          item.mesh.material = item.xrayMat || materials.xrayGhostWall;
         });
       } else {
         if (xrayMainBtn) {
@@ -3584,6 +4350,11 @@
         // Rotate DAF mechanical surface skimmer blades continuously
         if (animatedInternals.dafScraper) {
           animatedInternals.dafScraper.rotation.x += delta * 1.8;
+        }
+
+        // Rotate vertical chemical equalization tank flash-mixer agitator
+        if (animatedInternals.agitatorShaft) {
+          animatedInternals.agitatorShaft.rotation.y += delta * 4.2;
         }
 
         // Randomly pulse / flicker high-amperage electrolytic micro-arcs
