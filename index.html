@@ -1041,32 +1041,201 @@
       return new THREE.CanvasTexture(canvas);
     }
 
+    // (D2) Organic Broadleaf Canopy Leaf Cluster Texture (Botanical leaf clusters with chlorophyll gradients)
+    function generateOrganicFoliageTexture(w = 512, h = 512) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, w, h);
+
+      // Multiple dense clusters of overlapping natural broadleaf foliage
+      const numClusters = 16;
+      for (let c = 0; c < numClusters; c++) {
+        const cx = 75 + Math.random() * (w - 150);
+        const cy = 75 + Math.random() * (h - 150);
+        const numLeaves = 48;
+        for (let l = 0; l < numLeaves; l++) {
+          const angle = Math.random() * Math.PI * 2;
+          const dist = Math.random() * 68;
+          const lx = cx + Math.cos(angle) * dist;
+          const ly = cy + Math.sin(angle) * dist;
+          const leafLen = 15 + Math.random() * 20;
+          const leafWid = 9 + Math.random() * 12;
+          const leafRot = angle + (Math.random() - 0.5) * 0.9;
+
+          ctx.save();
+          ctx.translate(lx, ly);
+          ctx.rotate(leafRot);
+
+          // Deep chlorophyll shadow, rich olive midtone, sunlit lime margin
+          const colPick = Math.random();
+          let fillCol = '#254a1b';
+          if (colPick > 0.72) fillCol = '#478226';
+          else if (colPick > 0.38) fillCol = '#325d22';
+          else if (colPick > 0.15) fillCol = '#1f3e16';
+          else fillCol = '#152b0f';
+
+          ctx.fillStyle = fillCol;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, leafWid * 0.5, leafLen * 0.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Central structural vein
+          ctx.strokeStyle = 'rgba(85, 140, 50, 0.40)';
+          ctx.lineWidth = 1.0;
+          ctx.beginPath();
+          ctx.moveTo(0, -leafLen * 0.45);
+          ctx.lineTo(0, leafLen * 0.45);
+          ctx.stroke();
+
+          ctx.restore();
+        }
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // (D3) Organic Evergreen Pine / Spruce Needle Spray Texture
+    function generatePineNeedleTexture(w = 512, h = 512) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, w, h);
+
+      // Radial tiered conifer needle sprigs
+      const numSprigs = 20;
+      for (let s = 0; s < numSprigs; s++) {
+        const sx = 70 + Math.random() * (w - 140);
+        const sy = 70 + Math.random() * (h - 140);
+        const mainAngle = -Math.PI / 2 + (Math.random() - 0.5) * 1.3;
+
+        // Slender woody twig core
+        ctx.strokeStyle = '#382517';
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        const ex = sx + Math.cos(mainAngle) * 58;
+        const ey = sy + Math.sin(mainAngle) * 58;
+        ctx.lineTo(ex, ey);
+        ctx.stroke();
+
+        // Dense radiating needle sprays
+        const needleCount = 95;
+        for (let n = 0; n < needleCount; n++) {
+          const t = Math.random();
+          const bx = sx + (ex - sx) * t;
+          const by = sy + (ey - sy) * t;
+          const side = Math.random() > 0.5 ? 1 : -1;
+          const nAngle = mainAngle + side * (0.55 + Math.random() * 0.95);
+          const nLen = 16 + Math.random() * 22;
+
+          const nPick = Math.random();
+          let nCol = '#173617';
+          if (nPick > 0.70) nCol = '#255225';
+          else if (nPick > 0.35) nCol = '#1d421d';
+          else nCol = '#102610';
+
+          ctx.strokeStyle = nCol;
+          ctx.lineWidth = 1.2 + Math.random() * 0.8;
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.lineTo(bx + Math.cos(nAngle) * nLen, by + Math.sin(nAngle) * nLen);
+          ctx.stroke();
+        }
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // (D4) Radial Gaussian Soft Particle Texture (For glowing embers, sparkling droplets, fluid sprays)
+    function generateSoftParticleTexture(size = 64) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const half = size * 0.5;
+      const grad = ctx.createRadialGradient(half, half, 0, half, half, half);
+      grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+      grad.addColorStop(0.25, 'rgba(255, 255, 255, 0.88)');
+      grad.addColorStop(0.55, 'rgba(255, 255, 255, 0.38)');
+      grad.addColorStop(0.85, 'rgba(255, 255, 255, 0.08)');
+      grad.addColorStop(1.0, 'rgba(255, 255, 255, 0.0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // (D5) Turbulent Volumetric Soot Smoke Puff Texture (For threejs-fire-pro buoyant exhaust plume)
+    function generateSoftSmokePuffTexture(size = 128) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, size, size);
+
+      const half = size * 0.5;
+      const baseGrad = ctx.createRadialGradient(half, half, 0, half, half, half * 0.88);
+      baseGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.80)');
+      baseGrad.addColorStop(0.35, 'rgba(255, 255, 255, 0.50)');
+      baseGrad.addColorStop(0.72, 'rgba(255, 255, 255, 0.14)');
+      baseGrad.addColorStop(1.0, 'rgba(255, 255, 255, 0.0)');
+      ctx.fillStyle = baseGrad;
+      ctx.fillRect(0, 0, size, size);
+
+      // Micro turbulence lobes creating natural billowing edge variation
+      for (let p = 0; p < 8; p++) {
+        const px = half + (Math.random() - 0.5) * half * 0.45;
+        const py = half + (Math.random() - 0.5) * half * 0.45;
+        const pr = half * (0.28 + Math.random() * 0.28);
+        const subGrad = ctx.createRadialGradient(px, py, 0, px, py, pr);
+        subGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.25)');
+        subGrad.addColorStop(1.0, 'rgba(255, 255, 255, 0.0)');
+        ctx.fillStyle = subGrad;
+        ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
     // (E) Spatially Accurate Photorealistic Site Ground: Engineered foundations, marked asphalt, and civil hardscapes
     function generateSiteTerrainCanvas(w = 2048, h = 2048) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
 
-      // 1. Lush natural turf base across landscape with subtle organic hue variations
-      ctx.fillStyle = '#2d501a';
+      // 1. Natural multi-tone turf base across landscape with organic fescue & ryegrass gradients
+      ctx.fillStyle = '#284619';
       ctx.fillRect(0, 0, w, h);
 
-      for (let i = 0; i < 90000; i++) {
+      // Multi-scale natural grass grain & subtle loam hue variations
+      for (let i = 0; i < 95000; i++) {
         const x = Math.random() * w;
         const y = Math.random() * h;
-        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(36, 68, 20, 0.45)' : 'rgba(64, 108, 38, 0.45)';
-        ctx.fillRect(x, y, 3, 3);
+        const rVal = Math.random();
+        if (rVal > 0.65) ctx.fillStyle = 'rgba(68, 112, 40, 0.42)'; // Sunlit fescue
+        else if (rVal > 0.35) ctx.fillStyle = 'rgba(34, 62, 20, 0.48)'; // Deep shadow green
+        else if (rVal > 0.12) ctx.fillStyle = 'rgba(82, 88, 38, 0.32)'; // Muted clover / thatch
+        else ctx.fillStyle = 'rgba(78, 62, 38, 0.35)'; // Earth loam
+        ctx.fillRect(x, y, 2.5, 2.5);
       }
 
-      // Natural earth and loam variations
-      for (let p = 0; p < 32; p++) {
+      // Broad organic soil, moisture, and loam patches
+      for (let p = 0; p < 36; p++) {
         const px = Math.random() * w;
         const py = Math.random() * h;
-        const pr = 40 + Math.random() * 110;
+        const pr = 45 + Math.random() * 125;
         const pGrad = ctx.createRadialGradient(px, py, 4, px, py, pr);
-        pGrad.addColorStop(0, 'rgba(84, 68, 44, 0.42)');
-        pGrad.addColorStop(0.6, 'rgba(60, 52, 34, 0.20)');
-        pGrad.addColorStop(1, 'rgba(45, 80, 26, 0)');
+        pGrad.addColorStop(0, 'rgba(74, 58, 36, 0.38)');
+        pGrad.addColorStop(0.55, 'rgba(52, 46, 30, 0.18)');
+        pGrad.addColorStop(1, 'rgba(40, 70, 24, 0)');
         ctx.fillStyle = pGrad;
         ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
       }
@@ -1077,28 +1246,47 @@
         return { px: 1024 + x * 17.06, py: 1024 + z * 17.06 };
       }
 
-      // Helper function: Draw concrete equipment pads with expansion joints and gravel margins
-      function drawConcretePad(x, z, width, depth, label) {
+      // Helper function: Draw concrete equipment pads with authentic crushed stone ballast margins
+      function drawConcretePad(x, z, width, depth) {
         const p = toPx(x - width/2, z - depth/2);
         const pw = width * 17.06;
         const pd = depth * 17.06;
 
-        // Crushed stone gravel drainage perimeter around pad
-        ctx.fillStyle = '#5c5b52';
+        // 1. Crushed stone gravel drainage ballast (28px = ~1.6m wide aggregate buffer)
+        ctx.fillStyle = '#55544b';
         ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(p.px - 14, p.py - 14, pw + 28, pd + 28, 16);
-        else ctx.rect(p.px - 14, p.py - 14, pw + 28, pd + 28);
+        if (ctx.roundRect) ctx.roundRect(p.px - 26, p.py - 26, pw + 52, pd + 52, 18);
+        else ctx.rect(p.px - 26, p.py - 26, pw + 52, pd + 52);
         ctx.fill();
 
-        // Concrete slab
+        // Realistic coarse aggregate pebble texture within ballast perimeter
+        for (let g = 0; g < 450; g++) {
+          const gx = p.px - 24 + Math.random() * (pw + 48);
+          const gy = p.py - 24 + Math.random() * (pd + 48);
+          const gChoice = Math.random();
+          if (gChoice > 0.6) ctx.fillStyle = 'rgba(125, 122, 110, 0.75)';
+          else if (gChoice > 0.3) ctx.fillStyle = 'rgba(68, 66, 58, 0.85)';
+          else ctx.fillStyle = 'rgba(38, 36, 32, 0.90)';
+          ctx.beginPath(); ctx.arc(gx, gy, 1.2 + Math.random() * 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // 2. Concrete slab foundation
         ctx.fillStyle = '#7a8691';
         ctx.beginPath();
         if (ctx.roundRect) ctx.roundRect(p.px, p.py, pw, pd, 10);
         else ctx.rect(p.px, p.py, pw, pd);
         ctx.fill();
 
+        // Concrete surface grain & weathering
+        for (let c = 0; c < 350; c++) {
+          const cx = p.px + Math.random() * pw;
+          const cy = p.py + Math.random() * pd;
+          ctx.fillStyle = Math.random() > 0.5 ? 'rgba(155, 168, 180, 0.35)' : 'rgba(80, 92, 102, 0.35)';
+          ctx.fillRect(cx, cy, 2, 2);
+        }
+
         // Saw-cut concrete expansion joints (1.5m grid)
-        ctx.strokeStyle = 'rgba(40, 48, 56, 0.35)';
+        ctx.strokeStyle = 'rgba(40, 48, 56, 0.40)';
         ctx.lineWidth = 2;
         for (let gx = p.px + 35; gx < p.px + pw; gx += 45) {
           ctx.beginPath(); ctx.moveTo(gx, p.py); ctx.lineTo(gx, p.py + pd); ctx.stroke();
@@ -1107,7 +1295,7 @@
           ctx.beginPath(); ctx.moveTo(p.px, gy); ctx.lineTo(p.px + pw, gy); ctx.stroke();
         }
 
-        // Chamfered concrete edge border
+        // Chamfered edge highlight
         ctx.strokeStyle = '#9ca9b6';
         ctx.lineWidth = 3.5;
         ctx.stroke();
@@ -1123,6 +1311,14 @@
       drawConcretePad(0.5, -9.6, 12.5, 6.2);  // 7. Tertiary Filter & UV Complex Pad
       drawConcretePad(-15.5, -4.5, 9.5, 9.5); // 8. Operations & EPA Lab Pad
       drawConcretePad(20.5, -5.5, 18.0, 13.5);// 9. Digesters & Biosolids Pad
+
+      // Rich dark shredded hardwood mulch beds around Operations Lab & Plazas
+      const labBedP = toPx(-15.5, -4.5);
+      ctx.fillStyle = '#2e1f16';
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(labBedP.px - 105, labBedP.py - 105, 210, 210, 24);
+      else ctx.rect(labBedP.px - 105, labBedP.py - 105, 210, 210);
+      ctx.fill();
 
       // Roadway path coordinates (Rerouted north road to py = 370 / Z = -38.3m to completely separate from lagoon)
       const roadPath = () => {
@@ -1150,18 +1346,24 @@
       ctx.stroke();
 
       // 2. High-grade paved asphalt roadbed (84px wide)
-      ctx.strokeStyle = '#25292f';
+      ctx.strokeStyle = '#1e2227';
       ctx.lineWidth = 84;
       roadPath();
       ctx.stroke();
 
       // Asphalt fine aggregate surface texture
-      for (let i = 0; i < 40000; i++) {
+      for (let i = 0; i < 45000; i++) {
         const ax = 400 + Math.random() * 1280;
         const ay = 320 + Math.random() * 1730;
-        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(15, 18, 22, 0.45)' : 'rgba(65, 75, 85, 0.35)';
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(12, 14, 18, 0.55)' : 'rgba(58, 68, 78, 0.40)';
         ctx.fillRect(ax, ay, 2, 2);
       }
+
+      // Longitudinal tire track wear lanes
+      ctx.strokeStyle = 'rgba(14, 16, 20, 0.38)';
+      ctx.lineWidth = 18;
+      roadPath();
+      ctx.stroke();
 
       // 3. Concrete curbs
       ctx.strokeStyle = '#828c96';
@@ -1205,7 +1407,7 @@
       ctx.textAlign = 'center';
       ctx.fillText('STOP', 1024, 1630);
 
-      // 8. Angled Parking Stalls in front of Operations Lab
+      // 8. Angled Parking Stalls in front of Operations Lab with subtle engine oil drip marks
       const parkX = toPx(-10.5, -4.5).px;
       const parkY = toPx(-10.5, -4.5).py;
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
@@ -1215,6 +1417,12 @@
         ctx.moveTo(parkX - 25, parkY + pk);
         ctx.lineTo(parkX + 25, parkY + pk);
         ctx.stroke();
+
+        // Subtle oil drip stain in parking stall center
+        ctx.fillStyle = 'rgba(12, 14, 16, 0.45)';
+        ctx.beginPath();
+        ctx.ellipse(parkX, parkY + pk, 12, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       // 9. Retention Wetland Pond Rim & Naturalized Shoreline
@@ -1222,19 +1430,19 @@
       const pondR = 8.5 * 17.06;
 
       // River gravel & pebble shoreline buffer
-      ctx.fillStyle = '#6e6552';
+      ctx.fillStyle = '#645d4c';
       ctx.beginPath();
-      ctx.arc(pondP.px, pondP.py, pondR + 32, 0, Math.PI * 2);
+      ctx.arc(pondP.px, pondP.py, pondR + 34, 0, Math.PI * 2);
       ctx.fill();
 
       // Sandy wet loam beach ring
-      ctx.fillStyle = '#8f8268';
+      ctx.fillStyle = '#82765e';
       ctx.beginPath();
       ctx.arc(pondP.px, pondP.py, pondR + 18, 0, Math.PI * 2);
       ctx.fill();
 
       // Deep lagoon basin floor
-      ctx.fillStyle = '#114457';
+      ctx.fillStyle = '#103f50';
       ctx.beginPath();
       ctx.arc(pondP.px, pondP.py, pondR, 0, Math.PI * 2);
       ctx.fill();
@@ -1589,9 +1797,13 @@
     waterNormalMap.repeat.set(6, 6);
 
     const grassTuftMap = generateNaturalGrassTuftTexture();
+    const organicFoliageMap = generateOrganicFoliageTexture(512, 512);
+    const pineNeedleMap = generatePineNeedleTexture(512, 512);
     const siteTerrainMap = generateSiteTerrainCanvas(2048, 2048);
     const chainLinkMap = generateChainLinkFenceTexture(64);
     const treeBarkMap = generateTreeBarkTexture(256, 512);
+    const softParticleMap = generateSoftParticleTexture(64);
+    const softSmokeMap = generateSoftSmokePuffTexture(128);
     const nfpaMap = generateNFPAHazardTexture();
     const dangerHighVoltMap = generateOSHAWarningTexture('DANGER', 'HIGH VOLTAGE', 'KEEP OUT - 13.8kV');
     const confinedSpaceMap = generateOSHAWarningTexture('DANGER', 'CONFINED SPACE', 'ENTER BY PERMIT ONLY');
@@ -1771,25 +1983,34 @@
         metalness: 0.01
       }),
       vegetationCanopy: new THREE.MeshStandardMaterial({
-        color: '#345224',
-        roughness: 0.88,
-        metalness: 0.02
+        map: organicFoliageMap,
+        alphaTest: 0.35,
+        side: THREE.DoubleSide,
+        roughness: 0.72,
+        metalness: 0.02,
+        vertexColors: true
       }),
       coniferCanopy: new THREE.MeshStandardMaterial({
-        color: '#1a3818',
-        roughness: 0.88,
-        metalness: 0.02
+        map: pineNeedleMap,
+        alphaTest: 0.38,
+        side: THREE.DoubleSide,
+        roughness: 0.78,
+        metalness: 0.02,
+        vertexColors: true
       }),
       shrubCanopy: new THREE.MeshStandardMaterial({
-        color: '#2a481c',
-        roughness: 0.85,
-        metalness: 0.02
+        map: organicFoliageMap,
+        alphaTest: 0.35,
+        side: THREE.DoubleSide,
+        roughness: 0.74,
+        metalness: 0.02,
+        vertexColors: true
       }),
       treeTrunk: new THREE.MeshStandardMaterial({
         map: treeBarkMap,
-        color: '#4e3b2b',
-        roughness: 0.90,
-        metalness: 0.02
+        color: '#554232',
+        roughness: 0.88,
+        metalness: 0.03
       }),
       // Perimeter Chain-Link Security Fencing
       chainLinkFence: new THREE.MeshStandardMaterial({
@@ -1885,15 +2106,16 @@
       if (r <= 65) return -0.05;
       const blend = Math.min(1.0, (r - 65) / 85.0);
       const hillNoise = (
-        Math.sin(x * 0.007 + 0.35) * Math.cos(y * 0.006) * 22.0 +
-        Math.sin(x * 0.015 - y * 0.012) * 11.0 +
-        Math.cos(x * 0.0035 + y * 0.004) * 16.0
+        Math.sin(x * 0.006 + 0.35) * Math.cos(y * 0.005) * 24.0 +
+        Math.sin(x * 0.014 - y * 0.011) * 10.0 +
+        Math.cos(x * 0.003 + y * 0.004) * 18.0 +
+        Math.sin((x + y) * 0.02) * 3.5
       );
-      return Math.max(-1.2, hillNoise) * blend - 0.05 * (1.0 - blend);
+      return Math.max(-1.5, hillNoise) * blend - 0.05 * (1.0 - blend);
     }
 
     const regionalSize = 1600;
-    const regionalGeom = new THREE.PlaneGeometry(regionalSize, regionalSize, 96, 96);
+    const regionalGeom = new THREE.PlaneGeometry(regionalSize, regionalSize, 128, 128);
     const regPosAttr = regionalGeom.attributes.position;
     const regColors = new Float32Array(regPosAttr.count * 3);
     const fogColor = new THREE.Color('#9dc4ea');
@@ -1937,7 +2159,7 @@
     scene.add(regionalMesh);
 
     // Distant Ridgeline Conifer Silhouettes (Adds authentic depth on outer horizon ridges)
-    const distantTreeCount = 140;
+    const distantTreeCount = 280;
     const distTrunkGeom = new THREE.CylinderGeometry(0.25, 0.45, 3.2, 5);
     const distCanopyGeom = new THREE.ConeGeometry(2.2, 7.8, 6);
     distCanopyGeom.translate(0, 4.6, 0);
@@ -1954,14 +2176,14 @@
 
     for (let i = 0; i < distantTreeCount; i++) {
       const angle = (i / distantTreeCount) * Math.PI * 2 + Math.random() * 0.15;
-      const radius = 160 + (i % 9) * 28 + Math.random() * 25;
+      const radius = 150 + (i % 12) * 22 + Math.random() * 25;
       const dtx = Math.cos(angle) * radius;
       const dtz = Math.sin(angle) * radius;
       const dty = getRegionalElevation(dtx, -dtz); // Plane Y becomes -Z in world coords
-      const dScale = 0.9 + Math.random() * 0.65;
+      const dScale = 0.85 + Math.random() * 0.75;
 
       dtDummy.position.set(dtx, dty + 0.2, dtz);
-      dtDummy.scale.set(dScale, dScale, dScale);
+      dtDummy.scale.set(dScale, dScale * (0.95 + Math.random() * 0.2), dScale);
       dtDummy.rotation.y = Math.random() * Math.PI * 2;
       dtDummy.updateMatrix();
       distantTreesInst.setMatrixAt(i, dtDummy.matrix);
@@ -2053,8 +2275,10 @@
         materials.structuralSteel
       );
       topRail.position.set(seg.x1 + dx * 0.5, 2.38, seg.z1 + dz * 0.5);
-      topRail.rotation.x = Math.PI / 2;
-      topRail.rotation.z = -angle + Math.PI / 2;
+      topRail.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(dx, 0, dz).normalize()
+      );
       fenceGroup.add(topRail);
 
       // Chain-link mesh fabric panel
@@ -2216,62 +2440,200 @@
     // --- (D) High-Fidelity 3D Vegetation: Mature Deciduous Oaks & Tiered Conifers ---
     // Replaces primitive dodecahedron spheres with realistic multi-lobed leafy canopies and conifers
 
-    // 1. Mature Deciduous Broadleaf Tree (Organic split trunk + multi-lobed compound crown)
+    // 1. Mature Deciduous Broadleaf Tree (Organic split trunk with root flares + multi-bough spherical canopy)
     function buildMatureDeciduousGeometries() {
-      // Main trunk + branching limbs
-      const tMain = new THREE.CylinderGeometry(0.24, 0.38, 2.8, 8);
+      // 1. Organic Tapered Trunk with Root Buttresses & Structural Limbs
+      const trunkParts = [];
+      
+      const tMain = new THREE.CylinderGeometry(0.22, 0.42, 2.8, 8);
       tMain.translate(0, 1.4, 0);
-      const tBranch1 = new THREE.CylinderGeometry(0.12, 0.20, 1.6, 6);
-      tBranch1.rotateZ(0.55);
-      tBranch1.translate(0.55, 2.5, 0);
-      const tBranch2 = new THREE.CylinderGeometry(0.11, 0.18, 1.5, 6);
-      tBranch2.rotateZ(-0.52);
-      tBranch2.rotateY(1.4);
-      tBranch2.translate(-0.45, 2.45, 0.35);
-      const mergedTrunk = BufferGeometryUtils.mergeGeometries([tMain, tBranch1, tBranch2]);
+      trunkParts.push(tMain);
 
-      // Multi-lobed compound organic foliage canopy
-      const cCenter = new THREE.IcosahedronGeometry(1.45, 2);
-      cCenter.translate(0, 3.8, 0);
-      const cSide1 = new THREE.IcosahedronGeometry(1.25, 2);
-      cSide1.translate(1.0, 3.2, 0.2);
-      const cSide2 = new THREE.IcosahedronGeometry(1.20, 2);
-      cSide2.translate(-0.9, 3.1, -0.4);
-      const cSide3 = new THREE.IcosahedronGeometry(1.15, 2);
-      cSide3.translate(0.2, 3.0, 1.0);
-      const mergedCanopy = BufferGeometryUtils.mergeGeometries([cCenter, cSide1, cSide2, cSide3]);
+      // Root buttress flares at ground level
+      const root1 = new THREE.CylinderGeometry(0.08, 0.22, 0.95, 6);
+      root1.rotateZ(0.68); root1.translate(0.38, 0.22, 0); trunkParts.push(root1);
+      const root2 = new THREE.CylinderGeometry(0.08, 0.20, 0.90, 6);
+      root2.rotateX(-0.68); root2.translate(0, 0.22, -0.38); trunkParts.push(root2);
+      const root3 = new THREE.CylinderGeometry(0.08, 0.19, 0.88, 6);
+      root3.rotateZ(-0.65); root3.rotateY(0.7); root3.translate(-0.35, 0.22, 0.25); trunkParts.push(root3);
 
-      // Organic vertex perturbation for realistic foliage fluff
-      const cPos = mergedCanopy.attributes.position;
-      for (let v = 0; v < cPos.count; v++) {
-        const nx = cPos.getX(v);
-        const ny = cPos.getY(v);
-        const nz = cPos.getZ(v);
-        const noise = (Math.sin(nx * 4.2) + Math.cos(ny * 3.8) + Math.sin(nz * 4.5)) * 0.08;
-        cPos.setXYZ(v, nx + noise, ny + noise * 0.8, nz + noise);
-      }
-      mergedCanopy.computeVertexNormals();
+      // Scaffold branches
+      const tBranch1 = new THREE.CylinderGeometry(0.13, 0.22, 1.9, 6);
+      tBranch1.rotateZ(0.55); tBranch1.translate(0.55, 2.5, 0.1); trunkParts.push(tBranch1);
 
+      const tBranch2 = new THREE.CylinderGeometry(0.12, 0.20, 1.8, 6);
+      tBranch2.rotateZ(-0.52); tBranch2.rotateY(1.4); tBranch2.translate(-0.45, 2.45, 0.35); trunkParts.push(tBranch2);
+
+      const tBranch3 = new THREE.CylinderGeometry(0.11, 0.18, 1.6, 6);
+      tBranch3.rotateX(-0.50); tBranch3.rotateY(-1.2); tBranch3.translate(0.1, 2.5, -0.45); trunkParts.push(tBranch3);
+
+      const mergedTrunk = BufferGeometryUtils.mergeGeometries(trunkParts);
+      mergedTrunk.computeVertexNormals();
+
+      // 2. High-Fidelity Organic Foliage Bough Clusters (15 volumetric bough centers)
+      const boughCenters = [
+        { x: 0, y: 4.5, z: 0, s: 1.55 },
+        { x: 0.95, y: 3.9, z: 0.4, s: 1.35 },
+        { x: -0.85, y: 3.9, z: -0.3, s: 1.35 },
+        { x: 0.35, y: 3.8, z: -0.9, s: 1.35 },
+        { x: -0.4, y: 3.8, z: 0.85, s: 1.35 },
+        { x: 1.45, y: 3.1, z: 0.2, s: 1.40 },
+        { x: -1.35, y: 3.0, z: -0.4, s: 1.40 },
+        { x: 0.25, y: 3.0, z: 1.35, s: 1.40 },
+        { x: -0.3, y: 3.0, z: -1.35, s: 1.40 },
+        { x: 1.15, y: 3.2, z: -1.0, s: 1.30 },
+        { x: -1.05, y: 3.2, z: 1.05, s: 1.30 },
+        { x: 1.35, y: 2.3, z: 0.65, s: 1.20 },
+        { x: -1.25, y: 2.2, z: 0.55, s: 1.20 },
+        { x: 0.45, y: 2.3, z: -1.35, s: 1.20 },
+        { x: -0.55, y: 2.2, z: -1.25, s: 1.20 }
+      ];
+
+      const foliageParts = [];
+      boughCenters.forEach(bc => {
+        const angles = [0, Math.PI * 0.25, Math.PI * 0.5, Math.PI * 0.75];
+        angles.forEach(ang => {
+          const plane = new THREE.PlaneGeometry(1.65 * bc.s, 1.35 * bc.s);
+          plane.rotateY(ang);
+          plane.rotateX((Math.random() - 0.5) * 0.4);
+          plane.translate(bc.x, bc.y, bc.z);
+
+          // Compute spherical outward normals from bough center (Soft Volume Shading)
+          const pos = plane.attributes.position;
+          const norm = new Float32Array(pos.count * 3);
+          const col = new Float32Array(pos.count * 3);
+          for (let v = 0; v < pos.count; v++) {
+            const vx = pos.getX(v);
+            const vy = pos.getY(v);
+            const vz = pos.getZ(v);
+            const dx = vx - bc.x;
+            const dy = vy - (bc.y - 0.2);
+            const dz = vz - bc.z;
+            const d = Math.hypot(dx, dy, dz) || 1.0;
+            norm[v * 3] = dx / d;
+            norm[v * 3 + 1] = Math.max(0.15, dy / d);
+            norm[v * 3 + 2] = dz / d;
+
+            const sunExposure = Math.min(1.0, Math.max(0.0, (vy - 2.0) / 2.8));
+            col[v * 3] = 0.18 + sunExposure * 0.18;
+            col[v * 3 + 1] = 0.38 + sunExposure * 0.24;
+            col[v * 3 + 2] = 0.12 + sunExposure * 0.12;
+          }
+          plane.setAttribute('normal', new THREE.BufferAttribute(norm, 3));
+          plane.setAttribute('color', new THREE.BufferAttribute(col, 3));
+          foliageParts.push(plane);
+        });
+      });
+
+      const mergedCanopy = BufferGeometryUtils.mergeGeometries(foliageParts);
       return { trunk: mergedTrunk, canopy: mergedCanopy };
     }
 
-    // 2. Evergreen Tiered Conifer / Pine (Conical tiered branch layers)
+    // 2. Evergreen Tiered Conifer / Pine (Conical tiered branch layers with needle boughs)
     function buildTieredConiferGeometries() {
-      const cTrunk = new THREE.CylinderGeometry(0.12, 0.24, 5.2, 7);
-      cTrunk.translate(0, 2.6, 0);
+      // 1. Tapered Pine Trunk with root base
+      const trunkParts = [];
+      const cTrunk = new THREE.CylinderGeometry(0.08, 0.28, 6.2, 8);
+      cTrunk.translate(0, 3.1, 0);
+      trunkParts.push(cTrunk);
 
-      const cone1 = new THREE.ConeGeometry(1.9, 2.0, 8); cone1.translate(0, 2.3, 0);
-      const cone2 = new THREE.ConeGeometry(1.5, 1.8, 8); cone2.translate(0, 3.3, 0);
-      const cone3 = new THREE.ConeGeometry(1.15, 1.5, 8); cone3.translate(0, 4.2, 0);
-      const cone4 = new THREE.ConeGeometry(0.70, 1.3, 8); cone4.translate(0, 5.1, 0);
-      const mergedCones = BufferGeometryUtils.mergeGeometries([cone1, cone2, cone3, cone4]);
-      mergedCones.computeVertexNormals();
+      const rootBase = new THREE.CylinderGeometry(0.24, 0.45, 0.5, 8);
+      rootBase.translate(0, 0.25, 0);
+      trunkParts.push(rootBase);
 
-      return { trunk: cTrunk, canopy: mergedCones };
+      const mergedTrunk = BufferGeometryUtils.mergeGeometries(trunkParts);
+      mergedTrunk.computeVertexNormals();
+
+      // 2. 6 Tiers of Drooping Pine Needle Branch Boughs
+      const foliageParts = [];
+      const tiers = [
+        { y: 1.8, r: 2.1, count: 7, tilt: 0.42 },
+        { y: 2.5, r: 1.8, count: 7, tilt: 0.38 },
+        { y: 3.3, r: 1.5, count: 6, tilt: 0.34 },
+        { y: 4.1, r: 1.2, count: 6, tilt: 0.30 },
+        { y: 4.9, r: 0.9, count: 5, tilt: 0.26 },
+        { y: 5.6, r: 0.55, count: 4, tilt: 0.22 }
+      ];
+
+      tiers.forEach(t => {
+        for (let i = 0; i < t.count; i++) {
+          const ang = (i / t.count) * Math.PI * 2 + (Math.random() - 0.5) * 0.2;
+          const plane = new THREE.PlaneGeometry(t.r * 1.05, 1.25);
+          plane.rotateX(Math.PI / 2 + t.tilt);
+          plane.rotateY(ang);
+          plane.translate(Math.cos(ang) * t.r * 0.45, t.y, Math.sin(ang) * t.r * 0.45);
+
+          const pos = plane.attributes.position;
+          const norm = new Float32Array(pos.count * 3);
+          const col = new Float32Array(pos.count * 3);
+          for (let v = 0; v < pos.count; v++) {
+            const vx = pos.getX(v);
+            const vy = pos.getY(v);
+            const vz = pos.getZ(v);
+            const d = Math.hypot(vx, vz) || 1.0;
+            norm[v * 3] = vx / d;
+            norm[v * 3 + 1] = 0.45;
+            norm[v * 3 + 2] = vz / d;
+
+            const sunExposure = Math.min(1.0, Math.max(0.0, (vy - 1.5) / 4.5));
+            col[v * 3] = 0.12 + sunExposure * 0.10;
+            col[v * 3 + 1] = 0.28 + sunExposure * 0.18;
+            col[v * 3 + 2] = 0.10 + sunExposure * 0.10;
+          }
+          plane.setAttribute('normal', new THREE.BufferAttribute(norm, 3));
+          plane.setAttribute('color', new THREE.BufferAttribute(col, 3));
+          foliageParts.push(plane);
+        }
+      });
+
+      const mergedCanopy = BufferGeometryUtils.mergeGeometries(foliageParts);
+      return { trunk: mergedTrunk, canopy: mergedCanopy };
+    }
+
+    // 3. Multi-Cluster Organic Foundation Landscaping Shrub Geometry
+    function buildRealisticShrubGeometries() {
+      const parts = [];
+      const shrubLeaves = [
+        { rotY: 0, rotX: 0.25, s: 1.0 },
+        { rotY: Math.PI * 0.4, rotX: 0.28, s: 0.95 },
+        { rotY: Math.PI * 0.8, rotX: 0.22, s: 0.98 },
+        { rotY: Math.PI * 1.2, rotX: 0.30, s: 0.92 },
+        { rotY: Math.PI * 1.6, rotX: 0.26, s: 0.96 },
+        { rotY: 0.5, rotX: 0.05, s: 0.85 } // Top dome cap
+      ];
+      shrubLeaves.forEach(sh => {
+        const p = new THREE.PlaneGeometry(0.95 * sh.s, 0.75 * sh.s);
+        p.rotateX(sh.rotX);
+        p.rotateY(sh.rotY);
+        p.translate(0, 0.42 * sh.s, 0);
+
+        const pos = p.attributes.position;
+        const norm = new Float32Array(pos.count * 3);
+        const col = new Float32Array(pos.count * 3);
+        for (let i = 0; i < pos.count; i++) {
+          const vx = pos.getX(i);
+          const vy = pos.getY(i);
+          const vz = pos.getZ(i);
+          const d = Math.hypot(vx, vy - 0.2, vz) || 1.0;
+          norm[i * 3] = vx / d;
+          norm[i * 3 + 1] = Math.max(0.2, (vy - 0.2) / d);
+          norm[i * 3 + 2] = vz / d;
+
+          const hRatio = Math.min(1.0, Math.max(0.0, vy / 0.8));
+          col[i * 3] = 0.20 + hRatio * 0.16;
+          col[i * 3 + 1] = 0.40 + hRatio * 0.20;
+          col[i * 3 + 2] = 0.14 + hRatio * 0.10;
+        }
+        p.setAttribute('normal', new THREE.BufferAttribute(norm, 3));
+        p.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        parts.push(p);
+      });
+      return BufferGeometryUtils.mergeGeometries(parts);
     }
 
     const deciduousGeom = buildMatureDeciduousGeometries();
     const coniferGeom = buildTieredConiferGeometries();
+    const shrubGeom = buildRealisticShrubGeometries();
 
     const deciduousCount = 55;
     const coniferCount = 42;
@@ -2361,7 +2723,6 @@
 
     // Foundation Landscaping Shrubs (Curated mulch beds around Operations Lab & Entrance)
     const shrubCount = 26;
-    const shrubGeom = new THREE.IcosahedronGeometry(0.48, 1);
     const shrubInst = new THREE.InstancedMesh(shrubGeom, materials.shrubCanopy, shrubCount);
     shrubInst.name = "Foundation Landscaping Shrubs";
     shrubInst.castShadow = true;
@@ -2816,9 +3177,10 @@
     sprayGeom.setAttribute('position', new THREE.BufferAttribute(sprayPos, 3));
     const sprayMat = new THREE.PointsMaterial({
       color: '#e0f2fe',
-      size: 0.022,
+      size: 0.045,
+      map: softParticleMap,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.50,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -3840,10 +4202,11 @@
     streamGeom.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
 
     const streamMat = new THREE.PointsMaterial({
-      color: '#e0f2fe',
-      size: 0.22,
+      color: '#bae6fd',
+      size: 0.38,
+      map: softParticleMap,
       transparent: true,
-      opacity: 0.80,
+      opacity: 0.78,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -4062,63 +4425,326 @@
     flareTip.position.y = 11.2;
     flareGroup.add(flareTip);
 
-    const flareBurnerRing = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.44, 0.35, 16), materials.structuralSteel);
-    flareBurnerRing.position.y = 11.75;
-    flareGroup.add(flareBurnerRing);
+    // =========================================================================
+    // THREEJS-FIRE-PRO VOLUMETRIC FLUID COMBUSTION FLAME SYSTEM
+    // Physical Blackbody Planckian combustion, 3D curl-noise fluid buoyancy,
+    // stoichiometric methane pilot jet, licking flame tongues, and soot smoke
+    // =========================================================================
 
-    // Continuous Cyan/Blue Electric Pilot Ignition Jet (Stoichiometric methane pilot nozzle)
-    const flareFlamePilot = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.65, 12), materials.flamePilotBlue);
-    flareFlamePilot.position.y = 11.95;
-    flareGroup.add(flareFlamePilot);
+    // Volumetric Fluid Combustion GLSL Shaders
+    const volumetricFireVertexShader = `
+      varying vec2 vUv;
+      varying vec3 vWorldPos;
+      varying vec3 vLocalPos;
+      varying float vHeight;
+      uniform float uTime;
+      uniform float uBuoyancy;
+      uniform float uVorticity;
 
-    // Incandescent Methane Combustion Flame Core (Brilliant yellow/white center)
-    const flareFlameCore = new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.6, 12), materials.flameCore);
-    flareFlameCore.position.y = 12.5;
-    flareGroup.add(flareFlameCore);
+      vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+      vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+      float snoise(vec3 v) {
+        const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+        vec3 i  = floor(v + dot(v, C.yyy));
+        vec3 x0 = v - i + dot(i, C.xxx);
+        vec3 g = step(x0.yzx, x0.xyz);
+        vec3 l = 1.0 - g;
+        vec3 i1 = min(g.xyz, l.zxy);
+        vec3 i2 = max(g.xyz, l.zxy);
+        vec3 x1 = x0 - i1 + C.xxx;
+        vec3 x2 = x0 - i2 + C.yyy;
+        vec3 x3 = x0 - D.yyy;
+        i = mod289(i);
+        vec4 p = permute(permute(permute(
+                  i.z + vec4(0.0, i1.z, i2.z, 1.0))
+                + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+                + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+        float n_ = 0.142857142857;
+        vec3  ns = n_ * D.wyz - D.xzx;
+        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+        vec4 x_ = floor(j * ns.z);
+        vec4 y_ = floor(j - 7.0 * x_);
+        vec4 x = x_ *ns.x + ns.yyyy;
+        vec4 y = y_ *ns.x + ns.yyyy;
+        vec4 h = 1.0 - abs(x) - abs(y);
+        vec4 b0 = vec4(x.xy, y.xy);
+        vec4 b1 = vec4(x.zw, y.zw);
+        vec4 s0 = floor(b0)*2.0 + 1.0;
+        vec4 s1 = floor(b1)*2.0 + 1.0;
+        vec4 sh = -step(h, vec4(0.0));
+        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+        vec3 p0 = vec3(a0.xy, h.x);
+        vec3 p1 = vec3(a0.zw, h.y);
+        vec3 p2 = vec3(a1.xy, h.z);
+        vec3 p3 = vec3(a1.zw, h.w);
+        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+        p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+        m = m * m;
+        return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+      }
 
-    // Aerodynamic Turbulent Flame Mantle (Primary outer orange plume)
-    const flameGeom = new THREE.ConeGeometry(0.52, 2.4, 14);
-    flameGeom.translate(0, 1.2, 0);
-    const flareFlameOuter = new THREE.Mesh(flameGeom, materials.flameOuter);
+      void main() {
+        vUv = uv;
+        vLocalPos = position;
+        vHeight = clamp(position.y / 2.6, 0.0, 1.0);
+
+        vec3 p = position;
+        float t = uTime * uBuoyancy;
+        vec3 noiseCoord = vec3(p.x * 2.5, p.y * 1.8 - t, p.z * 2.5);
+        float n1 = snoise(noiseCoord);
+        float n2 = snoise(noiseCoord * 2.2 + vec3(0.0, -t * 0.6, 0.0)) * 0.5;
+        float turbulence = (n1 + n2) * uVorticity;
+
+        float envelope = sin(clamp(position.y / 2.6, 0.0, 1.0) * 3.14159);
+        p.x += (turbulence * 0.18) * envelope;
+        p.z += (snoise(noiseCoord + vec3(4.8, 1.2, 3.4)) * 0.18) * envelope;
+        p.y += abs(turbulence) * 0.22 * vHeight;
+
+        vec4 worldPos = modelMatrix * vec4(p, 1.0);
+        vWorldPos = worldPos.xyz;
+        gl_Position = projectionMatrix * viewMatrix * worldPos;
+      }
+    `;
+
+    const volumetricFireFragmentShader = `
+      varying vec2 vUv;
+      varying vec3 vWorldPos;
+      varying vec3 vLocalPos;
+      varying float vHeight;
+      uniform float uTime;
+      uniform float uCooling;
+      uniform float uBrightness;
+      uniform float uCoreIntensity;
+
+      vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+      vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+      float snoise(vec3 v) {
+        const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+        vec3 i  = floor(v + dot(v, C.yyy));
+        vec3 x0 = v - i + dot(i, C.xxx);
+        vec3 g = step(x0.yzx, x0.xyz);
+        vec3 l = 1.0 - g;
+        vec3 i1 = min(g.xyz, l.zxy);
+        vec3 i2 = max(g.xyz, l.zxy);
+        vec3 x1 = x0 - i1 + C.xxx;
+        vec3 x2 = x0 - i2 + C.yyy;
+        vec3 x3 = x0 - D.yyy;
+        i = mod289(i);
+        vec4 p = permute(permute(permute(
+                  i.z + vec4(0.0, i1.z, i2.z, 1.0))
+                + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+                + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+        float n_ = 0.142857142857;
+        vec3  ns = n_ * D.wyz - D.xzx;
+        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+        vec4 x_ = floor(j * ns.z);
+        vec4 y_ = floor(j - 7.0 * x_);
+        vec4 x = x_ *ns.x + ns.yyyy;
+        vec4 y = y_ *ns.x + ns.yyyy;
+        vec4 h = 1.0 - abs(x) - abs(y);
+        vec4 b0 = vec4(x.xy, y.xy);
+        vec4 b1 = vec4(x.zw, y.zw);
+        vec4 s0 = floor(b0)*2.0 + 1.0;
+        vec4 s1 = floor(b1)*2.0 + 1.0;
+        vec4 sh = -step(h, vec4(0.0));
+        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+        vec3 p0 = vec3(a0.xy, h.x);
+        vec3 p1 = vec3(a0.zw, h.y);
+        vec3 p2 = vec3(a1.xy, h.z);
+        vec3 p3 = vec3(a1.zw, h.w);
+        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+        p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+        m = m * m;
+        return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+      }
+
+      void main() {
+        float h = vHeight;
+        float rDist = length(vLocalPos.xz) / 0.55;
+
+        float t = uTime * 3.6;
+        float nLick = snoise(vec3(vWorldPos.x * 3.4, vWorldPos.y * 2.6 - t, vWorldPos.z * 3.4));
+        float nFine = snoise(vec3(vWorldPos.x * 7.2, vWorldPos.y * 5.4 - t * 1.8, vWorldPos.z * 7.2)) * 0.35;
+        float turb = (nLick + nFine) * 0.65;
+
+        // Blackbody Planckian temperature field T [0, 1]
+        float temp = (1.0 - rDist * 0.75) * (1.0 - pow(h, uCooling)) + turb * 0.38;
+        temp = clamp(temp, 0.0, 1.0);
+
+        vec3 bluePilot = vec3(0.04, 0.60, 1.0);      // 3200K methane pilot
+        vec3 whiteCore = vec3(1.0, 0.98, 0.86);      // 2800K core
+        vec3 orangeMantle = vec3(1.0, 0.45, 0.03);   // 1800K turbulent tongues
+        vec3 darkCrimson = vec3(0.70, 0.10, 0.02);   // 1200K cooling tip
+        vec3 sootSmoke = vec3(0.14, 0.11, 0.09);     // Dissipating soot
+
+        vec3 col;
+        if (h < 0.16 && rDist < 0.55) {
+          col = mix(bluePilot, whiteCore, h / 0.16);
+        } else if (temp > 0.62) {
+          col = mix(orangeMantle, whiteCore, (temp - 0.62) / 0.38 * uCoreIntensity);
+        } else if (temp > 0.28) {
+          col = mix(darkCrimson, orangeMantle, (temp - 0.28) / 0.34);
+        } else {
+          col = mix(sootSmoke, darkCrimson, temp / 0.28);
+        }
+
+        float alpha = smoothstep(0.10, 0.45, temp) * (1.0 - pow(h, 2.8));
+        alpha *= (0.75 + turb * 0.25);
+
+        gl_FragColor = vec4(col * uBrightness, clamp(alpha, 0.0, 0.96));
+      }
+    `;
+
+    // Uniforms for threejs-fire-pro fluid simulation
+    const flareFireUniforms = {
+      uTime: { value: 0 },
+      uBuoyancy: { value: 3.0 },
+      uVorticity: { value: 1.5 },
+      uCooling: { value: 1.2 },
+      uBrightness: { value: 1.8 },
+      uCoreIntensity: { value: 1.2 }
+    };
+
+    const flareInnerUniforms = {
+      uTime: { value: 0 },
+      uBuoyancy: { value: 3.2 },
+      uVorticity: { value: 1.3 },
+      uCooling: { value: 1.5 },
+      uBrightness: { value: 2.4 },
+      uCoreIntensity: { value: 1.8 }
+    };
+
+    const flareFlameMat = new THREE.ShaderMaterial({
+      vertexShader: volumetricFireVertexShader,
+      fragmentShader: volumetricFireFragmentShader,
+      uniforms: flareFireUniforms,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    const flareFlameInnerMat = new THREE.ShaderMaterial({
+      vertexShader: volumetricFireVertexShader,
+      fragmentShader: volumetricFireFragmentShader,
+      uniforms: flareInnerUniforms,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    // 1. Aerodynamic Turbulent Flame Mantle Mesh (Primary outer fluid plume)
+    const flameGeom = new THREE.CylinderGeometry(0.12, 0.50, 2.6, 18, 28);
+    flameGeom.translate(0, 1.3, 0);
+    const flareFlameOuter = new THREE.Mesh(flameGeom, flareFlameMat);
     flareFlameOuter.position.y = 11.85;
     flareGroup.add(flareFlameOuter);
 
-    // Secondary offset turbulent flame lobe
-    const flameLobeGeom = new THREE.ConeGeometry(0.40, 2.0, 12);
-    flameLobeGeom.translate(0, 1.0, 0);
-    const flareFlameLobe = new THREE.Mesh(flameLobeGeom, materials.flameOuter);
+    // 2. Secondary offset turbulent flame lobe (Fluid vorticity cross-flow)
+    const flameLobeGeom = new THREE.CylinderGeometry(0.10, 0.42, 2.2, 16, 24);
+    flameLobeGeom.translate(0, 1.1, 0);
+    const flareFlameLobe = new THREE.Mesh(flameLobeGeom, flareFlameMat);
     flareFlameLobe.position.set(0.08, 11.9, 0.05);
-    flareFlameLobe.scale.set(0.85, 0.9, 0.85);
+    flareFlameLobe.scale.set(0.88, 0.92, 0.88);
     flareGroup.add(flareFlameLobe);
 
-    // Rising Micro-Spark Ember System (Dynamic hot gas convective lift)
-    const sparkCount = 45;
+    // 3. Incandescent Methane Combustion Core (Brilliant white-hot fluid center)
+    const flameCoreGeom = new THREE.CylinderGeometry(0.08, 0.32, 1.8, 14, 20);
+    flameCoreGeom.translate(0, 0.9, 0);
+    const flareFlameCore = new THREE.Mesh(flameCoreGeom, flareFlameInnerMat);
+    flareFlameCore.position.y = 11.90;
+    flareGroup.add(flareFlameCore);
+
+    // 4. Stoichiometric Blue Electric Pilot Jet at Nozzle Tip
+    const pilotGeom = new THREE.CylinderGeometry(0.16, 0.28, 0.55, 12);
+    pilotGeom.translate(0, 0.275, 0);
+    const flareFlamePilot = new THREE.Mesh(pilotGeom, materials.flamePilotBlue);
+    flareFlamePilot.position.y = 11.80;
+    flareGroup.add(flareFlamePilot);
+
+    // 5. Volumetric Soot Smoke Plume (Expanding buoyant exhaust rising from flame tip)
+    const smokeCount = 36;
+    const smokeGeom = new THREE.BufferGeometry();
+    const smokePositions = new Float32Array(smokeCount * 3);
+    const smokeData = [];
+    for (let sm = 0; sm < smokeCount; sm++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = Math.random() * 0.45;
+      const x = Math.cos(angle) * r;
+      const y = 13.8 + Math.random() * 4.2;
+      const z = Math.sin(angle) * r;
+      smokePositions[sm * 3] = x;
+      smokePositions[sm * 3 + 1] = y;
+      smokePositions[sm * 3 + 2] = z;
+      smokeData.push({
+        baseAngle: angle,
+        radius: r,
+        speed: 1.4 + Math.random() * 1.8,
+        swirl: 1.2 + Math.random() * 1.5,
+        puffScale: 0.25 + (y - 13.8) * 0.15
+      });
+    }
+    smokeGeom.setAttribute('position', new THREE.BufferAttribute(smokePositions, 3));
+    const smokeMat = new THREE.PointsMaterial({
+      color: '#2b2724',
+      size: 0.95,
+      map: softSmokeMap,
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false
+    });
+    const flareSmoke = new THREE.Points(smokeGeom, smokeMat);
+    flareGroup.add(flareSmoke);
+
+    // 6. Convective Hot Ember Sparks with physical blackbody cooling
+    const sparkCount = 60;
     const sparkGeom = new THREE.BufferGeometry();
     const sparkPositions = new Float32Array(sparkCount * 3);
+    const sparkColors = new Float32Array(sparkCount * 3);
     const sparkData = [];
     for (let s = 0; s < sparkCount; s++) {
       const angle = Math.random() * Math.PI * 2;
       const r = Math.random() * 0.28;
       const x = Math.cos(angle) * r;
-      const y = 12.0 + Math.random() * 3.0;
+      const y = 12.0 + Math.random() * 3.4;
       const z = Math.sin(angle) * r;
       sparkPositions[s * 3] = x;
       sparkPositions[s * 3 + 1] = y;
       sparkPositions[s * 3 + 2] = z;
+
+      // Color starts incandescent gold and cools to red
+      sparkColors[s * 3] = 1.0;
+      sparkColors[s * 3 + 1] = 0.85;
+      sparkColors[s * 3 + 2] = 0.40;
+
       sparkData.push({
         baseAngle: angle,
         radius: r,
-        speed: 1.8 + Math.random() * 2.2,
-        swirl: 2.2 + Math.random() * 3.0,
+        speed: 2.0 + Math.random() * 2.4,
+        swirl: 2.4 + Math.random() * 3.2,
         phase: Math.random() * Math.PI * 2
       });
     }
     sparkGeom.setAttribute('position', new THREE.BufferAttribute(sparkPositions, 3));
+    sparkGeom.setAttribute('color', new THREE.BufferAttribute(sparkColors, 3));
+
     const sparkMat = new THREE.PointsMaterial({
-      color: '#fed7aa',
-      size: 0.12,
+      vertexColors: true,
+      size: 0.28,
+      map: softParticleMap,
       transparent: true,
-      opacity: 0.92,
+      opacity: 0.95,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -4126,7 +4752,7 @@
     flareGroup.add(flareSparks);
 
     // Dynamic flickering methane firelight (Casts warm flickering illumination across digesters)
-    const flarePointLight = new THREE.PointLight('#f97316', 3.6, 38.0);
+    const flarePointLight = new THREE.PointLight('#f97316', 3.8, 42.0);
     flarePointLight.position.set(0, 13.0, 0);
     flareGroup.add(flarePointLight);
 
@@ -4673,6 +5299,7 @@
         statShading.textContent = 'ACES PBR Sky';
         sky.visible = true;
         cloudDome.visible = true;
+        scene.background = new THREE.Color('#93c5fd');
         scene.fog = new THREE.Fog('#9dc4ea', 90, 520);
         toggleAllVegetation(true);
         bloomPass.strength = parseFloat(document.getElementById('bloom-strength').value) / 100.0;
@@ -5003,44 +5630,99 @@
             waterNormalMap.offset.y = (elapsed * 0.018) % 1;
           }
 
-          // Animate Biogas Flare Stack Realistic Fire, Flame Plumes & Convective Embers
-          if (typeof flarePointLight !== 'undefined') {
-            // Non-linear turbulent firelight flicker
-            flarePointLight.intensity = 3.2 + Math.sin(elapsed * 17.5) * 0.65
-                                       + Math.cos(elapsed * 31.0) * 0.45
-                                       + (Math.random() - 0.5) * 0.35;
+          // Animate threejs-fire-pro Volumetric Fluid Flame, Soot Smoke, and Convective Embers
+          if (typeof flareFireUniforms !== 'undefined') {
+            flareFireUniforms.uTime.value = elapsed;
+            flareInnerUniforms.uTime.value = elapsed;
 
-            const flameWobbleX = Math.sin(elapsed * 12.0) * 0.07 + Math.sin(elapsed * 23.0) * 0.03;
-            const flameWobbleZ = Math.cos(elapsed * 14.0) * 0.07 + Math.cos(elapsed * 27.0) * 0.03;
-            const flameScaleY = 1.0 + Math.sin(elapsed * 16.0) * 0.16 + Math.cos(elapsed * 25.0) * 0.10;
-            const flameScaleXZ = 1.0 + Math.cos(elapsed * 13.0) * 0.12;
-
-            flareFlameOuter.scale.set(flameScaleXZ, flameScaleY, flameScaleXZ);
-            flareFlameOuter.rotation.y = elapsed * 2.8;
-            flareFlameOuter.position.x = flameWobbleX;
-            flareFlameOuter.position.z = flameWobbleZ;
-
-            flareFlameLobe.scale.set(flameScaleXZ * 0.88, flameScaleY * 0.92, flameScaleXZ * 0.88);
-            flareFlameLobe.rotation.y = -elapsed * 3.4;
-            flareFlameLobe.position.x = -flameWobbleX * 0.7;
-            flareFlameLobe.position.z = -flameWobbleZ * 0.7;
-
-            flareFlameCore.scale.set(1.0 + Math.cos(elapsed * 18.0) * 0.10, 1.0 + Math.sin(elapsed * 21.0) * 0.12, 1.0 + Math.cos(elapsed * 18.0) * 0.10);
-            flareFlamePilot.scale.setScalar(1.0 + Math.sin(elapsed * 28.0) * 0.08);
-
-            // Animate rising convective ember spark particles
-            const spPos = sparkGeom.attributes.position;
-            for (let s = 0; s < sparkCount; s++) {
-              const sd = sparkData[s];
-              let sy = spPos.getY(s) + delta * sd.speed;
-              if (sy > 15.2) {
-                sy = 12.0 + Math.random() * 0.35;
-              }
-              const sa = sd.baseAngle + elapsed * sd.swirl;
-              const sr = sd.radius + (sy - 12.0) * 0.10;
-              spPos.setXYZ(s, Math.cos(sa) * sr, sy, Math.sin(sa) * sr);
+            // Non-linear turbulent firelight flicker casting radiant heat
+            if (typeof flarePointLight !== 'undefined') {
+              flarePointLight.intensity = 3.6 + Math.sin(elapsed * 18.5) * 0.75
+                                         + Math.cos(elapsed * 34.0) * 0.50
+                                         + (Math.random() - 0.5) * 0.35;
             }
-            sparkGeom.attributes.position.needsUpdate = true;
+
+            // High-frequency fluid lick wobbles
+            const flameWobbleX = Math.sin(elapsed * 14.0) * 0.06 + Math.sin(elapsed * 26.0) * 0.03;
+            const flameWobbleZ = Math.cos(elapsed * 16.0) * 0.06 + Math.cos(elapsed * 29.0) * 0.03;
+            const flameScaleY = 1.0 + Math.sin(elapsed * 18.0) * 0.14 + Math.cos(elapsed * 28.0) * 0.08;
+            const flameScaleXZ = 1.0 + Math.cos(elapsed * 15.0) * 0.10;
+
+            if (typeof flareFlameOuter !== 'undefined') {
+              flareFlameOuter.scale.set(flameScaleXZ, flameScaleY, flameScaleXZ);
+              flareFlameOuter.position.x = flameWobbleX;
+              flareFlameOuter.position.z = flameWobbleZ;
+            }
+
+            if (typeof flareFlameLobe !== 'undefined') {
+              flareFlameLobe.scale.set(flameScaleXZ * 0.90, flameScaleY * 0.94, flameScaleXZ * 0.90);
+              flareFlameLobe.position.x = -flameWobbleX * 0.65;
+              flareFlameLobe.position.z = -flameWobbleZ * 0.65;
+            }
+
+            if (typeof flareFlameCore !== 'undefined') {
+              flareFlameCore.scale.set(1.0 + Math.cos(elapsed * 20.0) * 0.08, 1.0 + Math.sin(elapsed * 22.0) * 0.10, 1.0 + Math.cos(elapsed * 20.0) * 0.08);
+            }
+
+            if (typeof flareFlamePilot !== 'undefined') {
+              flareFlamePilot.scale.setScalar(1.0 + Math.sin(elapsed * 30.0) * 0.06);
+            }
+
+            // Animate rising volumetric soot smoke plume
+            if (typeof flareSmoke !== 'undefined') {
+              const smPos = smokeGeom.attributes.position;
+              for (let sm = 0; sm < smokeCount; sm++) {
+                const smd = smokeData[sm];
+                let smy = smPos.getY(sm) + delta * smd.speed;
+                if (smy > 18.2) {
+                  smy = 13.8 + Math.random() * 0.5;
+                }
+                const sma = smd.baseAngle + elapsed * smd.swirl;
+                const smr = smd.radius + (smy - 13.8) * 0.22;
+                smPos.setXYZ(sm, Math.cos(sma) * smr + (Math.sin(elapsed * 1.5 + sm) * 0.1), smy, Math.sin(sma) * smr);
+              }
+              smokeGeom.attributes.position.needsUpdate = true;
+            }
+
+            // Animate convective ember sparks with physical blackbody cooling
+            if (typeof flareSparks !== 'undefined') {
+              const spPos = sparkGeom.attributes.position;
+              const spCol = sparkGeom.attributes.color;
+              for (let s = 0; s < sparkCount; s++) {
+                const sd = sparkData[s];
+                let sy = spPos.getY(s) + delta * sd.speed;
+                if (sy > 15.6) {
+                  sy = 12.0 + Math.random() * 0.35;
+                }
+                const sa = sd.baseAngle + elapsed * sd.swirl;
+                const sr = sd.radius + (sy - 12.0) * 0.12;
+                spPos.setXYZ(s, Math.cos(sa) * sr, sy, Math.sin(sa) * sr);
+
+                // Thermal color cooling: hot yellow -> glowing orange -> deep ember red
+                const coolRatio = Math.min(1.0, Math.max(0.0, (sy - 12.0) / 3.4));
+                spCol.setXYZ(
+                  s,
+                  1.0 - coolRatio * 0.25,
+                  Math.max(0.12, 0.85 - coolRatio * 0.70),
+                  Math.max(0.02, 0.40 - coolRatio * 0.38)
+                );
+              }
+              sparkGeom.attributes.position.needsUpdate = true;
+              sparkGeom.attributes.color.needsUpdate = true;
+            }
+          }
+
+          // Gentle Organic Wind Sway on Vegetation Canopies & Shrubs
+          if (typeof foliageInst !== 'undefined') {
+            foliageInst.rotation.z = Math.sin(elapsed * 1.1) * 0.012;
+            foliageInst.rotation.x = Math.cos(elapsed * 0.85) * 0.008;
+          }
+          if (typeof coniferCanopyInst !== 'undefined') {
+            coniferCanopyInst.rotation.z = Math.sin(elapsed * 0.95 + 1.0) * 0.010;
+            coniferCanopyInst.rotation.x = Math.cos(elapsed * 0.80 + 0.5) * 0.006;
+          }
+          if (typeof shrubInst !== 'undefined') {
+            shrubInst.rotation.y = Math.sin(elapsed * 1.3) * 0.015;
           }
         }
       }
@@ -5123,6 +5805,7 @@
     window.camera = camera;
     window.controls = controls;
     window.cameraPresets = cameraPresets;
+    window.scene = scene;
 
     function smoothTransitionCamera(preset) {
       const isMobile = window.innerWidth <= 768 || (window.innerWidth / window.innerHeight) < 1.0;
