@@ -150,6 +150,12 @@
       color: #c084fc;
       border-color: rgba(168, 85, 247, 0.45);
     }
+    .badge.xray {
+      background: rgba(14, 165, 233, 0.28);
+      color: #38bdf8;
+      border-color: #0284c7;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    }
 
     /* Controls Bar */
     .hud-controls {
@@ -209,6 +215,13 @@
       border-color: #38bdf8;
       color: #030712;
       font-weight: 700;
+    }
+    .btn.xray-active {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      border-color: #38bdf8;
+      color: #04101d;
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.65);
     }
     .btn.toggle-on {
       background: rgba(16, 185, 129, 0.25);
@@ -553,6 +566,7 @@
       </div>
       <div class="hud-header-actions">
         <a href="index.html" class="btn-switch-sim" title="Switch to Municipal WRRF Facility">🏭 Municipal WRRF</a>
+        <button class="btn btn-icon" id="btn-xray-toggle" title="Toggle X-Ray Water Purification View">🔬<span class="btn-text-desktop"> X-Ray</span></button>
         <button class="btn btn-icon" id="btn-mobile-info" title="System Engineering Overview">ℹ️<span class="btn-text-desktop"> Specs</span></button>
         <button class="btn btn-icon" id="btn-mobile-stats" title="Telemetry & Diagnostics">📊<span class="btn-text-desktop"> Stats</span></button>
       </div>
@@ -612,6 +626,7 @@
   <!-- Bottom Navigation & Controls -->
   <div class="hud-card hud-controls">
     <button class="btn tour-btn" id="btn-start-tour">✨ Guided Process Tour</button>
+    <button class="btn" id="btn-xray-main" title="X-Ray Mode: Reveal internal modules & water purification">🔬 X-Ray Purification</button>
     <div class="control-separator"></div>
     <button class="btn active" id="btn-cam-overview">🚁 Aerial Overview</button>
     <button class="btn" id="btn-cam-pods">📦 Pod Quad Array</button>
@@ -1030,6 +1045,151 @@
         color: '#facc15',
         roughness: 0.35,
         metalness: 0.20
+      }),
+      // X-Ray & Internal Purification Hardware Materials
+      xrayGhostWall: new THREE.MeshStandardMaterial({
+        color: '#0284c7',
+        transparent: true,
+        opacity: 0.12,
+        roughness: 0.2,
+        metalness: 0.1,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      }),
+      ecCellTank: new THREE.MeshPhysicalMaterial({
+        color: '#1e293b',
+        transmission: 0.6,
+        roughness: 0.2,
+        transparent: true,
+        opacity: 0.85
+      }),
+      ecPlateSteel: new THREE.MeshStandardMaterial({
+        color: '#94a3b8',
+        metalness: 0.85,
+        roughness: 0.3
+      }),
+      ecPlateSacrificial: new THREE.MeshStandardMaterial({
+        color: '#b45309', // Anodized / oxidized sacrificial plate
+        metalness: 0.6,
+        roughness: 0.4
+      }),
+      dafWaterTurbid: new THREE.MeshPhysicalMaterial({
+        color: '#92400e', // dirty floc water
+        transmission: 0.5,
+        roughness: 0.2,
+        transparent: true,
+        opacity: 0.85
+      }),
+      dafScumBlanket: new THREE.MeshStandardMaterial({
+        color: '#713f12', // thick brown floated scum
+        roughness: 0.95,
+        metalness: 0.05
+      }),
+      filterMediaSand: new THREE.MeshStandardMaterial({
+        color: '#d97706', // golden silica filter sand
+        roughness: 0.9,
+        metalness: 0.05
+      }),
+      filterMediaCarbon: new THREE.MeshStandardMaterial({
+        color: '#1c1917', // granular activated carbon (GAC)
+        roughness: 0.8,
+        metalness: 0.2
+      }),
+      filterVesselVitreous: new THREE.MeshPhysicalMaterial({
+        color: '#0284c7',
+        transmission: 0.8,
+        roughness: 0.1,
+        metalness: 0.3,
+        transparent: true,
+        opacity: 0.75,
+        depthWrite: false
+      }),
+      uvGermicidalGlow: new THREE.MeshBasicMaterial({
+        color: '#c084fc', // 254nm germicidal actinic glow
+        transparent: true,
+        opacity: 0.95
+      }),
+      uvReactorBody: new THREE.MeshStandardMaterial({
+        color: '#f8fafc',
+        metalness: 0.9,
+        roughness: 0.15
+      }),
+      // Automotive Materials (Detailed 4x4 Truck)
+      truckBodyPaint: new THREE.MeshStandardMaterial({
+        color: '#f8fafc', // Gloss operational fleet white
+        metalness: 0.4,
+        roughness: 0.2
+      }),
+      truckTrimBlack: new THREE.MeshStandardMaterial({
+        color: '#0f172a',
+        metalness: 0.2,
+        roughness: 0.8
+      }),
+      truckGlassTint: new THREE.MeshPhysicalMaterial({
+        color: '#0284c7',
+        transmission: 0.9,
+        roughness: 0.05,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.82
+      }),
+      truckTireRubber: new THREE.MeshStandardMaterial({
+        color: '#1e293b',
+        roughness: 0.9,
+        metalness: 0.05
+      }),
+      truckAlloyWheel: new THREE.MeshStandardMaterial({
+        color: '#cbd5e1',
+        metalness: 0.8,
+        roughness: 0.25
+      }),
+      truckHeadlightGlass: new THREE.MeshPhysicalMaterial({
+        color: '#ffffff',
+        transmission: 0.95,
+        roughness: 0.05,
+        transparent: true,
+        opacity: 0.9
+      }),
+      truckTaillightRed: new THREE.MeshStandardMaterial({
+        color: '#ef4444',
+        roughness: 0.2,
+        metalness: 0.3,
+        emissive: '#7f1d1d'
+      }),
+      // Field Operator Realistic Anatomy & PPE Materials
+      skinTone: new THREE.MeshStandardMaterial({
+        color: '#e2b395',
+        roughness: 0.65,
+        metalness: 0.05
+      }),
+      cargoPants: new THREE.MeshStandardMaterial({
+        color: '#1e293b', // Heavy tactical navy / slate cargo fabric
+        roughness: 0.85,
+        metalness: 0.02
+      }),
+      safetyVestHiVis: new THREE.MeshStandardMaterial({
+        color: '#84cc16', // ANSI Class 3 fluorescent hi-vis lime
+        roughness: 0.4,
+        metalness: 0.1
+      }),
+      reflectiveStripe: new THREE.MeshStandardMaterial({
+        color: '#f8fafc',
+        roughness: 0.1,
+        metalness: 0.9,
+        emissive: '#cbd5e1'
+      }),
+      safetyBootLeather: new THREE.MeshStandardMaterial({
+        color: '#451a03', // oiled brown work boot leather
+        roughness: 0.75,
+        metalness: 0.1
+      }),
+      safetyHardhatWhite: new THREE.MeshStandardMaterial({
+        color: '#f8fafc',
+        roughness: 0.3,
+        metalness: 0.1
+      }),
+      tabletScreenGlow: new THREE.MeshBasicMaterial({
+        color: '#38bdf8'
       })
     };
 
@@ -1082,11 +1242,19 @@
     podArrayGroup.name = "Hydro Containerized Treatment Pods";
     mobilePlantGroup.add(podArrayGroup);
 
+    // Track outer meshes for X-Ray toggling
+    const allOuterMeshes = [];
+    const animatedInternals = {
+      dafScraper: null,
+      ecSparks: [],
+      bubbles: []
+    };
+
     // Reusable Function to Build High-Fidelity Hydro Pod (Exact visual match to photos)
-    function createHydroPod(title, subtitle, stageSpec) {
+    function createHydroPod(title, subtitle, stageSpec, podType = 'generic') {
       const pod = new THREE.Group();
       pod.name = title;
-      pod.userData = { subsystem: title, spec: stageSpec };
+      pod.userData = { subsystem: title, spec: stageSpec, podType: podType };
 
       const pw = 2.4, pl = 2.4, ph = 2.55;
 
@@ -1107,15 +1275,15 @@
       const bodyGeom = new THREE.BoxGeometry(pw - 0.08, ph - 0.22, pl - 0.08);
       const wallMat = materials.podWhiteWall;
       const frontMat = materials.podDecalWall;
-      // Multi-material for pod: front face gets decal, others clean white
-      const podBody = new THREE.Mesh(bodyGeom, [
+      const defaultMats = [
         wallMat, // right
         wallMat, // left
         materials.podRoofPatina, // top
         materials.hydroBlueSteel, // bottom
         frontMat, // front (decal)
         wallMat  // back (doors)
-      ]);
+      ];
+      const podBody = new THREE.Mesh(bodyGeom, defaultMats);
       podBody.position.y = (ph - 0.22) * 0.5 + 0.16;
       podBody.castShadow = true;
       podBody.receiveShadow = true;
@@ -1136,7 +1304,7 @@
         col.castShadow = true;
         pod.add(col);
 
-        // Heavy-duty crane lifting eye lugs on top 4 corners (exact match to photo!)
+        // Heavy-duty crane lifting eye lugs on top 4 corners
         const lug = new THREE.Mesh(new THREE.TorusGeometry(0.065, 0.022, 8, 16), materials.stainlessSteel);
         lug.position.set(cx, ph + 0.04, cz);
         lug.rotation.x = Math.PI / 2;
@@ -1149,26 +1317,22 @@
       const topRailS = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.08, colThick), materials.hydroBlueSteel);
       topRailS.position.set(0, ph - 0.04, pl/2 - colThick/2); pod.add(topRailS);
 
-      // 5. External Filter Sight-Glass Housings mounted on side bracket (Identified in user photo!)
+      // 5. External Filter Sight-Glass Housings mounted on side bracket
       for (let f = -0.45; f <= 0.45; f += 0.90) {
         const filterGroup = new THREE.Group();
         filterGroup.position.set(pw * 0.5 + 0.08, 1.25 + f * 0.4, 0.45);
 
-        // Bracket
         const brk = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.16), materials.hydroBlueSteel);
         filterGroup.add(brk);
 
-        // Transparent polycarbonate cylindrical housing
         const glassCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.42, 16), materials.clearSightGlass);
         glassCyl.position.x = 0.06;
         filterGroup.add(glassCyl);
 
-        // Internal fluid core with flow particles
         const fluidCore = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.38, 16), materials.clearTreatedWater);
         fluidCore.position.x = 0.06;
         filterGroup.add(fluidCore);
 
-        // Blue top/bottom manifold heads
         const topCap = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.06, 16), materials.hydroBlueSteel);
         topCap.position.set(0.06, 0.22, 0); filterGroup.add(topCap);
         const botCap = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.06, 16), materials.hydroBlueSteel);
@@ -1177,7 +1341,7 @@
         pod.add(filterGroup);
       }
 
-      // 6. Access Double Doors at rear with stainless hinges and lever handle
+      // 6. Access Double Doors at rear with stainless handles
       const doorL = new THREE.Mesh(new THREE.PlaneGeometry(pw * 0.46, ph * 0.78), materials.podWhiteWall);
       doorL.position.set(-pw * 0.23, ph * 0.48, -pl * 0.5 - 0.01);
       doorL.rotation.y = Math.PI;
@@ -1188,20 +1352,206 @@
       doorR.rotation.y = Math.PI;
       pod.add(doorR);
 
-      // Stainless handles
       const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.25, 8), materials.stainlessSteel);
       handle.position.set(0.06, 1.2, -pl * 0.5 - 0.04);
       pod.add(handle);
 
+      // Register outer meshes for X-Ray toggling
+      allOuterMeshes.push({ mesh: podBody, defaultMat: defaultMats });
+      allOuterMeshes.push({ mesh: doorL, defaultMat: materials.podWhiteWall });
+      allOuterMeshes.push({ mesh: doorR, defaultMat: materials.podWhiteWall });
+
+      // =======================================================================
+      // INTERNAL TREATMENT SYSTEMS (REVEALED IN X-RAY PURIFICATION MODE)
+      // =======================================================================
+      const internals = new THREE.Group();
+      internals.name = `${title} - Internal Core System`;
+      pod.add(internals);
+
+      if (podType === 'ec') {
+        // --- POD 1: ELECTROCOAGULATION REACTOR CELL ---
+        // Heavy 316L reaction tank
+        const tank = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.3, 1.4), materials.ecCellTank);
+        tank.position.set(0, 1.05, 0);
+        internals.add(tank);
+
+        // Dirty influent pool inside EC cell
+        const ecLiquid = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.15, 1.3), materials.turbidDirtyWater);
+        ecLiquid.position.set(0, 0.95, 0);
+        internals.add(ecLiquid);
+
+        // 12 Parallel Sacrificial Electrolytic Plates (Anode/Cathode alternating array)
+        for (let i = 0; i < 12; i++) {
+          const zOffset = -0.55 + i * 0.10;
+          const plateMat = (i % 2 === 0) ? materials.ecPlateSacrificial : materials.ecPlateSteel;
+          const plate = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.9, 0.025), plateMat);
+          plate.position.set(0, 1.0, zOffset);
+          internals.add(plate);
+
+          // Heavy copper busbar connection terminal on top
+          const terminal = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 0.04), materials.safetyYellow);
+          terminal.position.set((i % 2 === 0 ? 0.5 : -0.5), 1.55, zOffset);
+          internals.add(terminal);
+
+          // Electrolytic ionization micro-arcs/sparks between plates
+          if (i < 11) {
+            const sparkMat = new THREE.MeshBasicMaterial({ color: '#38bdf8', wireframe: true });
+            const spark = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 0.04), sparkMat);
+            spark.position.set(0, 0.95, zOffset + 0.05);
+            internals.add(spark);
+            animatedInternals.ecSparks.push(spark);
+          }
+        }
+
+        // Heavy DC Rectifier Power Supply Cabinet inside pod
+        const rectifier = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.2, 0.5), materials.stainlessSteel);
+        rectifier.position.set(0.85, 1.0, -0.6);
+        internals.add(rectifier);
+
+      } else if (podType === 'daf') {
+        // --- POD 2: DISSOLVED AIR FLOTATION (DAF) SEPARATOR ---
+        // Stainless Flotation Basin
+        const dafBasin = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.2, 1.6), materials.stainlessSteel);
+        dafBasin.position.set(0, 0.9, 0);
+        internals.add(dafBasin);
+
+        // Turbid floc-laden water volume
+        const dafWater = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.95, 1.52), materials.dafWaterTurbid);
+        dafWater.position.set(0, 0.85, 0);
+        internals.add(dafWater);
+
+        // Dense micro-bubble separation cloud (dissolved air release)
+        const bubbleCloud = new THREE.Mesh(
+          new THREE.BoxGeometry(1.58, 0.6, 1.48),
+          new THREE.MeshPhysicalMaterial({
+            color: '#e0f2fe',
+            transmission: 0.8,
+            roughness: 0.1,
+            transparent: true,
+            opacity: 0.65
+          })
+        );
+        bubbleCloud.position.set(0, 0.95, 0);
+        internals.add(bubbleCloud);
+
+        // Floated Oily Scum Blanket on surface
+        const scum = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 1.5), materials.dafScumBlanket);
+        scum.position.set(0, 1.42, 0);
+        internals.add(scum);
+
+        // Continuous Mechanical Scum Skimmer / Scraper Flight Group
+        const scraperGroup = new THREE.Group();
+        scraperGroup.position.set(0, 1.52, 0);
+        internals.add(scraperGroup);
+        animatedInternals.dafScraper = scraperGroup;
+
+        // Central rotating scraper shaft
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.55, 12), materials.stainlessSteel);
+        shaft.rotation.z = Math.PI / 2;
+        scraperGroup.add(shaft);
+
+        // 4 Scraper wiper blades
+        for (let b = 0; b < 4; b++) {
+          const bladeAngle = (b * Math.PI) / 2;
+          const blade = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.04, 0.22), materials.hydroBlueSteel);
+          blade.rotation.x = bladeAngle;
+          blade.position.set(0, Math.sin(bladeAngle) * 0.18, Math.cos(bladeAngle) * 0.18);
+          scraperGroup.add(blade);
+        }
+
+        // Air Saturation Pressure Vessel (PWH micro-bubble generator)
+        const satVessel = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 1.4, 16), materials.stainlessSteel);
+        satVessel.position.set(0.85, 1.0, 0.6);
+        internals.add(satVessel);
+
+      } else if (podType === 'filter') {
+        // --- POD 3: MULTI-MEDIA & ACTIVATED CARBON FILTRATION ---
+        // Dual ASME Stratified Pressure Vessels with glass cutaway view
+        for (let f = -0.55; f <= 0.55; f += 1.1) {
+          const filterCol = new THREE.Group();
+          filterCol.position.set(f, 0.35, 0);
+          internals.add(filterCol);
+
+          // Transparent Pressure Shell
+          const vesselShell = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.5, 24), materials.filterVesselVitreous);
+          vesselShell.position.y = 0.95;
+          filterCol.add(vesselShell);
+
+          // Stratified Filter Media Layers (Bottom gravel, middle sand, top activated carbon)
+          // 1. Garnet / Gravel Support Bed
+          const gravelBed = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.40, 0.25, 20), materials.stainlessSteel);
+          gravelBed.position.y = 0.35;
+          filterCol.add(gravelBed);
+
+          // 2. High-Purity Silica Sand Layer
+          const sandBed = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.40, 0.45, 20), materials.filterMediaSand);
+          sandBed.position.y = 0.70;
+          filterCol.add(sandBed);
+
+          // 3. Granular Activated Carbon (GAC) Adsorption Bed
+          const carbonBed = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.40, 0.50, 20), materials.filterMediaCarbon);
+          carbonBed.position.y = 1.18;
+          filterCol.add(carbonBed);
+
+          // 4. Clarified Polished Water Layer at effluent outlet
+          const polishedWater = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.40, 0.25, 20), materials.clearTreatedWater);
+          polishedWater.position.y = 1.55;
+          filterCol.add(polishedWater);
+
+          // Backwash Manifold & Valve Cluster
+          const valveHeader = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.9, 12), materials.processPipeBlue);
+          valveHeader.rotation.x = Math.PI / 2;
+          valveHeader.position.set(0, 1.8, 0);
+          filterCol.add(valveHeader);
+        }
+
+      } else if (podType === 'power') {
+        // --- POD 4: PLC AUTOMATION, TELEMETRY & UV DISINFECTION ---
+        // Industrial SCADA Control Rack with illuminated I/O modules
+        const plcRack = new THREE.Group();
+        plcRack.position.set(-0.5, 0.35, 0);
+        internals.add(plcRack);
+
+        const rackFrame = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.6, 1.1), materials.stainlessSteel);
+        rackFrame.position.y = 0.9;
+        plcRack.add(rackFrame);
+
+        // Lit SCADA display screen & blinking LEDs
+        const scadaMonitor = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.4, 0.55), materials.tabletScreenGlow);
+        scadaMonitor.position.set(0.36, 1.15, 0);
+        plcRack.add(scadaMonitor);
+
+        // High-Output Closed-Chamber UV Disinfection Reactor
+        const uvReactor = new THREE.Group();
+        uvReactor.position.set(0.65, 0.6, 0);
+        internals.add(uvReactor);
+
+        // Stainless 316L UV Chamber Body
+        const uvCylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 1.4, 20), materials.uvReactorBody);
+        uvCylinder.position.y = 0.8;
+        uvReactor.add(uvCylinder);
+
+        // Core Germicidal Quartz Sleeve (Actinic Violet Glow)
+        const uvLamp = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.5, 16), materials.uvGermicidalGlow);
+        uvLamp.position.y = 0.8;
+        uvReactor.add(uvLamp);
+
+        // Disinfected Pure Water Jacket
+        const pureWaterJacket = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.20, 1.25, 16), materials.clearTreatedWater);
+        pureWaterJacket.position.y = 0.8;
+        uvReactor.add(pureWaterJacket);
+      }
+
       return pod;
     }
 
-    // Grid coordinates for the 4 Pods (exactly as configured on the real site)
+    // Grid coordinates for the 4 Pods
     // Pod 1 (Front Left): Electrocoagulation & Advanced Oxidation (EC Pod)
     const pod1 = createHydroPod(
       "Pod 1: Electrocoagulation (EC Reactor)",
       "In-situ electrochemical oxidation & colloidal destabilization",
-      "High-amperage sacrificial electrolytic cells (350A, 28V) breaking emulsified hydrocarbons and destabilizing heavy metals without bulk coagulants"
+      "High-amperage sacrificial electrolytic cells (350A, 28V) breaking emulsified hydrocarbons and destabilizing heavy metals without bulk coagulants",
+      'ec'
     );
     pod1.position.set(-1.6, 0, 1.6);
     podArrayGroup.add(pod1);
@@ -1210,7 +1560,8 @@
     const pod2 = createHydroPod(
       "Pod 2: Dissolved Air Flotation (DAF)",
       "Micro-bubble separation & automatic surface skimming",
-      "High-efficiency air saturation vessel generating 20-40µm micro-bubbles that float coagulated pin-floc to the surface for automatic sludge extraction"
+      "High-efficiency air saturation vessel generating 20-40µm micro-bubbles that float coagulated pin-floc to the surface for automatic sludge extraction",
+      'daf'
     );
     pod2.position.set(1.6, 0, 1.6);
     podArrayGroup.add(pod2);
@@ -1219,7 +1570,8 @@
     const pod3 = createHydroPod(
       "Pod 3: Multi-Media & GAC Filtration",
       "Deep-bed sand, anthracite & granular activated carbon",
-      "Pressurized ASME multi-barrier polishing vessels extracting residual hydrocarbons, fine particulates, and trace odors down to <0.6 NTU"
+      "Pressurized ASME multi-barrier polishing vessels extracting residual hydrocarbons, fine particulates, and trace odors down to <0.6 NTU",
+      'filter'
     );
     pod3.position.set(-1.6, 0, -1.6);
     podArrayGroup.add(pod3);
@@ -1228,7 +1580,8 @@
     const pod4 = createHydroPod(
       "Pod 4: Automation & Power Center",
       "SCADA control, cellular telemetry & hybrid power input",
-      "Centralized programmable logic controller (PLC), automated variable frequency drives, satellite telemetry, and clean water final disinfection module"
+      "Centralized programmable logic controller (PLC), automated variable frequency drives, satellite telemetry, and clean water final disinfection module",
+      'power'
     );
     pod4.position.set(1.6, 0, -1.6);
     podArrayGroup.add(pod4);
@@ -1488,54 +1841,291 @@
     // =========================================================================
     // 11. OPERATIONS VEHICLE & FIELD HUMAN FIGURES (AUTHENTIC CONTEXT)
     // =========================================================================
-    // Utility pickup truck parked adjacent (matches photo background)
-    const truckGroup = new THREE.Group();
-    truckGroup.name = "Operations Field Utility Truck";
-    truckGroup.position.set(-2.5, 0, -8.5);
-    truckGroup.rotation.y = 0.35;
-    mobilePlantGroup.add(truckGroup);
+    // Realistic Heavy-Duty 4x4 Operations Utility Truck (Matches field photo)
+    function createDetailedOperationsTruck() {
+      const truck = new THREE.Group();
+      truck.name = "Operations Field 4x4 Utility Truck";
+      truck.position.set(-2.8, 0, -8.6);
+      truck.rotation.y = 0.38;
 
-    // Cab & Bed
-    const truckCab = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.2, 2.2), materials.podWhiteWall);
-    truckCab.position.set(0, 1.0, 0.6); truckCab.castShadow = true; truckGroup.add(truckCab);
-    const truckBed = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.7, 2.4), materials.podWhiteWall);
-    truckBed.position.set(0, 0.75, -1.4); truckBed.castShadow = true; truckGroup.add(truckBed);
-    // Wheels
-    for (let wx = -0.95; wx <= 0.95; wx += 1.9) {
-      for (let wz = -1.3; wz <= 1.3; wz += 2.6) {
-        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.26, 16), materials.flexibleHoseBlack);
-        wheel.rotation.z = Math.PI / 2;
-        wheel.position.set(wx, 0.38, wz); wheel.castShadow = true; truckGroup.add(wheel);
+      // Chassis & Frame Rails
+      const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.22, 5.2), materials.truckTrimBlack);
+      chassis.position.y = 0.45;
+      chassis.castShadow = true;
+      truck.add(chassis);
+
+      // Main Cab Lower Body (Fenders & Lower Doors)
+      const cabLower = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.65, 2.6), materials.truckBodyPaint);
+      cabLower.position.set(0, 0.82, 0.65);
+      cabLower.castShadow = true;
+      truck.add(cabLower);
+
+      // Cab Upper Greenhouse & Roof
+      const cabUpper = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.72, 1.9), materials.truckBodyPaint);
+      cabUpper.position.set(0, 1.48, 0.55);
+      cabUpper.castShadow = true;
+      truck.add(cabUpper);
+
+      // Tinted Glass Canopy (Windshield, rear & side windows)
+      const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.82, 0.62, 0.05), materials.truckGlassTint);
+      windshield.position.set(0, 1.45, 1.52);
+      windshield.rotation.x = -0.32;
+      truck.add(windshield);
+
+      const rearWindow = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.55, 0.05), materials.truckGlassTint);
+      rearWindow.position.set(0, 1.48, -0.42);
+      truck.add(rearWindow);
+
+      const sideWindowsL = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.52, 1.6), materials.truckGlassTint);
+      sideWindowsL.position.set(-0.94, 1.48, 0.55);
+      truck.add(sideWindowsL);
+
+      const sideWindowsR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.52, 1.6), materials.truckGlassTint);
+      sideWindowsR.position.set(0.94, 1.48, 0.55);
+      truck.add(sideWindowsR);
+
+      // Hood & Engine Bay
+      const hood = new THREE.Mesh(new THREE.BoxGeometry(1.95, 0.35, 1.45), materials.truckBodyPaint);
+      hood.position.set(0, 0.95, 2.2);
+      hood.castShadow = true;
+      truck.add(hood);
+
+      // Front Honeycomb Grille & Bumper
+      const grille = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.42, 0.1), materials.truckTrimBlack);
+      grille.position.set(0, 0.85, 2.94);
+      truck.add(grille);
+
+      // LED Headlight Assemblies
+      for (let hx = -0.82; hx <= 0.82; hx += 1.64) {
+        const headlight = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.08), materials.truckHeadlightGlass);
+        headlight.position.set(hx, 0.9, 2.94);
+        truck.add(headlight);
+
+        // Turn signal reflector
+        const amber = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, 0.08), materials.safetyYellow);
+        amber.position.set(hx > 0 ? hx + 0.15 : hx - 0.15, 0.9, 2.92);
+        truck.add(amber);
       }
+
+      // Heavy Front Steel Winch Bumper & Skid Plate
+      const frontBumper = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.35, 0.35), materials.truckTrimBlack);
+      frontBumper.position.set(0, 0.5, 3.02);
+      frontBumper.castShadow = true;
+      truck.add(frontBumper);
+
+      // Rear Truck Bed (Utility cargo box)
+      const bedFloor = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.12, 2.3), materials.truckTrimBlack);
+      bedFloor.position.set(0, 0.58, -1.55);
+      bedFloor.castShadow = true;
+      truck.add(bedFloor);
+
+      // Bed side walls & Tailgate
+      const bedWallL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 2.3), materials.truckBodyPaint);
+      bedWallL.position.set(-0.95, 0.85, -1.55);
+      bedWallL.castShadow = true;
+      truck.add(bedWallL);
+
+      const bedWallR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 2.3), materials.truckBodyPaint);
+      bedWallR.position.set(0.95, 0.85, -1.55);
+      bedWallR.castShadow = true;
+      truck.add(bedWallR);
+
+      const tailgate = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.65, 0.12), materials.truckBodyPaint);
+      tailgate.position.set(0, 0.85, -2.68);
+      tailgate.castShadow = true;
+      truck.add(tailgate);
+
+      // Tail lights
+      for (let tx = -0.92; tx <= 0.92; tx += 1.84) {
+        const taillight = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.32, 0.06), materials.truckTaillightRed);
+        taillight.position.set(tx, 0.85, -2.74);
+        truck.add(taillight);
+      }
+
+      // Cargo Bed Equipment: Diamond-plate crossbed toolbox, water cooler, cones
+      const toolBox = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.45, 0.6), materials.stainlessSteel);
+      toolBox.position.set(0, 0.85, -0.75);
+      toolBox.castShadow = true;
+      truck.add(toolBox);
+
+      const safetyCone = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.5, 12), materials.flexibleHoseOrange);
+      safetyCone.position.set(-0.55, 0.88, -1.8);
+      truck.add(safetyCone);
+
+      // High-Clearance Knobby Wheels (4x All-Terrain Tires + 6-spoke Alloy Wheels)
+      const wheelPositions = [
+        [-1.02, 0.48, 1.8],  // Front Left
+        [ 1.02, 0.48, 1.8],  // Front Right
+        [-1.02, 0.48, -1.8], // Rear Left
+        [ 1.02, 0.48, -1.8]  // Rear Right
+      ];
+      wheelPositions.forEach(([wx, wy, wz]) => {
+        const wheelGroup = new THREE.Group();
+        wheelGroup.position.set(wx, wy, wz);
+
+        // Knobby Tire Rubber
+        const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.32, 20), materials.truckTireRubber);
+        tire.rotation.z = Math.PI / 2;
+        tire.castShadow = true;
+        wheelGroup.add(tire);
+
+        // Alloy Rim
+        const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.33, 16), materials.truckAlloyWheel);
+        rim.rotation.z = Math.PI / 2;
+        wheelGroup.add(rim);
+
+        // Center hub & lug nut accent
+        const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.35, 12), materials.truckTrimBlack);
+        hub.rotation.z = Math.PI / 2;
+        wheelGroup.add(hub);
+
+        truck.add(wheelGroup);
+      });
+
+      // Side step rails / Nerf bars
+      for (let sx = -1.02; sx <= 1.02; sx += 2.04) {
+        const step = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 8), materials.truckTrimBlack);
+        step.rotation.x = Math.PI / 2;
+        step.position.set(sx, 0.32, 0.3);
+        truck.add(step);
+      }
+
+      return truck;
     }
 
-    // Field Human Figures in PPE / High-Vis Hardhats (Human scale from photo)
-    function createFieldOperator(x, z, rotY = 0) {
-      const op = new THREE.Group();
-      op.position.set(x, 0, z);
-      op.rotation.y = rotY;
+    mobilePlantGroup.add(createDetailedOperationsTruck());
 
-      // Legs / work trousers (dark cargo pants)
-      const legs = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.85, 0.22), new THREE.MeshStandardMaterial({ color: '#334155', roughness: 0.8 }));
-      legs.position.y = 0.425; legs.castShadow = true; op.add(legs);
+    // Field Human Figures in Realistic PPE (Anatomy, ANSI Class 3 Vest, Hardhat, Radio, Diagnostic Tablet)
+    function createRealisticFieldOperator(x, z, rotY = 0, isLeadEngineer = false) {
+      const person = new THREE.Group();
+      person.position.set(x, 0, z);
+      person.rotation.y = rotY;
 
-      // Torso / High-Vis safety vest / jacket
-      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.55, 0.26), materials.safetyYellow);
-      torso.position.y = 1.125; torso.castShadow = true; op.add(torso);
+      // Heavy Safety Boots
+      for (let bx = -0.11; bx <= 0.11; bx += 0.22) {
+        const boot = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.16, 0.32), materials.safetyBootLeather);
+        boot.position.set(bx, 0.08, 0.04);
+        boot.castShadow = true;
+        person.add(boot);
+      }
 
-      // Head & White Safety Hardhat
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), new THREE.MeshStandardMaterial({ color: '#fed7aa', roughness: 0.6 }));
-      head.position.y = 1.48; op.add(head);
+      // Work Cargo Pants / Legs (Articulated stance)
+      const legL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.72, 0.18), materials.cargoPants);
+      legL.position.set(-0.11, 0.48, 0);
+      legL.castShadow = true;
+      person.add(legL);
 
-      const hardhat = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.12, 12), materials.podWhiteWall);
-      hardhat.position.y = 1.55; op.add(hardhat);
+      const legR = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.72, 0.18), materials.cargoPants);
+      legR.position.set(0.11, 0.48, 0);
+      legR.castShadow = true;
+      person.add(legR);
 
-      return op;
+      // Belt & Tool Pouch
+      const belt = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.08, 0.24), materials.safetyBootLeather);
+      belt.position.set(0, 0.86, 0);
+      person.add(belt);
+
+      // Torso with ANSI Class 3 High-Visibility Safety Vest
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.54, 0.25), materials.safetyVestHiVis);
+      torso.position.set(0, 1.15, 0);
+      torso.castShadow = true;
+      person.add(torso);
+
+      // Silver Retroreflective Safety Stripes on Vest
+      const stripeH = new THREE.Mesh(new THREE.BoxGeometry(0.43, 0.06, 0.26), materials.reflectiveStripe);
+      stripeH.position.set(0, 1.1, 0);
+      person.add(stripeH);
+
+      const stripeVL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.38, 0.26), materials.reflectiveStripe);
+      stripeVL.position.set(-0.12, 1.25, 0);
+      person.add(stripeVL);
+
+      const stripeVR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.38, 0.26), materials.reflectiveStripe);
+      stripeVR.position.set(0.12, 1.25, 0);
+      person.add(stripeVR);
+
+      // Arms & High-Vis Sleeves
+      const armL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.52, 0.14), materials.safetyVestHiVis);
+      armL.position.set(-0.28, 1.14, 0.08);
+      armL.rotation.x = isLeadEngineer ? 0.4 : 0.1;
+      armL.castShadow = true;
+      person.add(armL);
+
+      const armR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.52, 0.14), materials.safetyVestHiVis);
+      armR.position.set(0.28, 1.14, 0.08);
+      armR.rotation.x = isLeadEngineer ? 0.4 : 0.1;
+      armR.castShadow = true;
+      person.add(armR);
+
+      // Work Gloves / Hands
+      const handL = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.12, 0.12), materials.truckTrimBlack);
+      handL.position.set(-0.28, 0.84, isLeadEngineer ? 0.26 : 0.08);
+      person.add(handL);
+
+      const handR = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.12, 0.12), materials.truckTrimBlack);
+      handR.position.set(0.28, 0.84, isLeadEngineer ? 0.26 : 0.08);
+      person.add(handR);
+
+      // Neck & Head with Anatomical Facial Contours
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.12, 12), materials.skinTone);
+      neck.position.set(0, 1.45, 0);
+      person.add(neck);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 14), materials.skinTone);
+      head.position.set(0, 1.56, 0.02);
+      person.add(head);
+
+      // Safety Sunglasses
+      const sunglasses = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.08), materials.truckTrimBlack);
+      sunglasses.position.set(0, 1.58, 0.13);
+      person.add(sunglasses);
+
+      // White Industrial Hardhat with Visor Brim & Chinstrap
+      const hardhatDome = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), materials.safetyHardhatWhite);
+      hardhatDome.position.set(0, 1.62, 0.02);
+      person.add(hardhatDome);
+
+      const hardhatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.02, 16), materials.safetyHardhatWhite);
+      hardhatBrim.position.set(0, 1.62, 0.04);
+      person.add(hardhatBrim);
+
+      // Shoulder Walkie-Talkie & Antenna
+      const radio = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.14, 0.05), materials.truckTrimBlack);
+      radio.position.set(-0.16, 1.34, 0.1);
+      person.add(radio);
+
+      const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.14, 6), materials.truckTrimBlack);
+      antenna.position.set(-0.16, 1.44, 0.1);
+      person.add(antenna);
+
+      if (isLeadEngineer) {
+        // Holding SCADA Diagnostic Field Tablet (Illuminated Cyan Screen)
+        const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.02, 0.28), materials.truckTrimBlack);
+        tablet.position.set(0, 0.95, 0.32);
+        tablet.rotation.x = 0.5;
+        person.add(tablet);
+
+        const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.24), materials.tabletScreenGlow);
+        screen.position.set(0, 0.965, 0.32);
+        screen.rotation.x = -Math.PI / 2 + 0.5;
+        person.add(screen);
+      } else {
+        // Operator holding Sampling Flask & Turbidity Pen
+        const flask = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.18, 12), materials.clearSightGlass);
+        flask.position.set(0.28, 0.92, 0.16);
+        person.add(flask);
+
+        const flaskFluid = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.14, 12), materials.clearTreatedWater);
+        flaskFluid.position.set(0.28, 0.90, 0.16);
+        person.add(flaskFluid);
+      }
+
+      return person;
     }
 
-    // Place operators exactly where engineers stand in user reference photo
-    mobilePlantGroup.add(createFieldOperator(-2.9, 2.4, 0.4));
-    mobilePlantGroup.add(createFieldOperator(0.0, -0.4, Math.PI * 0.9));
+    // Place realistic operators exactly matching site photo
+    mobilePlantGroup.add(createRealisticFieldOperator(-2.8, 2.5, 0.35, true));  // Lead Engineer with SCADA Tablet
+    mobilePlantGroup.add(createRealisticFieldOperator(0.0, -0.4, Math.PI * 0.95, false)); // Water Quality Specialist with Sample Flask
 
     // =========================================================================
     // 12. 3D ANNOTATION PINS LAYER
@@ -1966,11 +2556,91 @@
       }
     }
 
-    document.getElementById('btn-mode-pbr').addEventListener('click', () => setShadingMode('pbr'));
-    document.getElementById('btn-mode-wire').addEventListener('click', () => setShadingMode('wireframe'));
-    document.getElementById('btn-mode-normals').addEventListener('click', () => setShadingMode('normals'));
-    document.getElementById('btn-mode-clay').addEventListener('click', () => setShadingMode('clay'));
+    // =========================================================================
+    // 16B. X-RAY WATER PURIFICATION MODE IMPLEMENTATION
+    // =========================================================================
+    let isXRayActive = false;
+
+    function setXRayMode(enable) {
+      isXRayActive = !!enable;
+      const xrayMainBtn = document.getElementById('btn-xray-main');
+      const xrayToggleBtn = document.getElementById('btn-xray-toggle');
+      const renderBadge = document.getElementById('render-mode-badge');
+      const statShading = document.getElementById('stat-shading');
+
+      if (isXRayActive) {
+        if (xrayMainBtn) {
+          xrayMainBtn.classList.add('xray-active');
+          xrayMainBtn.textContent = '🔬 X-Ray: ACTIVE';
+        }
+        if (xrayToggleBtn) {
+          xrayToggleBtn.classList.add('xray-active');
+          xrayToggleBtn.textContent = '🔬 X-Ray: ON';
+        }
+        if (renderBadge) {
+          renderBadge.textContent = 'X-RAY PURIFICATION';
+          renderBadge.className = 'badge xray';
+        }
+        if (statShading) {
+          statShading.textContent = 'Internal Process Core';
+        }
+
+        // Ghost outer pod shells and access doors
+        allOuterMeshes.forEach(item => {
+          item.mesh.material = materials.xrayGhostWall;
+        });
+      } else {
+        if (xrayMainBtn) {
+          xrayMainBtn.classList.remove('xray-active');
+          xrayMainBtn.textContent = '🔬 X-Ray Purification';
+        }
+        if (xrayToggleBtn) {
+          xrayToggleBtn.classList.remove('xray-active');
+          xrayToggleBtn.textContent = '🔬 X-Ray: OFF';
+        }
+        if (renderBadge) {
+          renderBadge.textContent = 'PHOTOREAL PBR';
+          renderBadge.className = 'badge live';
+        }
+        if (statShading) {
+          statShading.textContent = 'Full PBR Shading';
+        }
+
+        // Restore realistic composite insulated pod walls & doors
+        allOuterMeshes.forEach(item => {
+          item.mesh.material = item.defaultMat;
+        });
+      }
+    }
+
+    const btnXRayMain = document.getElementById('btn-xray-main');
+    if (btnXRayMain) {
+      btnXRayMain.addEventListener('click', () => setXRayMode(!isXRayActive));
+    }
+    const btnXRayToggle = document.getElementById('btn-xray-toggle');
+    if (btnXRayToggle) {
+      btnXRayToggle.addEventListener('click', () => setXRayMode(!isXRayActive));
+    }
+    window.setXRayMode = setXRayMode;
+
+    document.getElementById('btn-mode-pbr').addEventListener('click', () => {
+      setXRayMode(false);
+      setShadingMode('pbr');
+    });
+    document.getElementById('btn-mode-wire').addEventListener('click', () => {
+      setXRayMode(false);
+      setShadingMode('wireframe');
+    });
+    document.getElementById('btn-mode-normals').addEventListener('click', () => {
+      setXRayMode(false);
+      setShadingMode('normals');
+    });
+    document.getElementById('btn-mode-clay').addEventListener('click', () => {
+      setXRayMode(false);
+      setShadingMode('clay');
+    });
     document.getElementById('btn-wireframe').addEventListener('click', () => {
+      setXRayMode(false);
       setShadingMode(currentShadingMode === 'wireframe' ? 'pbr' : 'wireframe');
     });
 
@@ -2014,6 +2684,22 @@
         if (t >= 1.0) isTransitioningCamera = false;
       } else {
         controls.update();
+      }
+
+      // Treatment Hardware Animations (DAF Scraper flight rotation & EC ionization sparks)
+      if (isMotionActive) {
+        // Rotate DAF mechanical surface skimmer blades continuously
+        if (animatedInternals.dafScraper) {
+          animatedInternals.dafScraper.rotation.x += delta * 1.8;
+        }
+
+        // Randomly pulse / flicker high-amperage electrolytic micro-arcs
+        if (animatedInternals.ecSparks && animatedInternals.ecSparks.length > 0) {
+          const sparkTime = Math.floor(elapsed * 18);
+          animatedInternals.ecSparks.forEach((sp, idx) => {
+            sp.visible = ((sparkTime + idx * 3) % 4 === 0) || Math.random() > 0.45;
+          });
+        }
       }
 
       // Fluid Flow Streamline Animation

@@ -2275,19 +2275,19 @@
     postGeom.translate(0, 1.225, 0);
 
     // Define perimeter boundary line segments around the active facility footprint
-    // Extended north boundary to z = -43.5m to fully enclose northern bypass roadway
-    // Gate opening is at south road (z = 18.5, x = -4.0 to +4.0)
+    // Fully encloses the entire ring road with green buffer (West at x=-42.0, East at x=42.0, North at z=-44.5, South at z=36.5)
+    // Main gate is located across the South entrance access highway (z = 36.5, x = -4.5 to +4.5)
     const fenceSegments = [
-      // North fence: from (-37.5, -43.5) to (37.5, -43.5)
-      { x1: -37.5, z1: -43.5, x2: 37.5, z2: -43.5 },
-      // East fence: from (37.5, -43.5) to (37.5, 18.5)
-      { x1: 37.5, z1: -43.5, x2: 37.5, z2: 18.5 },
-      // West fence: from (-37.5, -43.5) to (-37.5, 18.5)
-      { x1: -37.5, z1: -43.5, x2: -37.5, z2: 18.5 },
-      // South fence west wing: from (-37.5, 18.5) to (-4.0, 18.5)
-      { x1: -37.5, z1: 18.5, x2: -4.0, z2: 18.5 },
-      // South fence east wing: from (4.0, 18.5) to (37.5, 18.5)
-      { x1: 4.0, z1: 18.5, x2: 37.5, z2: 18.5 }
+      // North fence: from (-42.0, -44.5) to (42.0, -44.5)
+      { x1: -42.0, z1: -44.5, x2: 42.0, z2: -44.5 },
+      // East fence: from (42.0, -44.5) to (42.0, 36.5)
+      { x1: 42.0, z1: -44.5, x2: 42.0, z2: 36.5 },
+      // West fence: from (-42.0, -44.5) to (-42.0, 36.5)
+      { x1: -42.0, z1: -44.5, x2: -42.0, z2: 36.5 },
+      // South fence west wing: from (-42.0, 36.5) to (-4.5, 36.5)
+      { x1: -42.0, z1: 36.5, x2: -4.5, z2: 36.5 },
+      // South fence east wing: from (4.5, 36.5) to (42.0, 36.5)
+      { x1: 4.5, z1: 36.5, x2: 42.0, z2: 36.5 }
     ];
 
     const fencePosts = [];
@@ -2337,13 +2337,13 @@
       fenceGroup.add(panel);
     });
 
-    // Main Security Vehicular Gate (South Entrance Roadway: x = -4.0 to +4.0, z = 18.5)
+    // Main Security Vehicular Gate (South Entrance Roadway: x = -4.5 to +4.5, z = 36.5)
     // Heavy gate posts with OSHA yellow/black hazard chevron decals
     const gatePostL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.7, 12), materials.structuralSteel);
-    gatePostL.position.set(-4.0, 1.35, 18.5);
+    gatePostL.position.set(-4.5, 1.35, 36.5);
     fenceGroup.add(gatePostL);
     const gatePostR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.7, 12), materials.structuralSteel);
-    gatePostR.position.set(4.0, 1.35, 18.5);
+    gatePostR.position.set(4.5, 1.35, 36.5);
     fenceGroup.add(gatePostR);
 
     // Cantilever Gate Leaves (Open 35° inwards to welcome authorized plant traffic)
@@ -2372,13 +2372,13 @@
       return leafGroup;
     }
 
-    const gateLeafWest = createGateLeaf(3.8, 2.3);
-    gateLeafWest.position.set(-4.0, 0, 18.5);
+    const gateLeafWest = createGateLeaf(4.2, 2.3);
+    gateLeafWest.position.set(-4.5, 0, 36.5);
     gateLeafWest.rotation.y = -0.55; // Swung inwards toward plant
     fenceGroup.add(gateLeafWest);
 
-    const gateLeafEast = createGateLeaf(3.8, 2.3);
-    gateLeafEast.position.set(4.0, 0, 18.5);
+    const gateLeafEast = createGateLeaf(4.2, 2.3);
+    gateLeafEast.position.set(4.5, 0, 36.5);
     gateLeafEast.rotation.y = Math.PI + 0.55; // Swung inwards toward plant
     fenceGroup.add(gateLeafEast);
 
@@ -2388,7 +2388,7 @@
       roughness: 0.35, metalness: 0.5
     });
     const gateSign = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.42, 0.04), gateSignMat);
-    gateSign.position.set(-2.0, 1.45, 18.5);
+    gateSign.position.set(-2.2, 1.45, 36.5);
     gateSign.rotation.y = -0.55;
     fenceGroup.add(gateSign);
 
@@ -2429,6 +2429,7 @@
     // Strict Zone Masking: Return true ONLY if (x, z) is in valid natural green turf
     function isGrassAllowed(x, z) {
       if (Math.abs(x) > 56 || Math.abs(z) > 56) return false;
+      // Equipment pads
       if (x >= -3.5 && x <= 15.2 && z >= 2.6 && z <= 12.4) return false;
       if (x >= 14.6 && x <= 21.4 && z >= 3.6 && z <= 11.4) return false;
       if (x >= 12.5 && x <= 18.5 && z >= 6.4 && z <= 8.6) return false;
@@ -2444,15 +2445,17 @@
       if (x >= -1.6 && x <= 2.6 && z >= -18.0 && z <= -11.0) return false;
       if (x >= -21.0 && x <= -10.0 && z >= -9.8 && z <= 0.8) return false;
       if (x >= 11.0 && x <= 30.0 && z >= -13.5 && z <= 1.5) return false;
+      // Wetland pond
       const dPond = Math.hypot(x - 0.5, z - (-22.5));
       if (dPond < 9.8) return false;
-      if (Math.abs(x - 0.0) < 3.2 && z >= 14.5) return false;
-      if (Math.abs(z - 15.5) < 3.2 && x >= -35.0 && x <= 36.0) return false;
-      if (Math.abs(z - (-38.3)) < 3.8 && x >= -35.0 && x <= 36.0) return false;
-      if (Math.abs(x - (-33.6)) < 3.4 && z >= -39.0 && z <= 16.0) return false;
-      if (Math.abs(x - 34.9) < 3.4 && z >= -39.0 && z <= 16.0) return false;
-      if (Math.abs(z - (-4.5)) < 3.0 && x >= -34.0 && x <= -15.0) return false;
-      if (Math.abs(z - (-4.5)) < 3.0 && x >= 11.0 && x <= 35.0) return false;
+      // Roads & shoulders
+      if (Math.abs(x - 0.0) < 3.2 && z >= 28.0) return false; // South access road
+      if (Math.abs(z - 30.83) < 3.5 && x >= -37.0 && x <= 38.0) return false; // South perimeter road
+      if (Math.abs(z - (-38.34)) < 3.8 && x >= -37.0 && x <= 38.0) return false; // North perimeter road
+      if (Math.abs(x - (-33.65)) < 3.5 && z >= -41.0 && z <= 33.0) return false; // West perimeter road
+      if (Math.abs(x - 34.94) < 3.5 && z >= -41.0 && z <= 33.0) return false; // East perimeter road
+      if (Math.abs(z - (-4.5)) < 3.0 && x >= -34.0 && x <= -10.0) return false; // West spur
+      if (Math.abs(z - (-4.5)) < 3.0 && x >= 11.0 && x <= 35.0) return false; // East spur
       return true;
     }
 
@@ -2696,30 +2699,67 @@
     coniferCanopyInst.name = "Evergreen Conifer Branch Tiers";
     coniferCanopyInst.castShadow = true;
 
-    // Organic Tree Placements (Groves along perimeter buffer, riparian wetland bank, and western forest)
+    // Strict Tree Safety Filter: Validates that tree trunks and canopies never intersect roads, fences, or structures
+    function isTreeAllowed(x, z) {
+      if (Math.abs(x) > 55 || Math.abs(z) > 55) return false;
+
+      // 1. Clear of ALL ROADS & SHOULDERS (Minimum 6.8m buffer from centerline)
+      if (Math.abs(z - (-38.34)) < 6.8 && x >= -45.0 && x <= 45.0) return false; // North road
+      if (Math.abs(z - 30.83) < 6.8 && x >= -45.0 && x <= 45.0) return false;   // South road
+      if (Math.abs(x - (-33.65)) < 6.8 && z >= -45.0 && z <= 37.0) return false; // West road
+      if (Math.abs(x - 34.94) < 6.8 && z >= -45.0 && z <= 37.0) return false;   // East road
+      if (Math.abs(x) < 6.0 && z >= 26.0) return false;                          // South entrance highway
+      if (Math.abs(z - (-4.5)) < 5.8 && x >= -36.0 && x <= -9.0) return false;  // West spur to Lab
+      if (Math.abs(z - (-4.5)) < 5.8 && x >= 10.0 && x <= 36.0) return false;   // East spur to Digesters
+
+      // 2. Clear of ALL PERIMETER FENCES & SECURITY GATES (Minimum 2.5m buffer)
+      if (Math.abs(z - (-44.5)) < 2.5 && x >= -44.0 && x <= 44.0) return false; // North fence
+      if (Math.abs(z - 36.5) < 2.5 && x >= -44.0 && x <= 44.0) return false;   // South fence
+      if (Math.abs(x - (-42.0)) < 2.5 && z >= -46.0 && z <= 38.0) return false; // West fence
+      if (Math.abs(x - 42.0) < 2.5 && z >= -46.0 && z <= 38.0) return false;   // East fence
+
+      // 3. Clear of ALL PROCESS STRUCTURES & CONCRETE FOUNDATIONS
+      if (x >= -23.0 && x <= -8.0 && z >= -11.0 && z <= 1.5) return false;     // Lab & parking
+      if (x >= -5.0 && x <= 16.5 && z >= 1.5 && z <= 13.5) return false;        // Aeration basins
+      if (x >= 14.0 && x <= 22.5 && z >= 2.5 && z <= 12.5) return false;        // Headworks & screen
+      if (Math.hypot(x - (-4.5), z - (-4.5)) < 7.0) return false;                // Clarifier 1
+      if (Math.hypot(x - 5.5, z - (-4.5)) < 7.0) return false;                 // Clarifier 2
+      if (Math.abs(x - 0.5) < 3.8 && Math.abs(z - 1.2) < 3.5) return false;     // Splitter vault
+      if (Math.abs(x - 11.5) < 4.2 && Math.abs(z - (-4.5)) < 4.2) return false; // RAS/WAS station
+      if (Math.abs(x - 0.5) < 8.2 && Math.abs(z - (-9.6)) < 4.8) return false;  // Tertiary & UV
+      if (Math.abs(x - 0.5) < 4.0 && z >= -19.5 && z <= -11.0) return false;   // Cascade outfall
+      if (x >= 9.5 && x <= 31.5 && z >= -14.5 && z <= 3.0) return false;        // Digesters & flare
+      if (Math.hypot(x - 0.5, z - (-22.5)) < 9.6) return false;                 // Wetland lagoon water
+      if (Math.abs(z - (-35.2)) < 2.0 && x >= -16.5 && x <= 17.5) return false; // Guardrail
+
+      return true;
+    }
+
     const treeDummy = new THREE.Object3D();
 
-    // Natural Deciduous Groves
-    for (let i = 0; i < deciduousCount; i++) {
+    // Natural Deciduous Groves (Riparian buffer, western lawn, southern backdrop)
+    let placedDeciduous = 0;
+    let attemptsDec = 0;
+    while (placedDeciduous < deciduousCount && attemptsDec < 8000) {
+      attemptsDec++;
       let tx, tz;
-      if (i < 18) {
-        // Riparian grove along Wetland Lagoon buffer (x: -16 to 18, z: -35 to -19)
-        const a = (i / 18) * Math.PI + 0.1;
-        const r = 11.5 + (i % 4) * 2.5 + Math.random() * 1.8;
+      if (placedDeciduous < 16) {
+        // Riparian grove along Wetland Lagoon southern/western bank
+        const a = (placedDeciduous / 16) * Math.PI * 1.5 + 0.35;
+        const r = 11.0 + Math.random() * 3.5;
         tx = 0.5 + Math.cos(a) * r;
-        tz = -22.5 - Math.sin(a) * (r * 0.75 + 1.2);
-        if (tz <= -35.0) tz = -34.0 - (i % 2) * 0.8;
-      } else if (i < 38) {
-        // Western forest screening grove (x: -42 to -22, z: -16 to 14)
-        tx = -25.0 - (i % 6) * 3.5 - Math.random() * 4.0;
-        tz = -14.0 + (i - 18) * 1.5 + (Math.random() - 0.5) * 3.0;
+        tz = -22.5 - Math.sin(a) * (r * 0.72 + 0.8);
+      } else if (placedDeciduous < 34) {
+        // Western lawn screening grove (between lab mulch and west road / west fence)
+        tx = -18.0 - Math.random() * 30.0;
+        tz = -32.0 + Math.random() * 62.0;
       } else {
-        // Outer perimeter buffer screen
-        const a = ((i - 38) / 17) * Math.PI * 1.8 - 0.4;
-        const r = 42.0 + (i % 5) * 3.0 + Math.random() * 4.0;
-        tx = Math.cos(a) * r;
-        tz = Math.sin(a) * (r * 0.85);
+        // South woodland buffer (outside south fence, flanking access entrance)
+        tx = (Math.random() - 0.5) * 90.0;
+        tz = 39.0 + Math.random() * 14.0;
       }
+
+      if (!isTreeAllowed(tx, tz)) continue;
 
       const tScale = 0.82 + Math.random() * 0.45;
       treeDummy.position.set(tx, 0, tz);
@@ -2727,27 +2767,32 @@
       treeDummy.rotation.y = Math.random() * Math.PI * 2;
       treeDummy.updateMatrix();
 
-      trunkInst.setMatrixAt(i, treeDummy.matrix);
-      foliageInst.setMatrixAt(i, treeDummy.matrix);
+      trunkInst.setMatrixAt(placedDeciduous, treeDummy.matrix);
+      foliageInst.setMatrixAt(placedDeciduous, treeDummy.matrix);
+      placedDeciduous++;
     }
     trunkInst.instanceMatrix.needsUpdate = true;
     foliageInst.instanceMatrix.needsUpdate = true;
     facilityGroup.add(trunkInst);
     facilityGroup.add(foliageInst);
 
-    // Natural Conifer / Pine Stands (North & East ridges)
-    for (let i = 0; i < coniferCount; i++) {
+    // Natural Conifer / Pine Stands (North ridge and East property line)
+    let placedConifers = 0;
+    let attemptsCon = 0;
+    while (placedConifers < coniferCount && attemptsCon < 8000) {
+      attemptsCon++;
       let cx, cz;
-      if (i < 20) {
-        // North-east hillside backdrop (x: 14 to 45, z: -35 to -15)
-        cx = 16.0 + (i % 6) * 4.8 + Math.random() * 3.5;
-        cz = -18.0 - Math.floor(i / 6) * 4.5 - Math.random() * 3.0;
-        if (Math.abs(cz - (-38.3)) < 3.2) cz = -42.2;
+      if (placedConifers < 22) {
+        // Northern ridge (outside north fence & north road: z < -46.0)
+        cx = -35.0 + Math.random() * 75.0;
+        cz = -46.5 - Math.random() * 7.5;
       } else {
-        // East property screen buffer (x: 38 to 52, z: -10 to 18)
-        cx = 38.0 + (i % 4) * 3.5 + Math.random() * 3.0;
-        cz = -8.0 + (i - 20) * 1.3 + (Math.random() - 0.5) * 2.5;
+        // Eastern property buffer (outside east fence: x > 43.0, z from -35 to 25)
+        cx = 43.5 + Math.random() * 10.5;
+        cz = -35.0 + Math.random() * 60.0;
       }
+
+      if (!isTreeAllowed(cx, cz)) continue;
 
       const cScale = 0.85 + Math.random() * 0.45;
       treeDummy.position.set(cx, 0, cz);
@@ -2755,8 +2800,9 @@
       treeDummy.rotation.y = Math.random() * Math.PI * 2;
       treeDummy.updateMatrix();
 
-      coniferTrunkInst.setMatrixAt(i, treeDummy.matrix);
-      coniferCanopyInst.setMatrixAt(i, treeDummy.matrix);
+      coniferTrunkInst.setMatrixAt(placedConifers, treeDummy.matrix);
+      coniferCanopyInst.setMatrixAt(placedConifers, treeDummy.matrix);
+      placedConifers++;
     }
     coniferTrunkInst.instanceMatrix.needsUpdate = true;
     coniferCanopyInst.instanceMatrix.needsUpdate = true;
