@@ -926,7 +926,213 @@
       return tex;
     }
 
-    // (C) Soft Radial Particle Canvas (for clear water bubbles & fluid flow)
+    // (C) Pod Roof Weathering Canvas (Matches exact circular sand/water ring deposit in user photo!)
+    function generatePodRoofCanvas(size = 512) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Off-white composite roof base
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillRect(0, 0, size, size);
+
+      // Faint perimeter seal and edge rivets
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(8, 8, size - 16, size - 16);
+
+      // Distinctive evaporated water / red-sand circular ring deposit in center (as seen in photo!)
+      const cx = size * 0.5, cy = size * 0.5;
+      const ringGrad = ctx.createRadialGradient(cx, cy, size * 0.15, cx, cy, size * 0.42);
+      ringGrad.addColorStop(0.0, 'rgba(180, 83, 9, 0.40)');
+      ringGrad.addColorStop(0.5, 'rgba(217, 119, 6, 0.28)');
+      ringGrad.addColorStop(0.85, 'rgba(146, 64, 14, 0.55)'); // Darker dried edge crust ring
+      ringGrad.addColorStop(0.92, 'rgba(180, 83, 9, 0.20)');
+      ringGrad.addColorStop(1.0, 'rgba(241, 245, 249, 0)');
+      ctx.fillStyle = ringGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, size * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rain streaking & windborne dust deposits toward corners
+      const dustGrad = ctx.createRadialGradient(cx, cy, size * 0.35, cx, cy, size * 0.65);
+      dustGrad.addColorStop(0, 'rgba(217, 119, 6, 0)');
+      dustGrad.addColorStop(1, 'rgba(180, 83, 9, 0.18)');
+      ctx.fillStyle = dustGrad;
+      ctx.fillRect(0, 0, size, size);
+
+      // Corner crane lifting reinforcement steel corner plates
+      const plateSize = 64;
+      ctx.fillStyle = '#94a3b8';
+      [[0, 0], [size - plateSize, 0], [0, size - plateSize], [size - plateSize, size - plateSize]].forEach(([px, py]) => {
+        ctx.fillRect(px, py, plateSize, plateSize);
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(px + 4, py + 4, plateSize - 8, plateSize - 8);
+        // Bolt holes
+        ctx.fillStyle = '#334155';
+        [px + 16, px + plateSize - 16].forEach(bx => {
+          [py + 16, py + plateSize - 16].forEach(by => {
+            ctx.beginPath(); ctx.arc(bx, by, 3.5, 0, Math.PI * 2); ctx.fill();
+          });
+        });
+      });
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // (D) PC-10 Skid Stencil Canvas (Matches user reference photo!)
+    function generatePC10SkidCanvas(w = 512, h = 128) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      // Deep Hydro Blue frame steel
+      ctx.fillStyle = '#003a6b';
+      ctx.fillRect(0, 0, w, h);
+
+      // Industrial stencil "PC-10" in bold white
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '900 68px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.fillText("PC-10", 30, 88);
+
+      ctx.fillStyle = '#93c5fd';
+      ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText("PRIMARY SCREENING & BOOSTER PUMP", 215, 62);
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '600 16px ui-monospace, monospace';
+      ctx.fillText("MAX Q: 50 m³/h • DUPLEX STRAINER", 215, 92);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // (E) Analog Industrial Pressure Gauge Dial Face
+    function generateDialGaugeCanvas(size = 256) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const c = size * 0.5;
+
+      // White gauge face with metallic bezel border
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath(); ctx.arc(c, c, c - 6, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 6; ctx.stroke();
+
+      // Dial scale arcs and graduation ticks
+      for (let i = 0; i <= 20; i++) {
+        const angle = Math.PI * 0.75 + (i / 20) * Math.PI * 1.5;
+        const r1 = c - 18, r2 = i % 5 === 0 ? c - 32 : c - 24;
+        ctx.strokeStyle = i > 15 ? '#ef4444' : '#1e293b';
+        ctx.lineWidth = i % 5 === 0 ? 3.5 : 1.5;
+        ctx.beginPath();
+        ctx.moveTo(c + Math.cos(angle) * r1, c + Math.sin(angle) * r1);
+        ctx.lineTo(c + Math.cos(angle) * r2, c + Math.sin(angle) * r2);
+        ctx.stroke();
+      }
+
+      // Unit label
+      ctx.fillStyle = '#0369a1';
+      ctx.font = 'bold 20px ui-monospace, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText("BAR / PSI", c, c + 38);
+
+      // Red pointer needle (showing active operating pressure ~3.2 BAR)
+      const needleAngle = Math.PI * 0.75 + 0.65 * Math.PI * 1.5;
+      ctx.strokeStyle = '#dc2626';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(c, c);
+      ctx.lineTo(c + Math.cos(needleAngle) * (c - 28), c + Math.sin(needleAngle) * (c - 28));
+      ctx.stroke();
+
+      // Brass center pivot cap
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath(); ctx.arc(c, c, 7, 0, Math.PI * 2); ctx.fill();
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // (F) High-Definition Field Engineer Face Canvas (Natural skin, jaw stubble, sunglasses)
+    function generatePhotorealFaceCanvas(size = 512) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Warm Caucasian/Mediterranean skin undertone
+      const baseGrad = ctx.createLinearGradient(0, 0, 0, size);
+      baseGrad.addColorStop(0, '#e8be9e');
+      baseGrad.addColorStop(0.5, '#d4a373');
+      baseGrad.addColorStop(1, '#b8865d');
+      ctx.fillStyle = baseGrad;
+      ctx.fillRect(0, 0, size, size);
+
+      // Cheekbone and temple warmth
+      ctx.fillStyle = 'rgba(190, 95, 75, 0.12)';
+      ctx.beginPath(); ctx.arc(size * 0.28, size * 0.52, size * 0.16, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(size * 0.72, size * 0.52, size * 0.16, 0, Math.PI * 2); ctx.fill();
+
+      // Shaded jawline & neatly trimmed 5 o'clock beard (Matches photo!)
+      const beardGrad = ctx.createLinearGradient(0, size * 0.58, 0, size * 0.95);
+      beardGrad.addColorStop(0.0, 'rgba(30, 22, 18, 0.0)');
+      beardGrad.addColorStop(0.2, 'rgba(30, 22, 18, 0.45)');
+      beardGrad.addColorStop(0.6, 'rgba(25, 18, 14, 0.75)');
+      beardGrad.addColorStop(1.0, 'rgba(20, 15, 12, 0.92)');
+      ctx.fillStyle = beardGrad;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.14, size * 0.58);
+      ctx.quadraticCurveTo(size * 0.50, size * 0.68, size * 0.86, size * 0.58);
+      ctx.lineTo(size * 0.88, size);
+      ctx.lineTo(size * 0.12, size);
+      ctx.closePath();
+      ctx.fill();
+
+      // Defined mustache & lips
+      ctx.fillStyle = 'rgba(25, 18, 14, 0.70)';
+      ctx.beginPath();
+      ctx.ellipse(size * 0.5, size * 0.66, size * 0.18, size * 0.05, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(165, 85, 75, 0.80)';
+      ctx.beginPath();
+      ctx.ellipse(size * 0.5, size * 0.74, size * 0.11, size * 0.035, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Polarized wrap-around sunglasses with mirror horizon reflection
+      ctx.fillStyle = '#0a0a0c';
+      ctx.beginPath();
+      ctx.roundRect(size * 0.16, size * 0.34, size * 0.31, size * 0.18, [12, 12, 18, 18]);
+      ctx.roundRect(size * 0.53, size * 0.34, size * 0.31, size * 0.18, [12, 12, 18, 18]);
+      ctx.fill();
+
+      // Mirror reflection gradient across lenses
+      const sheen = ctx.createLinearGradient(size * 0.15, size * 0.30, size * 0.85, size * 0.55);
+      sheen.addColorStop(0.0, 'rgba(255, 255, 255, 0.50)');
+      sheen.addColorStop(0.3, 'rgba(255, 255, 255, 0.08)');
+      sheen.addColorStop(0.5, 'rgba(125, 211, 252, 0.40)');
+      sheen.addColorStop(0.8, 'rgba(255, 255, 255, 0.02)');
+      ctx.fillStyle = sheen;
+      ctx.beginPath();
+      ctx.roundRect(size * 0.19, size * 0.37, size * 0.25, size * 0.12, 8);
+      ctx.roundRect(size * 0.56, size * 0.37, size * 0.25, size * 0.12, 8);
+      ctx.fill();
+
+      // Center bridge
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(size * 0.45, size * 0.38, size * 0.10, size * 0.045);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // (G) Soft Radial Particle Canvas (for clear water bubbles & fluid flow)
     function generateSoftParticleTexture(size = 64) {
       const canvas = document.createElement('canvas');
       canvas.width = size; canvas.height = size;
@@ -948,6 +1154,9 @@
     const desertTerrainMap = generateDesertTerrainCanvas(2048, 2048);
     const softParticleMap = generateSoftParticleTexture(64);
     const podDecalTex = generatePodDecalCanvas();
+    const podRoofTex = generatePodRoofCanvas(512);
+    const pc10SkidTex = generatePC10SkidCanvas(512, 128);
+    const dialGaugeTex = generateDialGaugeCanvas(256);
 
     const materials = {
       desertGround: new THREE.MeshStandardMaterial({
@@ -973,9 +1182,30 @@
         metalness: 0.15
       }),
       podRoofPatina: new THREE.MeshStandardMaterial({
-        color: '#d4a373', // Clay/dust patina on roof
-        roughness: 0.90,
-        metalness: 0.05
+        map: podRoofTex,
+        roughness: 0.85,
+        metalness: 0.10
+      }),
+      pc10SkidFrame: new THREE.MeshStandardMaterial({
+        map: pc10SkidTex,
+        roughness: 0.40,
+        metalness: 0.50
+      }),
+      dialGauge: new THREE.MeshStandardMaterial({
+        map: dialGaugeTex,
+        roughness: 0.25,
+        metalness: 0.20
+      }),
+      wetPuddleReflective: new THREE.MeshPhysicalMaterial({
+        color: '#3d1e0c',
+        roughness: 0.04,
+        metalness: 0.10,
+        transmission: 0.60,
+        ior: 1.333,
+        reflectivity: 0.96,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false
       }),
       galvanizedTray: new THREE.MeshStandardMaterial({
         color: '#94a3b8',
@@ -1115,60 +1345,113 @@
         roughness: 0.15
       }),
       // Automotive Materials (Detailed 4x4 Truck)
-      truckBodyPaint: new THREE.MeshStandardMaterial({
-        color: '#f8fafc', // Gloss operational fleet white
-        metalness: 0.4,
-        roughness: 0.2
+      truckBodyPaint: new THREE.MeshPhysicalMaterial({
+        color: '#ffffff', // Crisp automotive white
+        metalness: 0.08,
+        roughness: 0.14,
+        clearcoat: 0.95,
+        clearcoatRoughness: 0.08
       }),
       truckTrimBlack: new THREE.MeshStandardMaterial({
-        color: '#0f172a',
-        metalness: 0.2,
-        roughness: 0.8
+        color: '#111827',
+        metalness: 0.20,
+        roughness: 0.70
       }),
       truckGlassTint: new THREE.MeshPhysicalMaterial({
-        color: '#0284c7',
-        transmission: 0.9,
+        color: '#1e293b',
+        transmission: 0.82,
         roughness: 0.05,
-        metalness: 0.1,
+        metalness: 0.15,
         transparent: true,
-        opacity: 0.82
+        opacity: 0.85
       }),
       truckTireRubber: new THREE.MeshStandardMaterial({
-        color: '#1e293b',
-        roughness: 0.9,
-        metalness: 0.05
+        color: '#18181b',
+        roughness: 0.88,
+        metalness: 0.04
       }),
       truckAlloyWheel: new THREE.MeshStandardMaterial({
-        color: '#cbd5e1',
-        metalness: 0.8,
+        color: '#e2e8f0',
+        metalness: 0.65,
+        roughness: 0.22
+      }),
+      truckChrome: new THREE.MeshStandardMaterial({
+        color: '#f8fafc',
+        metalness: 0.98,
+        roughness: 0.08
+      }),
+      truckBrakeRotor: new THREE.MeshStandardMaterial({
+        color: '#94a3b8',
+        metalness: 0.85,
+        roughness: 0.30
+      }),
+      truckBrakeCaliper: new THREE.MeshStandardMaterial({
+        color: '#dc2626',
+        metalness: 0.35,
         roughness: 0.25
       }),
       truckHeadlightGlass: new THREE.MeshPhysicalMaterial({
         color: '#ffffff',
-        transmission: 0.95,
-        roughness: 0.05,
+        transmission: 0.96,
+        roughness: 0.04,
         transparent: true,
-        opacity: 0.9
+        opacity: 0.92
       }),
       truckTaillightRed: new THREE.MeshStandardMaterial({
         color: '#ef4444',
-        roughness: 0.2,
-        metalness: 0.3,
+        roughness: 0.15,
+        metalness: 0.25,
         emissive: '#7f1d1d'
       }),
-      // Field Operator Realistic Anatomy & PPE Materials
+      // Field Personnel Realistic Anatomy & Apparel Materials (Matches photo!)
       skinTone: new THREE.MeshStandardMaterial({
-        color: '#e2b395',
-        roughness: 0.65,
-        metalness: 0.05
-      }),
-      cargoPants: new THREE.MeshStandardMaterial({
-        color: '#1e293b', // Heavy tactical navy / slate cargo fabric
-        roughness: 0.85,
+        color: '#d4a373', // Natural lifelike human skin tone
+        roughness: 0.60,
         metalness: 0.02
       }),
+      humanHairDark: new THREE.MeshStandardMaterial({
+        color: '#181615',
+        roughness: 0.90,
+        metalness: 0.02
+      }),
+      blackTacticalShirt: new THREE.MeshStandardMaterial({
+        color: '#1a1a1e', // Premium black cotton/pique polo
+        roughness: 0.86,
+        metalness: 0.02
+      }),
+      tanCargoPants: new THREE.MeshStandardMaterial({
+        color: '#a0805c', // Authentic khaki ripstop field trousers
+        roughness: 0.88,
+        metalness: 0.02
+      }),
+      darkTacticalJacket: new THREE.MeshStandardMaterial({
+        color: '#22252a', // Charcoal dark tactical shirt
+        roughness: 0.88,
+        metalness: 0.02
+      }),
+      darkWorkTrousers: new THREE.MeshStandardMaterial({
+        color: '#26282e', // Slate dark field pants
+        roughness: 0.88,
+        metalness: 0.02
+      }),
+      leatherFieldBoots: new THREE.MeshStandardMaterial({
+        color: '#3d2516', // Rich oiled dark brown full-grain leather
+        roughness: 0.55,
+        metalness: 0.08
+      }),
+      darkSunglassesLens: new THREE.MeshPhysicalMaterial({
+        color: '#050505',
+        roughness: 0.02,
+        metalness: 0.95,
+        clearcoat: 1.0
+      }),
+      safetyHardhatWhite: new THREE.MeshStandardMaterial({
+        color: '#f8fafc',
+        roughness: 0.3,
+        metalness: 0.1
+      }),
       safetyVestHiVis: new THREE.MeshStandardMaterial({
-        color: '#84cc16', // ANSI Class 3 fluorescent hi-vis lime
+        color: '#84cc16',
         roughness: 0.4,
         metalness: 0.1
       }),
@@ -1178,18 +1461,13 @@
         metalness: 0.9,
         emissive: '#cbd5e1'
       }),
-      safetyBootLeather: new THREE.MeshStandardMaterial({
-        color: '#451a03', // oiled brown work boot leather
-        roughness: 0.75,
-        metalness: 0.1
-      }),
-      safetyHardhatWhite: new THREE.MeshStandardMaterial({
-        color: '#f8fafc',
-        roughness: 0.3,
-        metalness: 0.1
-      }),
       tabletScreenGlow: new THREE.MeshBasicMaterial({
         color: '#38bdf8'
+      }),
+      photorealFaceMat: new THREE.MeshStandardMaterial({
+        map: generatePhotorealFaceCanvas(512),
+        roughness: 0.55,
+        metalness: 0.02
       })
     };
 
@@ -1317,31 +1595,54 @@
       const topRailS = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.08, colThick), materials.hydroBlueSteel);
       topRailS.position.set(0, ph - 0.04, pl/2 - colThick/2); pod.add(topRailS);
 
-      // 5. External Filter Sight-Glass Housings mounted on side bracket
-      for (let f = -0.45; f <= 0.45; f += 0.90) {
-        const filterGroup = new THREE.Group();
-        filterGroup.position.set(pw * 0.5 + 0.08, 1.25 + f * 0.4, 0.45);
+      // 5. External White Monitoring Canisters / Sight Chambers (Exact match to front right corner of Pod 1 in photo!)
+      for (let f = -0.38; f <= 0.38; f += 0.76) {
+        const canister = new THREE.Group();
+        canister.position.set(pw * 0.5 - 0.08, 1.30 + f * 0.52, pl * 0.5 + 0.08);
 
-        const brk = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.16), materials.hydroBlueSteel);
-        filterGroup.add(brk);
+        // Mounting bracket
+        const brk = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.28, 0.08), materials.hydroBlueSteel);
+        canister.add(brk);
 
-        const glassCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.42, 16), materials.clearSightGlass);
-        glassCyl.position.x = 0.06;
-        filterGroup.add(glassCyl);
+        // White sensor body
+        const whiteBody = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.32, 16), materials.podWhiteWall);
+        whiteBody.position.z = 0.06;
+        canister.add(whiteBody);
 
-        const fluidCore = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.38, 16), materials.clearTreatedWater);
-        fluidCore.position.x = 0.06;
-        filterGroup.add(fluidCore);
+        // Clear sight glass window with treated water inside
+        const glassWindow = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.16, 16), materials.clearSightGlass);
+        glassWindow.position.z = 0.06;
+        canister.add(glassWindow);
 
-        const topCap = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.06, 16), materials.hydroBlueSteel);
-        topCap.position.set(0.06, 0.22, 0); filterGroup.add(topCap);
-        const botCap = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.06, 16), materials.hydroBlueSteel);
-        botCap.position.set(0.06, -0.22, 0); filterGroup.add(botCap);
+        const waterSample = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.14, 16), materials.clearTreatedWater);
+        waterSample.position.z = 0.06;
+        canister.add(waterSample);
 
-        pod.add(filterGroup);
+        // Top & bottom knurled end caps
+        const tCap = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.05, 16), materials.hydroBlueSteel);
+        tCap.position.set(0, 0.17, 0.06); canister.add(tCap);
+        const bCap = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.05, 16), materials.hydroBlueSteel);
+        bCap.position.set(0, -0.17, 0.06); canister.add(bCap);
+
+        pod.add(canister);
       }
 
-      // 6. Access Double Doors at rear with stainless handles
+      // Lower-Left Louvered Ventilation Panel on front face (Matches photo!)
+      const louverPanel = new THREE.Group();
+      louverPanel.position.set(-pw * 0.28, 0.55, pl * 0.5 + 0.01);
+      pod.add(louverPanel);
+
+      const louverFrame = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.48, 0.02), materials.hydroBlueSteel);
+      louverPanel.add(louverFrame);
+
+      for (let ly = -0.18; ly <= 0.18; ly += 0.06) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.025, 0.025), materials.truckTrimBlack);
+        blade.position.y = ly;
+        blade.rotation.x = -0.45;
+        louverPanel.add(blade);
+      }
+
+      // 6. Access Double Doors at rear with heavy ISO container locking rods & handles
       const doorL = new THREE.Mesh(new THREE.PlaneGeometry(pw * 0.46, ph * 0.78), materials.podWhiteWall);
       doorL.position.set(-pw * 0.23, ph * 0.48, -pl * 0.5 - 0.01);
       doorL.rotation.y = Math.PI;
@@ -1352,9 +1653,27 @@
       doorR.rotation.y = Math.PI;
       pod.add(doorR);
 
-      const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.25, 8), materials.stainlessSteel);
-      handle.position.set(0.06, 1.2, -pl * 0.5 - 0.04);
-      pod.add(handle);
+      // Vertical ISO Stainless Locking Bars with Cam Keepers & Lever Handles
+      [-pw * 0.14, pw * 0.14].forEach(lx => {
+        // Vertical locking rod
+        const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, ph * 0.76, 12), materials.stainlessSteel);
+        rod.position.set(lx, ph * 0.48, -pl * 0.5 - 0.035);
+        pod.add(rod);
+
+        // Top & bottom cam keepers
+        const camTop = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.05), materials.hydroBlueSteel);
+        camTop.position.set(lx, ph * 0.84, -pl * 0.5 - 0.035);
+        pod.add(camTop);
+
+        const camBot = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.05), materials.hydroBlueSteel);
+        camBot.position.set(lx, ph * 0.12, -pl * 0.5 - 0.035);
+        pod.add(camBot);
+
+        // Horizontal lever handle with rubber grip
+        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.035, 0.04), materials.truckTrimBlack);
+        handle.position.set(lx + (lx > 0 ? -0.10 : 0.10), 1.15, -pl * 0.5 - 0.05);
+        pod.add(handle);
+      });
 
       // Register outer meshes for X-Ray toggling
       allOuterMeshes.push({ mesh: podBody, defaultMat: defaultMats });
@@ -1600,6 +1919,16 @@
     trayBase.receiveShadow = true;
     trayGroup.add(trayBase);
 
+    // Wet Standing Water / Puddle Reflection Surface inside bund (Matches user reference photo!)
+    const wetPuddlePlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(trayWidth - 0.28, trayLength - 0.28),
+      materials.wetPuddleReflective
+    );
+    wetPuddlePlane.rotation.x = -Math.PI / 2;
+    wetPuddlePlane.position.y = 0.082;
+    wetPuddlePlane.receiveShadow = true;
+    trayGroup.add(wetPuddlePlane);
+
     // Perimeter kickplate curbs
     const curbH = 0.22, curbT = 0.06;
     const curbN = new THREE.Mesh(new THREE.BoxGeometry(trayWidth, curbH, curbT), materials.galvanizedTray);
@@ -1615,6 +1944,28 @@
     const aisleGrating = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.04, trayLength - 0.4), materials.steelGrate);
     aisleGrating.position.set(0, 0.12, 0);
     trayGroup.add(aisleGrating);
+
+    // Discarded Heavy Utility Tires outside the bund railing (Matches user reference photo!)
+    const tireStackGroup = new THREE.Group();
+    tireStackGroup.name = "Utility Field Tires Stack";
+    tireStackGroup.position.set(-4.1, 0, 4.9);
+    mobilePlantGroup.add(tireStackGroup);
+
+    function createUtilityTire(px, py, pz, rotX, rotY, rotZ) {
+      const tireGeom = new THREE.TorusGeometry(0.38, 0.16, 16, 24);
+      const tireMesh = new THREE.Mesh(tireGeom, materials.truckTireRubber);
+      tireMesh.rotation.set(rotX, rotY, rotZ);
+      tireMesh.position.set(px, py, pz);
+      tireMesh.castShadow = true;
+      tireMesh.receiveShadow = true;
+      return tireMesh;
+    }
+    // Bottom tire flat on sand
+    tireStackGroup.add(createUtilityTire(0, 0.16, 0, Math.PI / 2, 0, 0.2));
+    // Second tire stacked slightly askew
+    tireStackGroup.add(createUtilityTire(0.08, 0.44, -0.05, Math.PI / 2 + 0.08, 0.15, -0.3));
+    // Third tire leaning against the stack
+    tireStackGroup.add(createUtilityTire(-0.35, 0.32, 0.22, Math.PI / 2.8, 0.4, 0.25));
 
     // =========================================================================
     // 7. RAW FEED EQUALIZATION & BUFFER TANK INFRASTRUCTURE
@@ -1701,34 +2052,92 @@
     skidGroup.position.set(-4.2, 0, -1.8);
     mobilePlantGroup.add(skidGroup);
 
-    const skidBase = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.14, 1.4), materials.hydroBlueSteel);
-    skidBase.position.y = 0.07;
+    // Heavy skid steel frame with "PC-10" stencil on side (exact match to photo!)
+    const skidBase = new THREE.Mesh(
+      new THREE.BoxGeometry(2.3, 0.16, 1.5),
+      [materials.pc10SkidFrame, materials.pc10SkidFrame, materials.hydroBlueSteel, materials.hydroBlueSteel, materials.pc10SkidFrame, materials.pc10SkidFrame]
+    );
+    skidBase.position.y = 0.08;
     skidBase.castShadow = true;
     skidGroup.add(skidBase);
 
-    // Dual Pumping Assemblies (Motors + Volutes)
+    // Dual Pumping Assemblies (Motors + Volutes + Finning + Gauges)
     for (let p = -0.55; p <= 0.55; p += 1.1) {
-      // Electric TEFC motor (blue)
-      const motor = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.55, 16), materials.processPipeBlue);
-      motor.rotation.x = Math.PI / 2;
-      motor.position.set(p, 0.35, -0.2);
-      skidGroup.add(motor);
+      // Electric TEFC motor with cooling fins (Hydro blue)
+      const motorGroup = new THREE.Group();
+      motorGroup.position.set(p, 0.38, -0.2);
+      skidGroup.add(motorGroup);
+
+      const motorBody = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.52, 16), materials.processPipeBlue);
+      motorBody.rotation.x = Math.PI / 2;
+      motorBody.castShadow = true;
+      motorGroup.add(motorBody);
+
+      // Cooling fan cowl at rear
+      const fanCowl = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.12, 16), materials.truckTrimBlack);
+      fanCowl.rotation.x = Math.PI / 2;
+      fanCowl.position.z = -0.32;
+      motorGroup.add(fanCowl);
+
+      // Electrical terminal conduit box on top of motor
+      const junctionBox = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.10, 0.14), materials.processPipeBlue);
+      junctionBox.position.set(0, 0.22, 0);
+      motorGroup.add(junctionBox);
 
       // Pump volute casing
       const volute = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.22, 16), materials.stainlessSteel);
-      volute.position.set(p, 0.35, 0.2);
+      volute.position.set(p, 0.38, 0.22);
+      volute.castShadow = true;
       skidGroup.add(volute);
 
+      // Suction & discharge flanges with hex bolts
+      const flange = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.06, 12), materials.stainlessSteel);
+      flange.position.set(p, 0.60, 0.22);
+      skidGroup.add(flange);
+
       // Duplex Basket Strainer canister
-      const strainer = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.45, 12), materials.stainlessSteel);
-      strainer.position.set(p, 0.45, 0.5);
+      const strainer = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.48, 14), materials.stainlessSteel);
+      strainer.position.set(p, 0.48, 0.55);
+      strainer.castShadow = true;
       skidGroup.add(strainer);
+
+      // Handwheel clamp on top of strainer
+      const handwheel = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.015, 8, 16), materials.safetyYellow);
+      handwheel.rotation.x = Math.PI / 2;
+      handwheel.position.set(p, 0.74, 0.55);
+      skidGroup.add(handwheel);
+
+      // Dial Pressure Gauge mounted on discharge line
+      const gaugeStem = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.18, 8), materials.stainlessSteel);
+      gaugeStem.position.set(p, 0.68, 0.05);
+      skidGroup.add(gaugeStem);
+
+      const gaugeDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.035, 16), materials.dialGauge);
+      gaugeDisc.rotation.x = Math.PI / 2;
+      gaugeDisc.position.set(p, 0.80, 0.05);
+      skidGroup.add(gaugeDisc);
+
+      // Quarter-turn ball valve with bright red lever handle
+      const valveBody = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.14, 8), materials.stainlessSteel);
+      valveBody.position.set(p + 0.18, 0.48, 0.22);
+      skidGroup.add(valveBody);
+
+      const redHandle = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 0.04), materials.truckTaillightRed);
+      redHandle.position.set(p + 0.26, 0.56, 0.22);
+      skidGroup.add(redHandle);
     }
 
     // Local Skid Control Panel & E-Stop
-    const skidPanel = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.6, 0.2), materials.podWhiteWall);
-    skidPanel.position.set(-0.8, 0.8, -0.4);
+    const skidPanel = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.65, 0.22), materials.podWhiteWall);
+    skidPanel.position.set(-0.85, 0.82, -0.42);
+    skidPanel.castShadow = true;
     skidGroup.add(skidPanel);
+
+    // Red E-stop mushroom pushbutton
+    const estop = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.04, 12), materials.truckTaillightRed);
+    estop.rotation.x = Math.PI / 2;
+    estop.position.set(-0.85, 0.75, -0.30);
+    skidGroup.add(estop);
 
     // =========================================================================
     // 9. ELECTRICAL MARSHALLING & SCADA FIELD CABINET
@@ -1841,291 +2250,775 @@
     // =========================================================================
     // 11. OPERATIONS VEHICLE & FIELD HUMAN FIGURES (AUTHENTIC CONTEXT)
     // =========================================================================
-    // Realistic Heavy-Duty 4x4 Operations Utility Truck (Matches field photo)
+    // High-Fidelity Photoreal 4x4 Operations Utility Truck (Matches user photo background)
     function createDetailedOperationsTruck() {
       const truck = new THREE.Group();
       truck.name = "Operations Field 4x4 Utility Truck";
       truck.position.set(-2.8, 0, -8.6);
       truck.rotation.y = 0.38;
 
-      // Chassis & Frame Rails
-      const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.22, 5.2), materials.truckTrimBlack);
-      chassis.position.y = 0.45;
-      chassis.castShadow = true;
-      truck.add(chassis);
+      // 1. Chassis & Heavy-Duty Frame Rails
+      const chassisGroup = new THREE.Group();
+      truck.add(chassisGroup);
 
-      // Main Cab Lower Body (Fenders & Lower Doors)
-      const cabLower = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.65, 2.6), materials.truckBodyPaint);
-      cabLower.position.set(0, 0.82, 0.65);
-      cabLower.castShadow = true;
-      truck.add(cabLower);
+      // Twin longitudinal boxed steel frame rails
+      for (let rx = -0.48; rx <= 0.48; rx += 0.96) {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 5.2), materials.truckTrimBlack);
+        rail.position.set(rx, 0.40, 0);
+        rail.castShadow = true;
+        chassisGroup.add(rail);
+      }
+      // Crossmembers
+      for (let cz = -2.2; cz <= 2.2; cz += 1.1) {
+        const cross = new THREE.Mesh(new THREE.BoxGeometry(1.04, 0.10, 0.12), materials.truckTrimBlack);
+        cross.position.set(0, 0.40, cz);
+        chassisGroup.add(cross);
+      }
 
-      // Cab Upper Greenhouse & Roof
-      const cabUpper = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.72, 1.9), materials.truckBodyPaint);
-      cabUpper.position.set(0, 1.48, 0.55);
-      cabUpper.castShadow = true;
-      truck.add(cabUpper);
+      // Front independent suspension crossmember & skid plate
+      const frontSkid = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.05, 1.1), materials.stainlessSteel);
+      frontSkid.position.set(0, 0.32, 2.0);
+      frontSkid.rotation.x = -0.15;
+      chassisGroup.add(frontSkid);
 
-      // Tinted Glass Canopy (Windshield, rear & side windows)
-      const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.82, 0.62, 0.05), materials.truckGlassTint);
-      windshield.position.set(0, 1.45, 1.52);
-      windshield.rotation.x = -0.32;
-      truck.add(windshield);
+      // Rear live axle & differential pumpkin
+      const diffPumpkin = new THREE.Mesh(new THREE.SphereGeometry(0.17, 16, 16), materials.truckTrimBlack);
+      diffPumpkin.position.set(0, 0.44, -1.8);
+      chassisGroup.add(diffPumpkin);
 
-      const rearWindow = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.55, 0.05), materials.truckGlassTint);
-      rearWindow.position.set(0, 1.48, -0.42);
-      truck.add(rearWindow);
+      const axleTube = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 1.7, 12), materials.truckTrimBlack);
+      axleTube.rotation.z = Math.PI / 2;
+      axleTube.position.set(0, 0.44, -1.8);
+      chassisGroup.add(axleTube);
 
-      const sideWindowsL = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.52, 1.6), materials.truckGlassTint);
-      sideWindowsL.position.set(-0.94, 1.48, 0.55);
-      truck.add(sideWindowsL);
+      // Exhaust pipe & oval muffler with polished chrome tip
+      const muffler = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.75, 12), materials.stainlessSteel);
+      muffler.rotation.x = Math.PI / 2;
+      muffler.position.set(0.38, 0.38, -0.6);
+      chassisGroup.add(muffler);
 
-      const sideWindowsR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.52, 1.6), materials.truckGlassTint);
-      sideWindowsR.position.set(0.94, 1.48, 0.55);
-      truck.add(sideWindowsR);
+      const exhaustTip = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.35, 12), materials.truckChrome);
+      exhaustTip.rotation.set(0, 0.35, Math.PI / 2);
+      exhaustTip.position.set(0.82, 0.34, -2.2);
+      chassisGroup.add(exhaustTip);
 
-      // Hood & Engine Bay
-      const hood = new THREE.Mesh(new THREE.BoxGeometry(1.95, 0.35, 1.45), materials.truckBodyPaint);
-      hood.position.set(0, 0.95, 2.2);
+      // 2. Cab Lower Body & Sleek Hood
+      const cabGroup = new THREE.Group();
+      truck.add(cabGroup);
+
+      // Main cab lower tub
+      const cabBase = new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.58, 2.50), materials.truckBodyPaint);
+      cabBase.position.set(0, 0.72, 0.65);
+      cabBase.castShadow = true;
+      cabBase.receiveShadow = true;
+      cabGroup.add(cabBase);
+
+      // Smooth Aerodynamic Hood (Slight forward rake, NO bulky cylinder!)
+      const hoodGeom = new THREE.BoxGeometry(1.84, 0.18, 1.45);
+      const hood = new THREE.Mesh(hoodGeom, materials.truckBodyPaint);
+      hood.position.set(0, 0.89, 2.30);
+      hood.rotation.x = -0.05;
       hood.castShadow = true;
-      truck.add(hood);
+      cabGroup.add(hood);
 
-      // Front Honeycomb Grille & Bumper
-      const grille = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.42, 0.1), materials.truckTrimBlack);
-      grille.position.set(0, 0.85, 2.94);
-      truck.add(grille);
-
-      // LED Headlight Assemblies
-      for (let hx = -0.82; hx <= 0.82; hx += 1.64) {
-        const headlight = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.08), materials.truckHeadlightGlass);
-        headlight.position.set(hx, 0.9, 2.94);
-        truck.add(headlight);
-
-        // Turn signal reflector
-        const amber = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, 0.08), materials.safetyYellow);
-        amber.position.set(hx > 0 ? hx + 0.15 : hx - 0.15, 0.9, 2.92);
-        truck.add(amber);
+      // Subtle hood accent crease lines (left & right)
+      for (let hx = -0.58; hx <= 0.58; hx += 1.16) {
+        const crease = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.02, 1.35), materials.truckBodyPaint);
+        crease.position.set(hx, 0.99, 2.30);
+        crease.rotation.x = -0.05;
+        cabGroup.add(crease);
       }
 
-      // Heavy Front Steel Winch Bumper & Skid Plate
-      const frontBumper = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.35, 0.35), materials.truckTrimBlack);
-      frontBumper.position.set(0, 0.5, 3.02);
-      frontBumper.castShadow = true;
-      truck.add(frontBumper);
+      // Molded Front Fascia & Chrome Horizontal Grille
+      const grilleSurround = new THREE.Mesh(new THREE.BoxGeometry(1.68, 0.44, 0.12), materials.truckTrimBlack);
+      grilleSurround.position.set(0, 0.82, 3.03);
+      cabGroup.add(grilleSurround);
 
-      // Rear Truck Bed (Utility cargo box)
-      const bedFloor = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.12, 2.3), materials.truckTrimBlack);
-      bedFloor.position.set(0, 0.58, -1.55);
+      // Horizontal Chrome Slats across grille
+      for (let g = -0.12; g <= 0.12; g += 0.08) {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.03, 0.14), materials.truckChrome);
+        bar.position.set(0, 0.82 + g, 3.05);
+        cabGroup.add(bar);
+      }
+
+      // Center Chrome Emblem
+      const badge = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 16), materials.truckChrome);
+      badge.rotation.x = Math.PI / 2;
+      badge.position.set(0, 0.82, 3.12);
+      cabGroup.add(badge);
+
+      // Modern Aerodynamic Headlight Clusters
+      for (let hx = -0.74; hx <= 0.74; hx += 1.48) {
+        const headGroup = new THREE.Group();
+        headGroup.position.set(hx, 0.86, 3.03);
+        cabGroup.add(headGroup);
+
+        // Clear outer polycarbonate lens
+        const lens = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.20, 0.06), materials.truckHeadlightGlass);
+        headGroup.add(lens);
+
+        // Chrome reflector housing inside
+        const reflector = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.04), materials.truckChrome);
+        reflector.position.z = -0.02;
+        headGroup.add(reflector);
+
+        // LED Projector bulb
+        const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 12), new THREE.MeshBasicMaterial({ color: '#f8fafc' }));
+        bulb.position.set(hx > 0 ? -0.05 : 0.05, 0, 0.01);
+        headGroup.add(bulb);
+
+        // Amber turn signal outer corner
+        const amber = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.16, 0.05), materials.safetyYellow);
+        amber.position.set(hx > 0 ? 0.10 : -0.10, 0, 0.01);
+        headGroup.add(amber);
+      }
+
+      // Front Aerodynamic Bumper with Skid Plate & Fog Lamps
+      const bumper = new THREE.Mesh(new THREE.BoxGeometry(1.98, 0.34, 0.32), materials.truckTrimBlack);
+      bumper.position.set(0, 0.48, 3.08);
+      bumper.castShadow = true;
+      cabGroup.add(bumper);
+
+      const bumperPlate = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.16, 0.34), materials.stainlessSteel);
+      bumperPlate.position.set(0, 0.42, 3.10);
+      cabGroup.add(bumperPlate);
+
+      // Circular Fog Lamps
+      for (let fx = -0.68; fx <= 0.68; fx += 1.36) {
+        const fog = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 12), materials.truckHeadlightGlass);
+        fog.rotation.x = Math.PI / 2;
+        fog.position.set(fx, 0.46, 3.24);
+        cabGroup.add(fog);
+      }
+
+      // Dual Red Recovery Tow Hooks
+      for (let tx = -0.36; tx <= 0.36; tx += 0.72) {
+        const hook = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.014, 8, 12), materials.truckTaillightRed);
+        hook.position.set(tx, 0.36, 3.25);
+        cabGroup.add(hook);
+      }
+
+      // 3. Double-Cab Upper Greenhouse (Curved Roof, Tinted Glass)
+      // Curved Roof Panel
+      const roofGeom = new THREE.BoxGeometry(1.76, 0.10, 1.90);
+      const roof = new THREE.Mesh(roofGeom, materials.truckBodyPaint);
+      roof.position.set(0, 1.68, 0.55);
+      roof.castShadow = true;
+      cabGroup.add(roof);
+
+      // Low-profile black roof rack rails
+      for (let rx = -0.68; rx <= 0.68; rx += 1.36) {
+        const roofRail = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 1.75, 8), materials.truckTrimBlack);
+        roofRail.rotation.x = Math.PI / 2;
+        roofRail.position.set(rx, 1.75, 0.55);
+        cabGroup.add(roofRail);
+      }
+
+      // Curved Raked Windshield (~35 degrees)
+      const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.64, 0.04), materials.truckGlassTint);
+      windshield.position.set(0, 1.38, 1.58);
+      windshield.rotation.x = -0.36;
+      cabGroup.add(windshield);
+
+      // Windshield Wiper Arms parked at cowl
+      for (let wx = -0.42; wx <= 0.35; wx += 0.70) {
+        const wiper = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.018, 0.018), materials.truckTrimBlack);
+        wiper.position.set(wx, 1.12, 1.82);
+        wiper.rotation.z = -0.14;
+        cabGroup.add(wiper);
+      }
+
+      // Satin Black B-Pillars & C-Pillars
+      for (let px = -0.89; px <= 0.89; px += 1.78) {
+        const bPillar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.52, 0.12), materials.truckTrimBlack);
+        bPillar.position.set(px, 1.36, 0.55);
+        cabGroup.add(bPillar);
+      }
+
+      // Side Tinted Window Panes
+      for (let sx = -0.88; sx <= 0.88; sx += 1.76) {
+        const sideGlass = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.50, 1.70), materials.truckGlassTint);
+        sideGlass.position.set(sx, 1.36, 0.58);
+        cabGroup.add(sideGlass);
+      }
+
+      // Rear Cabin Window overlooking the bed
+      const rearGlass = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.46, 0.04), materials.truckGlassTint);
+      rearGlass.position.set(0, 1.38, -0.42);
+      cabGroup.add(rearGlass);
+
+      // High-Mount 3rd Center Brake Light (CHMSL)
+      const chmsl = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.035, 0.03), materials.truckTaillightRed);
+      chmsl.position.set(0, 1.66, -0.42);
+      cabGroup.add(chmsl);
+
+      // Aerodynamic Side Mirrors with Turn Indicator Strip
+      for (let mx = -1.00; mx <= 1.00; mx += 2.00) {
+        const mirrorGroup = new THREE.Group();
+        mirrorGroup.position.set(mx, 1.30, 1.38);
+        cabGroup.add(mirrorGroup);
+
+        const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.14, 8), materials.truckTrimBlack);
+        stalk.rotation.z = mx > 0 ? -Math.PI / 3 : Math.PI / 3;
+        mirrorGroup.add(stalk);
+
+        const housing = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.16, 0.24), materials.truckBodyPaint);
+        housing.position.set(mx > 0 ? 0.07 : -0.07, 0.04, 0);
+        housing.castShadow = true;
+        mirrorGroup.add(housing);
+
+        // Chrome mirror glass facing rearwards
+        const mGlass = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.20), materials.truckChrome);
+        mGlass.rotation.y = mx > 0 ? -Math.PI / 2 : Math.PI / 2;
+        mGlass.position.set(mx > 0 ? 0.12 : -0.12, 0.04, -0.02);
+        mirrorGroup.add(mGlass);
+
+        // Turn indicator ribbon on outer face
+        const mInd = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.03, 0.16), materials.safetyYellow);
+        mInd.position.set(mx > 0 ? 0.07 : -0.07, 0.04, 0.11);
+        mirrorGroup.add(mInd);
+      }
+
+      // Recessed Modern Door Pull Handles
+      [[-0.96, 0.90, 1.05], [0.96, 0.90, 1.05], [-0.96, 0.90, 0.15], [0.96, 0.90, 0.15]].forEach(([dx, dy, dz]) => {
+        const dHandle = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.045, 0.14), materials.truckTrimBlack);
+        dHandle.position.set(dx, dy, dz);
+        cabGroup.add(dHandle);
+      });
+
+      // Tubular Side Rocker Step Bars (Rock Sliders)
+      for (let sx = -0.98; sx <= 0.98; sx += 1.96) {
+        const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 2.1, 12), materials.truckTrimBlack);
+        bar.rotation.x = Math.PI / 2;
+        bar.position.set(sx, 0.32, 0.55);
+        bar.castShadow = true;
+        cabGroup.add(bar);
+      }
+
+      // 4. Pickup Bed Cargo Box (Clean walls, low-profile headache rack, tailgate)
+      const bedGroup = new THREE.Group();
+      truck.add(bedGroup);
+
+      // Bed floor with spray-in protective bedliner
+      const bedFloor = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.08, 2.10), materials.truckTrimBlack);
+      bedFloor.position.set(0, 0.52, -1.55);
       bedFloor.castShadow = true;
-      truck.add(bedFloor);
+      bedFloor.receiveShadow = true;
+      bedGroup.add(bedFloor);
 
-      // Bed side walls & Tailgate
-      const bedWallL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 2.3), materials.truckBodyPaint);
-      bedWallL.position.set(-0.95, 0.85, -1.55);
-      bedWallL.castShadow = true;
-      truck.add(bedWallL);
+      // Outer Bed Side Panels
+      for (let bx = -0.89; bx <= 0.89; bx += 1.78) {
+        const bedSide = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.58, 2.10), materials.truckBodyPaint);
+        bedSide.position.set(bx, 0.76, -1.55);
+        bedSide.castShadow = true;
+        bedGroup.add(bedSide);
 
-      const bedWallR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 2.3), materials.truckBodyPaint);
-      bedWallR.position.set(0.95, 0.85, -1.55);
-      bedWallR.castShadow = true;
-      truck.add(bedWallR);
-
-      const tailgate = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.65, 0.12), materials.truckBodyPaint);
-      tailgate.position.set(0, 0.85, -2.68);
-      tailgate.castShadow = true;
-      truck.add(tailgate);
-
-      // Tail lights
-      for (let tx = -0.92; tx <= 0.92; tx += 1.84) {
-        const taillight = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.32, 0.06), materials.truckTaillightRed);
-        taillight.position.set(tx, 0.85, -2.74);
-        truck.add(taillight);
+        // Bed top protective plastic rail caps
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 2.10), materials.truckTrimBlack);
+        cap.position.set(bx, 1.06, -1.55);
+        bedGroup.add(cap);
       }
 
-      // Cargo Bed Equipment: Diamond-plate crossbed toolbox, water cooler, cones
-      const toolBox = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.45, 0.6), materials.stainlessSteel);
-      toolBox.position.set(0, 0.85, -0.75);
+      // Authentic Low-Profile Cab Guard / Headache Rack (Directly behind rear cab window)
+      const cabGuard = new THREE.Group();
+      cabGuard.position.set(0, 1.10, -0.48);
+      bedGroup.add(cabGuard);
+
+      const rackTop = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.04, 0.04), materials.truckTrimBlack);
+      rackTop.position.y = 0.50;
+      cabGuard.add(rackTop);
+
+      for (let rx = -0.82; rx <= 0.82; rx += 1.64) {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.52, 0.04), materials.truckTrimBlack);
+        post.position.set(rx, 0.25, 0);
+        cabGuard.add(post);
+      }
+      // Safety grid bars behind rear glass
+      for (let gy = 0.15; gy <= 0.45; gy += 0.15) {
+        const gbar = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1.60, 8), materials.truckTrimBlack);
+        gbar.rotation.z = Math.PI / 2;
+        gbar.position.set(0, gy, 0);
+        cabGuard.add(gbar);
+      }
+
+      // Tailgate with Center Handle & Hydro Emblem
+      const tailgate = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.58, 0.10), materials.truckBodyPaint);
+      tailgate.position.set(0, 0.76, -2.60);
+      tailgate.castShadow = true;
+      bedGroup.add(tailgate);
+
+      const tHandle = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.03), materials.truckTrimBlack);
+      tHandle.position.set(0, 0.88, -2.66);
+      bedGroup.add(tHandle);
+
+      // Tail Light Clusters (Vertical Wrap-Around Red/Amber/Clear)
+      for (let tx = -0.88; tx <= 0.88; tx += 1.76) {
+        const tlGroup = new THREE.Group();
+        tlGroup.position.set(tx, 0.76, -2.62);
+        bedGroup.add(tlGroup);
+
+        const redLens = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.32, 0.05), materials.truckTaillightRed);
+        redLens.position.y = 0.08;
+        tlGroup.add(redLens);
+
+        const revLens = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.10, 0.05), materials.truckHeadlightGlass);
+        revLens.position.y = -0.14;
+        tlGroup.add(revLens);
+      }
+
+      // Rear Heavy Steel Step Bumper & Class IV Tow Hitch
+      const rearBumper = new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.22, 0.24), materials.truckTrimBlack);
+      rearBumper.position.set(0, 0.42, -2.72);
+      rearBumper.castShadow = true;
+      bedGroup.add(rearBumper);
+
+      const hitchReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.20), materials.stainlessSteel);
+      hitchReceiver.position.set(0, 0.36, -2.82);
+      bedGroup.add(hitchReceiver);
+
+      // Cargo: Diamond-plate crossbed toolbox
+      const toolBox = new THREE.Mesh(new THREE.BoxGeometry(1.70, 0.38, 0.58), materials.stainlessSteel);
+      toolBox.position.set(0, 0.75, -0.80);
       toolBox.castShadow = true;
-      truck.add(toolBox);
+      bedGroup.add(toolBox);
 
-      const safetyCone = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.5, 12), materials.flexibleHoseOrange);
-      safetyCone.position.set(-0.55, 0.88, -1.8);
-      truck.add(safetyCone);
-
-      // High-Clearance Knobby Wheels (4x All-Terrain Tires + 6-spoke Alloy Wheels)
-      const wheelPositions = [
-        [-1.02, 0.48, 1.8],  // Front Left
-        [ 1.02, 0.48, 1.8],  // Front Right
-        [-1.02, 0.48, -1.8], // Rear Left
-        [ 1.02, 0.48, -1.8]  // Rear Right
+      // 5. 4x Realistic All-Terrain Wheels with Machined 6-Spoke Alloys, Lug Nuts & Brake Calipers
+      const wheelOffsets = [
+        [-0.94, 0.44, 1.8], [0.94, 0.44, 1.8],
+        [-0.94, 0.44, -1.8], [0.94, 0.44, -1.8]
       ];
-      wheelPositions.forEach(([wx, wy, wz]) => {
+      wheelOffsets.forEach(([wx, wy, wz]) => {
         const wheelGroup = new THREE.Group();
         wheelGroup.position.set(wx, wy, wz);
+        truck.add(wheelGroup);
 
-        // Knobby Tire Rubber
-        const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.32, 20), materials.truckTireRubber);
+        // Realistic all-terrain radial tire with rounded shoulder
+        const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.28, 32), materials.truckTireRubber);
         tire.rotation.z = Math.PI / 2;
         tire.castShadow = true;
         wheelGroup.add(tire);
 
-        // Alloy Rim
-        const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.33, 16), materials.truckAlloyWheel);
+        // Rounded outer tire shoulders (torus rings for smooth sidewalls)
+        for (let sx = -0.12; sx <= 0.12; sx += 0.24) {
+          const shoulder = new THREE.Mesh(new THREE.TorusGeometry(0.40, 0.025, 10, 32), materials.truckTireRubber);
+          shoulder.position.x = sx;
+          shoulder.rotation.y = Math.PI / 2;
+          wheelGroup.add(shoulder);
+        }
+
+        // Deep-dish silver machined alloy wheel rim
+        const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.22, 24), materials.truckAlloyWheel);
         rim.rotation.z = Math.PI / 2;
+        rim.position.x = wx > 0 ? 0.03 : -0.03;
         wheelGroup.add(rim);
 
-        // Center hub & lug nut accent
-        const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.35, 12), materials.truckTrimBlack);
-        hub.rotation.z = Math.PI / 2;
-        wheelGroup.add(hub);
+        // Polished outer rim lip ring
+        const lip = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.014, 8, 24), materials.truckChrome);
+        lip.position.x = wx > 0 ? 0.14 : -0.14;
+        lip.rotation.y = Math.PI / 2;
+        wheelGroup.add(lip);
 
-        truck.add(wheelGroup);
+        // 6 Machined Alloy Spokes
+        for (let s = 0; s < 6; s++) {
+          const sang = (s / 6) * Math.PI * 2;
+          const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.21, 0.04), materials.truckAlloyWheel);
+          spoke.position.set(wx > 0 ? 0.12 : -0.12, Math.cos(sang) * 0.11, Math.sin(sang) * 0.11);
+          spoke.rotation.x = -sang;
+          wheelGroup.add(spoke);
+        }
+
+        // Center hub cap with emblem
+        const hubCap = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.05, 16), materials.truckTrimBlack);
+        hubCap.rotation.z = Math.PI / 2;
+        hubCap.position.x = wx > 0 ? 0.14 : -0.14;
+        wheelGroup.add(hubCap);
+
+        // Chrome lug nuts
+        for (let l = 0; l < 6; l++) {
+          const lang = (l / 6) * Math.PI * 2;
+          const nut = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.025, 8), materials.truckChrome);
+          nut.rotation.z = Math.PI / 2;
+          nut.position.set(wx > 0 ? 0.145 : -0.145, Math.cos(lang) * 0.055, Math.sin(lang) * 0.055);
+          wheelGroup.add(nut);
+        }
+
+        // Drilled steel disc brake rotor inside wheel
+        const rotor = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.025, 16), materials.truckBrakeRotor);
+        rotor.rotation.z = Math.PI / 2;
+        rotor.position.x = wx > 0 ? -0.06 : 0.06;
+        wheelGroup.add(rotor);
+
+        // Red brake caliper (on front wheels)
+        if (wz > 0) {
+          const caliper = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.14, 0.10), materials.truckBrakeCaliper);
+          caliper.position.set(wx > 0 ? -0.06 : 0.06, 0.09, 0.07);
+          wheelGroup.add(caliper);
+        }
       });
-
-      // Side step rails / Nerf bars
-      for (let sx = -1.02; sx <= 1.02; sx += 2.04) {
-        const step = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 8), materials.truckTrimBlack);
-        step.rotation.x = Math.PI / 2;
-        step.position.set(sx, 0.32, 0.3);
-        truck.add(step);
-      }
 
       return truck;
     }
 
     mobilePlantGroup.add(createDetailedOperationsTruck());
 
-    // Field Human Figures in Realistic PPE (Anatomy, ANSI Class 3 Vest, Hardhat, Radio, Diagnostic Tablet)
-    function createRealisticFieldOperator(x, z, rotY = 0, isLeadEngineer = false) {
-      const person = new THREE.Group();
-      person.position.set(x, 0, z);
-      person.rotation.y = rotY;
+    // Helper: Build a Smooth Muscle Capsule connecting Point A to Point B
+    function createBoneCapsule(pA, pB, radius, material) {
+      const vA = new THREE.Vector3(...pA);
+      const vB = new THREE.Vector3(...pB);
+      const dist = vA.distanceTo(vB);
+      const geom = new THREE.CapsuleGeometry(radius, Math.max(0.01, dist), 12, 16);
+      const mesh = new THREE.Mesh(geom, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
 
-      // Heavy Safety Boots
-      for (let bx = -0.11; bx <= 0.11; bx += 0.22) {
-        const boot = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.16, 0.32), materials.safetyBootLeather);
-        boot.position.set(bx, 0.08, 0.04);
-        boot.castShadow = true;
-        person.add(boot);
-      }
+      const mid = new THREE.Vector3().addVectors(vA, vB).multiplyScalar(0.5);
+      mesh.position.copy(mid);
 
-      // Work Cargo Pants / Legs (Articulated stance)
-      const legL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.72, 0.18), materials.cargoPants);
-      legL.position.set(-0.11, 0.48, 0);
-      legL.castShadow = true;
-      person.add(legL);
+      const dir = new THREE.Vector3().subVectors(vB, vA).normalize();
+      const up = new THREE.Vector3(0, 1, 0);
+      const quat = new THREE.Quaternion().setFromUnitVectors(up, dir);
+      mesh.quaternion.copy(quat);
 
-      const legR = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.72, 0.18), materials.cargoPants);
-      legR.position.set(0.11, 0.48, 0);
-      legR.castShadow = true;
-      person.add(legR);
-
-      // Belt & Tool Pouch
-      const belt = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.08, 0.24), materials.safetyBootLeather);
-      belt.position.set(0, 0.86, 0);
-      person.add(belt);
-
-      // Torso with ANSI Class 3 High-Visibility Safety Vest
-      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.54, 0.25), materials.safetyVestHiVis);
-      torso.position.set(0, 1.15, 0);
-      torso.castShadow = true;
-      person.add(torso);
-
-      // Silver Retroreflective Safety Stripes on Vest
-      const stripeH = new THREE.Mesh(new THREE.BoxGeometry(0.43, 0.06, 0.26), materials.reflectiveStripe);
-      stripeH.position.set(0, 1.1, 0);
-      person.add(stripeH);
-
-      const stripeVL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.38, 0.26), materials.reflectiveStripe);
-      stripeVL.position.set(-0.12, 1.25, 0);
-      person.add(stripeVL);
-
-      const stripeVR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.38, 0.26), materials.reflectiveStripe);
-      stripeVR.position.set(0.12, 1.25, 0);
-      person.add(stripeVR);
-
-      // Arms & High-Vis Sleeves
-      const armL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.52, 0.14), materials.safetyVestHiVis);
-      armL.position.set(-0.28, 1.14, 0.08);
-      armL.rotation.x = isLeadEngineer ? 0.4 : 0.1;
-      armL.castShadow = true;
-      person.add(armL);
-
-      const armR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.52, 0.14), materials.safetyVestHiVis);
-      armR.position.set(0.28, 1.14, 0.08);
-      armR.rotation.x = isLeadEngineer ? 0.4 : 0.1;
-      armR.castShadow = true;
-      person.add(armR);
-
-      // Work Gloves / Hands
-      const handL = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.12, 0.12), materials.truckTrimBlack);
-      handL.position.set(-0.28, 0.84, isLeadEngineer ? 0.26 : 0.08);
-      person.add(handL);
-
-      const handR = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.12, 0.12), materials.truckTrimBlack);
-      handR.position.set(0.28, 0.84, isLeadEngineer ? 0.26 : 0.08);
-      person.add(handR);
-
-      // Neck & Head with Anatomical Facial Contours
-      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.12, 12), materials.skinTone);
-      neck.position.set(0, 1.45, 0);
-      person.add(neck);
-
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 14), materials.skinTone);
-      head.position.set(0, 1.56, 0.02);
-      person.add(head);
-
-      // Safety Sunglasses
-      const sunglasses = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.08), materials.truckTrimBlack);
-      sunglasses.position.set(0, 1.58, 0.13);
-      person.add(sunglasses);
-
-      // White Industrial Hardhat with Visor Brim & Chinstrap
-      const hardhatDome = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), materials.safetyHardhatWhite);
-      hardhatDome.position.set(0, 1.62, 0.02);
-      person.add(hardhatDome);
-
-      const hardhatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.02, 16), materials.safetyHardhatWhite);
-      hardhatBrim.position.set(0, 1.62, 0.04);
-      person.add(hardhatBrim);
-
-      // Shoulder Walkie-Talkie & Antenna
-      const radio = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.14, 0.05), materials.truckTrimBlack);
-      radio.position.set(-0.16, 1.34, 0.1);
-      person.add(radio);
-
-      const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.14, 6), materials.truckTrimBlack);
-      antenna.position.set(-0.16, 1.44, 0.1);
-      person.add(antenna);
-
-      if (isLeadEngineer) {
-        // Holding SCADA Diagnostic Field Tablet (Illuminated Cyan Screen)
-        const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.02, 0.28), materials.truckTrimBlack);
-        tablet.position.set(0, 0.95, 0.32);
-        tablet.rotation.x = 0.5;
-        person.add(tablet);
-
-        const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.24), materials.tabletScreenGlow);
-        screen.position.set(0, 0.965, 0.32);
-        screen.rotation.x = -Math.PI / 2 + 0.5;
-        person.add(screen);
-      } else {
-        // Operator holding Sampling Flask & Turbidity Pen
-        const flask = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.18, 12), materials.clearSightGlass);
-        flask.position.set(0.28, 0.92, 0.16);
-        person.add(flask);
-
-        const flaskFluid = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.14, 12), materials.clearTreatedWater);
-        flaskFluid.position.set(0.28, 0.90, 0.16);
-        person.add(flaskFluid);
-      }
-
-      return person;
+      return mesh;
     }
 
-    // Place realistic operators exactly matching site photo
-    mobilePlantGroup.add(createRealisticFieldOperator(-2.8, 2.5, 0.35, true));  // Lead Engineer with SCADA Tablet
-    mobilePlantGroup.add(createRealisticFieldOperator(0.0, -0.4, Math.PI * 0.95, false)); // Water Quality Specialist with Sample Flask
+    // High-Fidelity Photoreal Field Personnel (Exact match to the 2 engineers in user photo!)
+    function createPhotorealEngineer(role = 'lead', x = 0, z = 0, rotY = 0) {
+      const engineer = new THREE.Group();
+      engineer.position.set(x, 0, z);
+      engineer.rotation.y = rotY;
+
+      const isCelebration = (role === 'celebration');
+      const pantsMat = isCelebration ? materials.darkWorkTrousers : materials.tanCargoPants;
+      const shirtMat = isCelebration ? materials.darkTacticalJacket : materials.blackTacticalShirt;
+
+      // 1. Rugged Oiled-Leather Field Work Boots
+      [-0.12, 0.12].forEach((bx, idx) => {
+        const boot = new THREE.Group();
+        const footZ = isCelebration ? 0 : (idx === 0 ? -0.02 : 0.03);
+        const footRotY = isCelebration ? 0 : (idx === 0 ? -0.05 : 0.08);
+        boot.position.set(bx, 0, footZ);
+        boot.rotation.y = footRotY;
+        engineer.add(boot);
+
+        // Thick lug rubber sole with heel
+        const sole = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.04, 0.29), materials.truckTrimBlack);
+        sole.position.set(0, 0.02, 0.03);
+        sole.castShadow = true;
+        boot.add(sole);
+
+        const heel = new THREE.Mesh(new THREE.BoxGeometry(0.125, 0.025, 0.09), materials.truckTrimBlack);
+        heel.position.set(0, 0.045, -0.07);
+        boot.add(heel);
+
+        // Rounded leather toe cap
+        const toe = new THREE.Mesh(new THREE.SphereGeometry(0.065, 16, 12), materials.leatherFieldBoots);
+        toe.scale.set(1.0, 0.75, 1.25);
+        toe.position.set(0, 0.065, 0.10);
+        toe.castShadow = true;
+        boot.add(toe);
+
+        // Leather vamp & shaft
+        const vamp = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.13, 0.18), materials.leatherFieldBoots);
+        vamp.position.set(0, 0.09, -0.01);
+        vamp.castShadow = true;
+        boot.add(vamp);
+
+        // Padded collar hugging ankle
+        const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.072, 0.11, 14), materials.leatherFieldBoots);
+        collar.position.set(0, 0.18, -0.02);
+        boot.add(collar);
+      });
+
+      // 2. Anatomical Legs & Cargo Trousers
+      const lFoot = [-0.12, 0.20, isCelebration ? 0 : -0.02];
+      const lKnee = [-0.13, 0.62, isCelebration ? 0 : -0.01];
+      const lHip  = [-0.10, 1.02, 0.0];
+
+      const rFoot = [ 0.12, 0.20, isCelebration ? 0 :  0.03];
+      const rKnee = [ 0.12, 0.62, isCelebration ? 0 :  0.04];
+      const rHip  = [ 0.10, 1.02, 0.0];
+
+      engineer.add(createBoneCapsule(lFoot, lKnee, 0.076, pantsMat));
+      engineer.add(createBoneCapsule(rFoot, rKnee, 0.076, pantsMat));
+      engineer.add(createBoneCapsule(lKnee, lHip,  0.088, pantsMat));
+      engineer.add(createBoneCapsule(rKnee, rHip,  0.088, pantsMat));
+
+      // Knee fabric contour
+      const kneeCapL = new THREE.Mesh(new THREE.SphereGeometry(0.080, 14, 12), pantsMat);
+      kneeCapL.position.set(...lKnee); engineer.add(kneeCapL);
+      const kneeCapR = new THREE.Mesh(new THREE.SphereGeometry(0.080, 14, 12), pantsMat);
+      kneeCapR.position.set(...rKnee); engineer.add(kneeCapR);
+
+      // 3D Cargo Pockets on outer thighs
+      [-0.19, 0.19].forEach((px) => {
+        const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.15, 0.13), pantsMat);
+        pocket.position.set(px, 0.84, 0.01);
+        engineer.add(pocket);
+
+        const flap = new THREE.Mesh(new THREE.BoxGeometry(0.040, 0.032, 0.136), pantsMat);
+        flap.position.set(px, 0.92, 0.01);
+        engineer.add(flap);
+      });
+
+      // Pelvic rise & tactical duty belt
+      const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.165, 20, 16), pantsMat);
+      pelvis.scale.set(1.10, 0.82, 0.85);
+      pelvis.position.set(0, 1.05, 0);
+      pelvis.castShadow = true;
+      engineer.add(pelvis);
+
+      const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.178, 0.178, 0.052, 24), materials.truckTrimBlack);
+      belt.position.set(0, 1.14, 0);
+      belt.scale.set(1.06, 1.0, 0.86);
+      engineer.add(belt);
+
+      const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.046, 0.018), materials.stainlessSteel);
+      buckle.position.set(0, 1.14, 0.165);
+      engineer.add(buckle);
+
+      // 3. Athletic Torso & Fitted Polo Shirt
+      const midriff = new THREE.Mesh(new THREE.CylinderGeometry(0.180, 0.170, 0.20, 20), shirtMat);
+      midriff.position.set(0, 1.25, 0);
+      midriff.scale.set(1.05, 1.0, 0.85);
+      midriff.castShadow = true;
+      engineer.add(midriff);
+
+      const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.218, 0.184, 0.28, 20), shirtMat);
+      chest.position.set(0, 1.47, 0);
+      chest.scale.set(1.08, 1.0, 0.85);
+      chest.castShadow = true;
+      engineer.add(chest);
+
+      // Trapezius Muscle Slope from neck to shoulders
+      const trap = new THREE.Mesh(new THREE.CylinderGeometry(0.090, 0.215, 0.12, 18), shirtMat);
+      trap.position.set(0, 1.62, -0.01);
+      trap.scale.set(1.08, 1.0, 0.84);
+      engineer.add(trap);
+
+      // Ribbed Polo Collar
+      const collar = new THREE.Mesh(new THREE.TorusGeometry(0.086, 0.020, 10, 20), shirtMat);
+      collar.rotation.x = Math.PI / 2;
+      collar.position.set(0, 1.67, 0.01);
+      engineer.add(collar);
+
+      // Front Polo Placket with 2 dark buttons
+      const placket = new THREE.Mesh(new THREE.BoxGeometry(0.040, 0.14, 0.014), shirtMat);
+      placket.position.set(0, 1.56, 0.178);
+      engineer.add(placket);
+
+      for (let b = -0.035; b <= 0.035; b += 0.07) {
+        const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.006, 10), materials.truckTrimBlack);
+        btn.rotation.x = Math.PI / 2;
+        btn.position.set(0, 1.56 + b, 0.186);
+        engineer.add(btn);
+      }
+
+      // 4. Anatomical Arms, Wrists & Hands
+      const lShoulder = [-0.23, 1.54, 0.0];
+      const rShoulder = [ 0.23, 1.54, 0.0];
+
+      const deltoidL = new THREE.Mesh(new THREE.SphereGeometry(0.080, 16, 16), shirtMat);
+      deltoidL.position.set(...lShoulder); engineer.add(deltoidL);
+      const deltoidR = new THREE.Mesh(new THREE.SphereGeometry(0.080, 16, 16), shirtMat);
+      deltoidR.position.set(...rShoulder); engineer.add(deltoidR);
+
+      if (isCelebration) {
+        // --- CELEBRATION POSE: BOTH ARMS RAISED IN VICTORY TRIUMPH (MATCHES PHOTO!) ---
+        const lElbow = [-0.42, 1.84, 0.0];
+        const lHand  = [-0.56, 2.20, 0.05];
+        const rElbow = [ 0.42, 1.84, 0.0];
+        const rHand  = [ 0.56, 2.20, 0.05];
+
+        engineer.add(createBoneCapsule(lShoulder, lElbow, 0.068, shirtMat));
+        engineer.add(createBoneCapsule(rShoulder, rElbow, 0.068, shirtMat));
+        engineer.add(createBoneCapsule(lElbow, lHand, 0.056, materials.skinTone));
+        engineer.add(createBoneCapsule(rElbow, rHand, 0.056, materials.skinTone));
+
+        // Triumphant open hands / pumped fists in clean water victory
+        [-0.56, 0.56].forEach((hx) => {
+          const hand = new THREE.Mesh(new THREE.SphereGeometry(0.048, 14, 12), materials.skinTone);
+          hand.position.set(hx, 2.21, 0.05);
+          engineer.add(hand);
+        });
+
+      } else {
+        // --- LEAD ENGINEER: NATURAL CASUAL CLASPED HANDS AT WAIST (MATCHES PHOTO!) ---
+        const lElbow = [-0.21, 1.30, 0.04];
+        const rElbow = [ 0.21, 1.30, 0.04];
+
+        // Polo sleeve cuffs over upper biceps
+        engineer.add(createBoneCapsule(lShoulder, [-0.22, 1.42, 0.02], 0.070, shirtMat));
+        engineer.add(createBoneCapsule(rShoulder, [ 0.22, 1.42, 0.02], 0.070, shirtMat));
+
+        // Bare skin biceps below sleeves
+        engineer.add(createBoneCapsule([-0.22, 1.42, 0.02], lElbow, 0.056, materials.skinTone));
+        engineer.add(createBoneCapsule([ 0.22, 1.42, 0.02], rElbow, 0.056, materials.skinTone));
+
+        // Smooth elbow joints
+        const elbL = new THREE.Mesh(new THREE.SphereGeometry(0.056, 14, 14), materials.skinTone);
+        elbL.position.set(...lElbow); engineer.add(elbL);
+        const elbR = new THREE.Mesh(new THREE.SphereGeometry(0.056, 14, 14), materials.skinTone);
+        elbR.position.set(...rElbow); engineer.add(elbR);
+
+        // Forearms travelling down, forward, and in to wrists
+        const lWrist = [-0.045, 1.13, 0.18];
+        const rWrist = [ 0.045, 1.13, 0.18];
+
+        engineer.add(createBoneCapsule(lElbow, lWrist, 0.048, materials.skinTone));
+        engineer.add(createBoneCapsule(rElbow, rWrist, 0.048, materials.skinTone));
+
+        // Field Sports Watch on Left Wrist
+        const watch = new THREE.Mesh(new THREE.CylinderGeometry(0.050, 0.050, 0.030, 16), materials.truckTrimBlack);
+        watch.position.set(-0.075, 1.17, 0.155);
+        watch.rotation.set(0.3, 0.4, 0.8);
+        engineer.add(watch);
+
+        const watchBezel = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.005, 8, 16), materials.stainlessSteel);
+        watchBezel.position.set(-0.075, 1.17, 0.175);
+        watchBezel.rotation.x = Math.PI / 2;
+        engineer.add(watchBezel);
+
+        // Natural Clasped Hands in Front of Belt
+        const hands = new THREE.Group();
+        hands.position.set(0, 1.11, 0.19);
+        engineer.add(hands);
+
+        // Right hand cradle
+        const handR = new THREE.Mesh(new THREE.SphereGeometry(0.042, 14, 12), materials.skinTone);
+        handR.scale.set(1.2, 0.7, 0.9);
+        handR.position.set(0.022, 0, 0);
+        handR.rotation.z = 0.18;
+        hands.add(handR);
+
+        // Left hand resting on top
+        const handL = new THREE.Mesh(new THREE.SphereGeometry(0.044, 14, 12), materials.skinTone);
+        handL.scale.set(1.25, 0.75, 0.95);
+        handL.position.set(-0.018, 0.012, 0.014);
+        handL.rotation.z = -0.22;
+        hands.add(handL);
+
+        // Defined fingers resting across knuckles
+        for (let f = -0.020; f <= 0.020; f += 0.014) {
+          const finger = new THREE.Mesh(new THREE.CapsuleGeometry(0.0075, 0.030, 8, 8), materials.skinTone);
+          finger.position.set(f, 0.01, 0.038);
+          finger.rotation.set(0.55, 0, -0.18);
+          hands.add(finger);
+        }
+      }
+
+      // 5. LIFELIKE SCULPTED HEAD & WRAP-AROUND SUNGLASSES
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.072, 0.12, 18), materials.skinTone);
+      neck.position.set(0, 1.70, 0.01);
+      neck.castShadow = true;
+      engineer.add(neck);
+
+      const head = new THREE.Group();
+      head.position.set(0, 1.82, 0.02);
+      engineer.add(head);
+
+      // Anatomical Cranium
+      const cranium = new THREE.Mesh(new THREE.SphereGeometry(0.106, 32, 24), materials.skinTone);
+      cranium.scale.set(0.96, 1.18, 1.06);
+      cranium.castShadow = true;
+      head.add(cranium);
+
+      // Tapered Jawline
+      const jaw = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.050, 0.085, 20), materials.skinTone);
+      jaw.position.set(0, -0.065, 0.038);
+      jaw.rotation.x = -0.12;
+      jaw.scale.set(0.96, 0.9, 1.05);
+      head.add(jaw);
+
+      // Rounded Chin
+      const chin = new THREE.Mesh(new THREE.SphereGeometry(0.034, 16, 16), materials.skinTone);
+      chin.position.set(0, -0.092, 0.062);
+      head.add(chin);
+
+      // Ears (Flat against head, tilted back 15 degrees)
+      [-0.102, 0.102].forEach((ex) => {
+        const ear = new THREE.Mesh(new THREE.TorusGeometry(0.020, 0.005, 8, 16), materials.skinTone);
+        ear.position.set(ex, -0.01, -0.015);
+        ear.rotation.set(0.1, ex > 0 ? 0.25 : -0.25, 0);
+        head.add(ear);
+
+        const lobe = new THREE.Mesh(new THREE.SphereGeometry(0.009, 8, 8), materials.skinTone);
+        lobe.position.set(ex, -0.024, -0.015);
+        head.add(lobe);
+      });
+
+      // Cropped Dark Hair Cap
+      const hair = new THREE.Mesh(
+        new THREE.SphereGeometry(0.110, 24, 18, 0, Math.PI * 2, 0, Math.PI * 0.54),
+        materials.humanHairDark
+      );
+      hair.scale.set(0.98, 1.19, 1.08);
+      hair.position.set(0, 0.012, -0.005);
+      head.add(hair);
+
+      // Tapered Sideburns
+      [-0.102, 0.102].forEach((sx) => {
+        const burn = new THREE.Mesh(new THREE.BoxGeometry(0.009, 0.040, 0.020), materials.humanHairDark);
+        burn.position.set(sx, -0.018, 0.006);
+        head.add(burn);
+      });
+
+      // 3D Sculpted Nose
+      const noseBridge = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.045, 0.022), materials.skinTone);
+      noseBridge.position.set(0, -0.01, 0.112);
+      head.add(noseBridge);
+
+      const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.014, 12, 12), materials.skinTone);
+      noseTip.position.set(0, -0.030, 0.126);
+      head.add(noseTip);
+
+      // Neat Mustache & Goatee Stubble (Natural facial hair, conforms cleanly!)
+      const mustache = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.014, 0.015), materials.humanHairDark);
+      mustache.position.set(0, -0.052, 0.098);
+      head.add(mustache);
+
+      const chinStubble = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.028, 0.018), materials.humanHairDark);
+      chinStubble.position.set(0, -0.088, 0.070);
+      head.add(chinStubble);
+
+      // Wrap-Around Polarized Sunglasses (Oakley Style)
+      const shades = new THREE.Group();
+      shades.position.set(0, 0.025, 0.072);
+      head.add(shades);
+
+      // Brow frame bar
+      const brow = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.150, 16), materials.truckTrimBlack);
+      brow.rotation.z = Math.PI / 2;
+      brow.position.set(0, 0.015, 0.048);
+      shades.add(brow);
+
+      // Dual Polarized Lenses
+      [-0.042, 0.042].forEach((lx) => {
+        const lens = new THREE.Mesh(
+          new THREE.SphereGeometry(0.032, 16, 12, 0, Math.PI, 0, Math.PI * 0.54),
+          materials.darkSunglassesLens
+        );
+        lens.rotation.x = Math.PI * 0.52;
+        lens.rotation.y = lx > 0 ? -0.22 : 0.22;
+        lens.position.set(lx, -0.002, 0.046);
+        shades.add(lens);
+
+        // Thin Temple Arms extending back over ears
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.002, 0.120, 8), materials.truckTrimBlack);
+        arm.rotation.x = Math.PI / 2;
+        arm.position.set(lx > 0 ? 0.088 : -0.088, 0.010, -0.012);
+        shades.add(arm);
+      });
+
+      return engineer;
+    }
+
+    // Place the two photoreal engineers exactly matching the user reference photo!
+    // 1. Lead Field Engineer standing confidently beside Pod 1 (corridor between pod and cabinet)
+    mobilePlantGroup.add(createPhotorealEngineer('lead', -3.25, 2.10, 0.40));
+
+    // 2. Commissioning Engineer celebrating in victory cheer in the central corridor between pods
+    mobilePlantGroup.add(createPhotorealEngineer('celebration', 0.0, -0.20, 0.10));
 
     // =========================================================================
     // 12. 3D ANNOTATION PINS LAYER
