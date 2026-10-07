@@ -635,6 +635,7 @@
     <button class="btn" id="btn-cam-daf">🫧 DAF Separator (Pod 2)</button>
     <button class="btn" id="btn-cam-filter">🧪 Filtration (Pod 3)</button>
     <button class="btn" id="btn-cam-ground">👁️ Operator Eye-Level</button>
+    <button class="btn" id="btn-cam-truck">🚙 Operations Truck</button>
     
     <div class="control-separator"></div>
 
@@ -848,81 +849,121 @@
       return tex;
     }
 
-    // (B) Hydro Pod Front & Side Decal Canvas (Matches user reference photo!)
+    // (B) Hydro Pod Front & Side Decal Canvas (Uses REAL Hydro Industries corporate logo!)
     function generatePodDecalCanvas(podTitle = "Hydro", podSub = "...generating clean water") {
       const canvas = document.createElement('canvas');
-      canvas.width = 1024; canvas.height = 512;
+      canvas.width = 1024; canvas.height = 1024;
       const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, 1024, 512);
-
-      // White powder coated background panel
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(0, 0, 1024, 512);
-
-      // Faint subtle roof patina gradient at top edge
-      const rustGrad = ctx.createLinearGradient(0, 0, 0, 90);
-      rustGrad.addColorStop(0, 'rgba(168, 85, 38, 0.45)');
-      rustGrad.addColorStop(1, 'rgba(248, 250, 252, 0)');
-      ctx.fillStyle = rustGrad;
-      ctx.fillRect(0, 0, 1024, 90);
-
-      // Hydro Dragon Crest Vector Profile (Iconic stylized dragon mark from logo)
-      ctx.fillStyle = '#005ca9';
-      ctx.beginPath();
-      // Draw dragon silhouette
-      ctx.moveTo(120, 150);
-      ctx.bezierCurveTo(100, 180, 80, 210, 60, 240);
-      ctx.bezierCurveTo(90, 250, 120, 235, 140, 220);
-      ctx.bezierCurveTo(115, 260, 95, 300, 80, 340);
-      ctx.bezierCurveTo(130, 320, 170, 280, 195, 230);
-      ctx.bezierCurveTo(210, 270, 230, 310, 260, 350);
-      ctx.bezierCurveTo(250, 280, 240, 210, 225, 160);
-      ctx.bezierCurveTo(205, 120, 160, 110, 120, 150);
-      ctx.fill();
-
-      // Main Hydro Typography
-      ctx.fillStyle = '#374151';
-      ctx.font = 'bold 130px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText("Hydro", 280, 260);
-
-      ctx.fillStyle = '#6b7280';
-      ctx.font = '600 44px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText("industries", 285, 315);
-
-      // Slogan matching the real pods in the photo
-      ctx.fillStyle = '#2563eb';
-      ctx.font = 'italic 500 32px Georgia, serif';
-      ctx.fillText(podSub, 285, 365);
-
-      // Union Jack flag badge on upper right corner (as seen on the real units)
-      const flagX = 850, flagY = 80, flagW = 90, flagH = 55;
-      ctx.fillStyle = '#012169';
-      ctx.fillRect(flagX, flagY, flagW, flagH);
-      // White saltire
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 14;
-      ctx.beginPath(); ctx.moveTo(flagX, flagY); ctx.lineTo(flagX + flagW, flagY + flagH); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(flagX + flagW, flagY); ctx.lineTo(flagX, flagY + flagH); ctx.stroke();
-      // Red saltire
-      ctx.strokeStyle = '#c8102e'; ctx.lineWidth = 6;
-      ctx.beginPath(); ctx.moveTo(flagX, flagY); ctx.lineTo(flagX + flagW, flagY + flagH); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(flagX + flagW, flagY); ctx.lineTo(flagX, flagY + flagH); ctx.stroke();
-      // White cross
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(flagX + flagW/2 - 9, flagY, 18, flagH);
-      ctx.fillRect(flagX, flagY + flagH/2 - 9, flagW, 18);
-      // Red cross
-      ctx.fillStyle = '#c8102e';
-      ctx.fillRect(flagX + flagW/2 - 5, flagY, 10, flagH);
-      ctx.fillRect(flagX, flagY + flagH/2 - 5, flagW, 10);
-      ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.5; ctx.strokeRect(flagX, flagY, flagW, flagH);
-
-      // Lower service inspection label
-      ctx.fillStyle = '#1e3a8a';
-      ctx.font = 'bold 22px ui-monospace, monospace';
-      ctx.fillText("MOBILE RAPID RESPONSE TREATMENT POD | ISO-9001", 120, 450);
-
       const tex = new THREE.CanvasTexture(canvas);
       tex.needsUpdate = true;
+
+      const realLogo = new Image();
+
+      function renderDecal() {
+        ctx.clearRect(0, 0, 1024, 1024);
+
+        // 1. White powder-coated composite enclosure panel
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        // 2. Subtle top roofline sand patina gradient
+        const rustGrad = ctx.createLinearGradient(0, 0, 0, 110);
+        rustGrad.addColorStop(0, 'rgba(168, 85, 38, 0.35)');
+        rustGrad.addColorStop(1, 'rgba(248, 250, 252, 0)');
+        ctx.fillStyle = rustGrad;
+        ctx.fillRect(0, 0, 1024, 110);
+
+        // 3. Union Jack flag badge on upper right corner (authentic to Hydro UK manufacturing)
+        const flagX = 810, flagY = 70, flagW = 125, flagH = 75;
+        ctx.fillStyle = '#012169';
+        ctx.fillRect(flagX, flagY, flagW, flagH);
+        // White saltire
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 18;
+        ctx.beginPath(); ctx.moveTo(flagX, flagY); ctx.lineTo(flagX + flagW, flagY + flagH); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(flagX + flagW, flagY); ctx.lineTo(flagX, flagY + flagH); ctx.stroke();
+        // Red saltire
+        ctx.strokeStyle = '#c8102e'; ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.moveTo(flagX, flagY); ctx.lineTo(flagX + flagW, flagY + flagH); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(flagX + flagW, flagY); ctx.lineTo(flagX, flagY + flagH); ctx.stroke();
+        // White cross
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(flagX + flagW/2 - 12, flagY, 24, flagH);
+        ctx.fillRect(flagX, flagY + flagH/2 - 12, flagW, 24);
+        // Red cross
+        ctx.fillStyle = '#c8102e';
+        ctx.fillRect(flagX + flagW/2 - 7, flagY, 14, flagH);
+        ctx.fillRect(flagX, flagY + flagH/2 - 7, flagW, 14);
+        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.strokeRect(flagX, flagY, flagW, flagH);
+
+        // 4. Draw the REAL Official Hydro Industries Logo
+        if (realLogo.complete && realLogo.naturalWidth > 0) {
+          const logoW = 760;
+          const logoH = Math.round(logoW * (realLogo.naturalHeight / realLogo.naturalWidth)); // 243 px
+          const logoX = Math.round((1024 - logoW) / 2); // 132 px
+          const logoY = 240;
+          ctx.drawImage(realLogo, logoX, logoY, logoW, logoH);
+        } else {
+          // Sharp vector typography fallback until image loads
+          ctx.fillStyle = '#005696';
+          ctx.font = 'bold 120px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.fillText("Hydro", 280, 360);
+          ctx.fillStyle = '#4a4a4a';
+          ctx.font = '600 46px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.fillText("industries", 285, 420);
+        }
+
+        // 5. Authentic brand tagline under the wordmark
+        ctx.fillStyle = '#005696';
+        ctx.font = 'italic 500 36px Georgia, "Times New Roman", serif';
+        ctx.fillText("...generating clean water", 320, 525);
+
+        // 6. Bottom ventilation intake louver / black grille (as visible on real container in photo)
+        const louverX = 130, louverY = 680, louverW = 230, louverH = 170;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(louverX, louverY, louverW, louverH);
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(louverX, louverY, louverW, louverH);
+        for (let ly = louverY + 16; ly < louverY + louverH - 8; ly += 16) {
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(louverX + 8, ly, louverW - 16, 7);
+          ctx.fillStyle = '#020617';
+          ctx.fillRect(louverX + 8, ly + 7, louverW - 16, 4);
+        }
+
+        // 7. Center vertical door split seam line
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(512, 50);
+        ctx.lineTo(512, 970);
+        ctx.stroke();
+
+        // 8. Industrial technical service markings
+        ctx.fillStyle = '#1e3a8a';
+        ctx.font = 'bold 22px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillText("HYDRO RAPID RESPONSE UNIT", 440, 720);
+        ctx.fillStyle = '#475569';
+        ctx.font = '600 18px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillText("MODEL: CRD-40 | ISO-9001 / 14001", 440, 755);
+        ctx.fillText("WATER PURIFICATION SYSTEM", 440, 785);
+        ctx.fillText("TEL: +44 (0) 1269 826 669", 440, 815);
+        ctx.fillStyle = '#0284c7';
+        ctx.fillText("www.hydro-industries.com", 440, 845);
+
+        tex.needsUpdate = true;
+      }
+
+      realLogo.onload = () => {
+        renderDecal();
+      };
+      realLogo.src = 'assets/hydro-logo.png';
+      if (realLogo.complete) {
+        renderDecal();
+      } else {
+        renderDecal();
+      }
+
       return tex;
     }
 
@@ -1632,7 +1673,7 @@
     };
 
     // Reusable Function to Build High-Fidelity Hydro Pod (Exact visual match to photos)
-    function createHydroPod(title, subtitle, stageSpec, podType = 'generic') {
+    function createHydroPod(title, subtitle, stageSpec, podType = 'generic', aisleSide = 'none') {
       const pod = new THREE.Group();
       pod.name = title;
       pod.userData = { subsystem: title, spec: stageSpec, podType: podType };
@@ -1657,8 +1698,8 @@
       const wallMat = materials.podWhiteWall;
       const frontMat = materials.podDecalWall;
       const defaultMats = [
-        wallMat, // right
-        wallMat, // left
+        aisleSide === 'right' ? frontMat : wallMat, // right (+x)
+        aisleSide === 'left' ? frontMat : wallMat,  // left (-x)
         materials.podRoofPatina, // top
         materials.hydroBlueSteel, // bottom
         frontMat, // front (decal)
@@ -1973,7 +2014,8 @@
       "Pod 1: Electrocoagulation (EC Reactor)",
       "In-situ electrochemical oxidation & colloidal destabilization",
       "High-amperage sacrificial electrolytic cells (350A, 28V) breaking emulsified hydrocarbons and destabilizing heavy metals without bulk coagulants",
-      'ec'
+      'ec',
+      'right'
     );
     pod1.position.set(-1.6, 0, 1.6);
     podArrayGroup.add(pod1);
@@ -1983,7 +2025,8 @@
       "Pod 2: Dissolved Air Flotation (DAF)",
       "Micro-bubble separation & automatic surface skimming",
       "High-efficiency air saturation vessel generating 20-40µm micro-bubbles that float coagulated pin-floc to the surface for automatic sludge extraction",
-      'daf'
+      'daf',
+      'left'
     );
     pod2.position.set(1.6, 0, 1.6);
     podArrayGroup.add(pod2);
@@ -1993,7 +2036,8 @@
       "Pod 3: Multi-Media & GAC Filtration",
       "Deep-bed sand, anthracite & granular activated carbon",
       "Pressurized ASME multi-barrier polishing vessels extracting residual hydrocarbons, fine particulates, and trace odors down to <0.6 NTU",
-      'filter'
+      'filter',
+      'right'
     );
     pod3.position.set(-1.6, 0, -1.6);
     podArrayGroup.add(pod3);
@@ -2003,7 +2047,8 @@
       "Pod 4: Automation & Power Center",
       "SCADA control, cellular telemetry & hybrid power input",
       "Centralized programmable logic controller (PLC), automated variable frequency drives, satellite telemetry, and clean water final disinfection module",
-      'power'
+      'power',
+      'left'
     );
     pod4.position.set(1.6, 0, -1.6);
     podArrayGroup.add(pod4);
@@ -3454,15 +3499,15 @@
       engineer.position.set(x, 0, z);
       engineer.rotation.y = rotY;
 
-      const isCelebration = (role === 'celebration');
-      const pantsMat = isCelebration ? materials.darkWorkTrousers : materials.tanCargoPants;
-      const shirtMat = isCelebration ? materials.darkTacticalJacket : materials.blackTacticalShirt;
+      const isLead = (role === 'lead');
+      const pantsMat = isLead ? materials.tanCargoPants : materials.darkWorkTrousers;
+      const shirtMat = isLead ? materials.blackTacticalShirt : materials.darkTacticalJacket;
 
       // 1. Rugged Oiled-Leather Field Work Boots
       [-0.12, 0.12].forEach((bx, idx) => {
         const boot = new THREE.Group();
-        const footZ = isCelebration ? 0 : (idx === 0 ? -0.02 : 0.03);
-        const footRotY = isCelebration ? 0 : (idx === 0 ? -0.05 : 0.08);
+        const footZ = isLead ? (idx === 0 ? -0.02 : 0.03) : (idx === 0 ? -0.03 : 0.02);
+        const footRotY = isLead ? (idx === 0 ? -0.05 : 0.08) : (idx === 0 ? -0.06 : 0.07);
         boot.position.set(bx, 0, footZ);
         boot.rotation.y = footRotY;
         engineer.add(boot);
@@ -3497,12 +3542,12 @@
       });
 
       // 2. Anatomical Legs & Cargo Trousers
-      const lFoot = [-0.12, 0.20, isCelebration ? 0 : -0.02];
-      const lKnee = [-0.13, 0.62, isCelebration ? 0 : -0.01];
+      const lFoot = [-0.12, 0.20, isLead ? -0.02 : -0.03];
+      const lKnee = [-0.13, 0.62, isLead ? -0.01 : -0.02];
       const lHip  = [-0.10, 1.02, 0.0];
 
-      const rFoot = [ 0.12, 0.20, isCelebration ? 0 :  0.03];
-      const rKnee = [ 0.12, 0.62, isCelebration ? 0 :  0.04];
+      const rFoot = [ 0.12, 0.20, isLead ?  0.03 :  0.02];
+      const rKnee = [ 0.12, 0.62, isLead ?  0.04 :  0.03];
       const rHip  = [ 0.10, 1.02, 0.0];
 
       engineer.add(createBoneCapsule(lFoot, lKnee, 0.076, pantsMat));
@@ -3589,23 +3634,71 @@
       const deltoidR = new THREE.Mesh(new THREE.SphereGeometry(0.080, 16, 16), shirtMat);
       deltoidR.position.set(...rShoulder); engineer.add(deltoidR);
 
-      if (isCelebration) {
-        // --- CELEBRATION POSE: BOTH ARMS RAISED IN VICTORY TRIUMPH (MATCHES PHOTO!) ---
-        const lElbow = [-0.42, 1.84, 0.0];
-        const lHand  = [-0.56, 2.20, 0.05];
-        const rElbow = [ 0.42, 1.84, 0.0];
-        const rHand  = [ 0.56, 2.20, 0.05];
+      if (!isLead) {
+        // --- OPERATIONS FIELD ENGINEER BESIDE TRUCK: ARMS RELAXED DOWN BY HIS SIDES ---
+        const lBicepEnd = [-0.24, 1.36, 0.01];
+        const lElbow    = [-0.25, 1.15, 0.02];
+        const lWrist    = [-0.24, 0.86, 0.03];
+        const lHand     = [-0.24, 0.77, 0.03];
 
-        engineer.add(createBoneCapsule(lShoulder, lElbow, 0.068, shirtMat));
-        engineer.add(createBoneCapsule(rShoulder, rElbow, 0.068, shirtMat));
-        engineer.add(createBoneCapsule(lElbow, lHand, 0.056, materials.skinTone));
-        engineer.add(createBoneCapsule(rElbow, rHand, 0.056, materials.skinTone));
+        const rBicepEnd = [ 0.24, 1.36, 0.01];
+        const rElbow    = [ 0.25, 1.15, 0.02];
+        const rWrist    = [ 0.24, 0.86, 0.03];
+        const rHand     = [ 0.24, 0.77, 0.03];
 
-        // Triumphant open hands / pumped fists in clean water victory
-        [-0.56, 0.56].forEach((hx) => {
-          const hand = new THREE.Mesh(new THREE.SphereGeometry(0.048, 14, 12), materials.skinTone);
-          hand.position.set(hx, 2.21, 0.05);
-          engineer.add(hand);
+        // Polo short sleeves
+        engineer.add(createBoneCapsule(lShoulder, lBicepEnd, 0.070, shirtMat));
+        engineer.add(createBoneCapsule(rShoulder, rBicepEnd, 0.070, shirtMat));
+
+        // Bare upper arms (triceps/biceps)
+        engineer.add(createBoneCapsule(lBicepEnd, lElbow, 0.058, materials.skinTone));
+        engineer.add(createBoneCapsule(rBicepEnd, rElbow, 0.058, materials.skinTone));
+
+        // Smooth anatomical elbow spheres
+        const elbL = new THREE.Mesh(new THREE.SphereGeometry(0.056, 14, 14), materials.skinTone);
+        elbL.position.set(...lElbow); engineer.add(elbL);
+        const elbR = new THREE.Mesh(new THREE.SphereGeometry(0.056, 14, 14), materials.skinTone);
+        elbR.position.set(...rElbow); engineer.add(elbR);
+
+        // Forearms travelling down naturally along the thighs
+        engineer.add(createBoneCapsule(lElbow, lWrist, 0.048, materials.skinTone));
+        engineer.add(createBoneCapsule(rElbow, rWrist, 0.048, materials.skinTone));
+
+        // Field tactical watch on left wrist
+        const watch = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.046, 0.026, 16), materials.truckTrimBlack);
+        watch.position.set(-0.24, 0.88, 0.03);
+        watch.rotation.z = Math.PI / 2;
+        engineer.add(watch);
+
+        const watchBezel = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.005, 8, 16), materials.stainlessSteel);
+        watchBezel.position.set(-0.255, 0.88, 0.03);
+        watchBezel.rotation.y = Math.PI / 2;
+        engineer.add(watchBezel);
+
+        // Natural relaxed hands hanging by his sides
+        [-1, 1].forEach((side) => {
+          const hGroup = new THREE.Group();
+          const wx = side === -1 ? lWrist[0] : rWrist[0];
+          hGroup.position.set(wx, lHand[1], lHand[2]);
+          hGroup.rotation.y = side === -1 ? 0.15 : -0.15;
+          engineer.add(hGroup);
+
+          // Palm resting naturally against outer thigh
+          const palm = new THREE.Mesh(new THREE.SphereGeometry(0.038, 14, 12), materials.skinTone);
+          palm.scale.set(0.65, 1.25, 0.85);
+          hGroup.add(palm);
+
+          // Relaxed fingers slightly curved inward towards pants seam
+          const fingers = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.020, 0.075, 12), materials.skinTone);
+          fingers.position.set(side * 0.008, -0.042, 0.005);
+          fingers.rotation.z = side * 0.08;
+          hGroup.add(fingers);
+
+          // Thumb resting forward
+          const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.010, 0.009, 0.038, 8), materials.skinTone);
+          thumb.position.set(side * 0.018, -0.010, 0.022);
+          thumb.rotation.x = 0.35;
+          hGroup.add(thumb);
         });
 
       } else {
@@ -3779,12 +3872,12 @@
       return engineer;
     }
 
-    // Place the two photoreal engineers exactly matching the user reference photo!
+    // Place the two photoreal engineers:
     // 1. Lead Field Engineer standing confidently beside Pod 1 (corridor between pod and cabinet)
     mobilePlantGroup.add(createPhotorealEngineer('lead', -3.25, 2.10, 0.40));
 
-    // 2. Commissioning Engineer celebrating in victory cheer in the central corridor between pods
-    mobilePlantGroup.add(createPhotorealEngineer('celebration', 0.0, -0.20, 0.10));
+    // 2. Operations Field Engineer standing next to the 4x4 operations utility truck with arms down by his sides
+    mobilePlantGroup.add(createPhotorealEngineer('truck', -4.10, -7.50, 0.45));
 
     // =========================================================================
     // 12. 3D ANNOTATION PINS LAYER
@@ -4092,7 +4185,8 @@
       ec: { pos: new THREE.Vector3(-3.8, 3.8, 4.6), target: new THREE.Vector3(-1.6, 1.4, 1.6) },
       daf: { pos: new THREE.Vector3(4.8, 3.8, 4.2), target: new THREE.Vector3(1.6, 1.4, 1.6) },
       filter: { pos: new THREE.Vector3(3.2, 4.2, -4.6), target: new THREE.Vector3(0.0, 1.4, -1.6) },
-      ground: { pos: new THREE.Vector3(0.0, 1.7, 8.2), target: new THREE.Vector3(0.0, 1.4, 0.0) }
+      ground: { pos: new THREE.Vector3(0.0, 1.7, 8.2), target: new THREE.Vector3(0.0, 1.4, 0.0) },
+      truck: { pos: new THREE.Vector3(-1.2, 2.2, -4.8), target: new THREE.Vector3(-3.4, 1.2, -7.8) }
     };
 
     function setActiveBtn(btnId) {
@@ -4132,6 +4226,10 @@
     document.getElementById('btn-cam-ground').addEventListener('click', () => {
       setActiveBtn('btn-cam-ground');
       smoothTransitionCamera(cameraPresets.ground.pos, cameraPresets.ground.target);
+    });
+    document.getElementById('btn-cam-truck').addEventListener('click', () => {
+      setActiveBtn('btn-cam-truck');
+      smoothTransitionCamera(cameraPresets.truck.pos, cameraPresets.truck.target);
     });
 
     // =========================================================================
