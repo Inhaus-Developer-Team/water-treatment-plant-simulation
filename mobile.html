@@ -1,0 +1,2057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Hydro Industries | Mobile Wastewater Treatment System</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💧</text></svg>">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0a0705;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #f1f5f9;
+    }
+
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    /* Glassmorphism HUD Panels */
+    .hud-card {
+      position: absolute;
+      z-index: 10;
+      background: rgba(18, 14, 11, 0.90);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 0 0 15px rgba(245, 158, 11, 0.12);
+      padding: 12px 16px;
+      pointer-events: auto;
+      transition: all 0.25s ease;
+    }
+
+    /* Top Left Header Card */
+    .hud-header {
+      top: 16px;
+      left: 16px;
+      max-width: 490px;
+    }
+    .hud-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .hud-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .hydro-brand-logo {
+      height: 32px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+      transition: transform 0.2s ease;
+    }
+    .hydro-brand-logo:hover {
+      transform: scale(1.05);
+    }
+    .hud-title {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: #fbbf24;
+      letter-spacing: 0.3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hud-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .btn-switch-sim {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(14, 165, 233, 0.15));
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: #38bdf8;
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-switch-sim:hover {
+      background: rgba(56, 189, 248, 0.35);
+      border-color: #38bdf8;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+    .hud-desc {
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: #d1d5db;
+      margin-top: 8px;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+    }
+    .badge.mobile {
+      background: rgba(245, 158, 11, 0.22);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.45);
+    }
+    .badge.flow {
+      background: rgba(56, 189, 248, 0.22);
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.45);
+    }
+    .badge.clean {
+      background: rgba(16, 185, 129, 0.22);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.45);
+    }
+    .badge.tour {
+      background: rgba(168, 85, 247, 0.25);
+      color: #c084fc;
+      border-color: rgba(168, 85, 247, 0.45);
+    }
+
+    /* Controls Bar */
+    .hud-controls {
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      padding: 8px 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 95vw;
+    }
+
+    .btn {
+      background: rgba(30, 24, 18, 0.95);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #e2e8f0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover {
+      background: rgba(245, 158, 11, 0.22);
+      border-color: #fbbf24;
+      color: #fff;
+    }
+    .btn.active {
+      background: #d97706;
+      border-color: #fbbf24;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(217, 119, 6, 0.6);
+    }
+    .btn.tour-btn {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-color: #a855f7;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(168, 85, 247, 0.5);
+    }
+    .btn.tour-btn.tour-active {
+      animation: pulse-tour 2s infinite ease-in-out;
+    }
+    @keyframes pulse-tour {
+      0%, 100% { box-shadow: 0 0 12px rgba(168, 85, 247, 0.5); }
+      50% { box-shadow: 0 0 22px rgba(168, 85, 247, 0.9); }
+    }
+    .btn.wireframe-active {
+      background: #0ea5e9;
+      border-color: #38bdf8;
+      color: #030712;
+      font-weight: 700;
+    }
+    .btn.toggle-on {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: #10b981;
+      color: #a7f3d0;
+    }
+    .control-separator {
+      width: 1px;
+      height: 20px;
+      background: rgba(245, 158, 11, 0.2);
+      margin: 0 4px;
+    }
+
+    /* Guided Tour Drawer */
+    .tour-drawer {
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 520px;
+      max-width: 90vw;
+      background: rgba(20, 16, 13, 0.95);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      box-shadow: 0 12px 38px rgba(0, 0, 0, 0.75), 0 0 20px rgba(168, 85, 247, 0.25);
+      display: none;
+    }
+    .tour-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .tour-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 4px;
+    }
+    .tour-desc {
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: #cbd5e1;
+      margin-bottom: 10px;
+    }
+    .tour-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+    }
+    .tour-metric-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .tour-metric-lbl {
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tour-metric-val {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+    .tour-metric-val.dirty-val { color: #f59e0b; }
+    .tour-metric-val.clean-val { color: #10b981; }
+
+    .tour-progress-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .tour-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #a855f7, #38bdf8);
+      transition: width 0.3s ease;
+    }
+    .tour-nav-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Top Right Stats Panel */
+    .stats-panel {
+      top: 16px;
+      right: 16px;
+      width: 250px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+    }
+    .stats-panel.hidden {
+      display: none;
+    }
+    .panel-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      color: #cbd5e1;
+    }
+    .stat-val {
+      font-weight: 600;
+      color: #38bdf8;
+    }
+    .stat-val.fps-good { color: #34d399; }
+    .stat-val.fps-med { color: #fbbf24; }
+    .stat-val.fps-low { color: #f87171; }
+
+    /* Component Inspector Modal (Tap/Click Object to inspect) */
+    .inspector-panel {
+      position: absolute;
+      bottom: 80px;
+      right: 16px;
+      width: 320px;
+      max-width: calc(100vw - 32px);
+      z-index: 15;
+      display: none;
+      font-size: 11.5px;
+    }
+
+    /* Specification Info Modal */
+    .info-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 540px;
+      max-width: calc(100vw - 24px);
+      max-height: 85vh;
+      overflow-y: auto;
+      z-index: 60;
+      padding: 18px 20px;
+      background: rgba(18, 14, 11, 0.96);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      border-radius: 12px;
+      font-size: 12px;
+      display: none;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fbbf24;
+    }
+    .info-features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .info-feature-card {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+    .info-feature-title {
+      font-weight: 700;
+      color: #fbbf24;
+      margin-bottom: 3px;
+      font-size: 11px;
+    }
+    .info-feature-desc {
+      font-size: 10.5px;
+      color: #94a3b8;
+      line-height: 1.35;
+    }
+
+    /* Annotation Pins Layer */
+    #annotations-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 5;
+    }
+    .annotation-pin {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translate(-50%, -100%);
+      transition: opacity 0.15s ease;
+      cursor: pointer;
+    }
+    .pin-pill {
+      background: rgba(18, 14, 11, 0.92);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      border-radius: 12px;
+      padding: 3px 9px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #fef3c7;
+      white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .pin-badge {
+      background: #d97706;
+      color: #fff;
+      font-size: 8px;
+      padding: 1px 4px;
+      border-radius: 4px;
+      line-height: 1;
+    }
+    .pin-stem {
+      width: 1.5px;
+      height: 20px;
+      background: linear-gradient(to bottom, #f59e0b, rgba(245, 158, 11, 0.1));
+    }
+    .pin-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #f59e0b;
+      box-shadow: 0 0 8px #f59e0b;
+    }
+
+    /* Mobile Responsive Optimizations */
+    @media (max-width: 768px) {
+      .hud-header {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        max-width: none;
+        padding: 8px 12px;
+      }
+      .hud-title { font-size: 13.5px; }
+      .hydro-brand-logo { height: 24px; }
+      #hud-desktop-desc { display: none; }
+      .btn-text-desktop { display: none; }
+      
+      .hud-controls {
+        bottom: 0px;
+        left: 0;
+        right: 0;
+        transform: none;
+        max-width: none;
+        width: 100%;
+        border-radius: 12px 12px 0 0;
+        border-bottom: none;
+        padding: 8px 10px;
+        gap: 5px;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        -webkit-overflow-scrolling: touch;
+      }
+      .btn {
+        padding: 5px 9px;
+        font-size: 10.5px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .stats-panel {
+        top: auto;
+        bottom: 60px;
+        left: 8px;
+        right: 8px;
+        width: auto;
+        display: none;
+      }
+      .stats-panel.open {
+        display: block;
+      }
+      .tour-drawer {
+        top: auto;
+        bottom: 64px;
+        left: 8px;
+        right: 8px;
+        transform: none;
+        width: auto;
+        max-width: none;
+      }
+      .inspector-panel {
+        bottom: 64px;
+        left: 8px;
+        right: 8px;
+        width: auto;
+      }
+    }
+  </style>
+
+  <!-- Import maps polyfill & Three.js 0.160 -->
+  <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div id="annotations-layer"></div>
+
+  <!-- Header HUD -->
+  <div class="hud-card hud-header">
+    <div class="hud-header-bar">
+      <div class="hud-title-group">
+        <a href="https://hydro-industries.com" target="_blank" rel="noopener noreferrer" title="Hydro Industries Official Site" style="display:flex; align-items:center;">
+          <img src="assets/hydro-logo.png" alt="Hydro Industries" class="hydro-brand-logo" />
+        </a>
+        <div class="hud-title">
+          <span>Mobile Wastewater System</span>
+          <span class="badge mobile" id="render-mode-badge">RAPID DEPLOY</span>
+        </div>
+      </div>
+      <div class="hud-header-actions">
+        <a href="index.html" class="btn-switch-sim" title="Switch to Municipal WRRF Facility">🏭 Municipal WRRF</a>
+        <button class="btn btn-icon" id="btn-mobile-info" title="System Engineering Overview">ℹ️<span class="btn-text-desktop"> Specs</span></button>
+        <button class="btn btn-icon" id="btn-mobile-stats" title="Telemetry & Diagnostics">📊<span class="btn-text-desktop"> Stats</span></button>
+      </div>
+    </div>
+    <div class="hud-desc" id="hud-desktop-desc">
+      Hydro Industries containerized mobile wastewater system. Engineered for rapid field deployment in remote locations, combining electrocoagulation, dissolved air flotation, and multi-barrier media filtration into a transportable modular platform.
+    </div>
+  </div>
+
+  <!-- Technical Specs Modal -->
+  <div class="hud-card info-modal" id="info-modal">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 16px;">⚡</span>
+        <span class="modal-title">Flexible Solutions for Challenging Environments</span>
+      </div>
+      <button class="btn btn-close" id="btn-info-close" title="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <img src="assets/hydro-logo.png" alt="Hydro Industries" style="height: 36px; object-fit: contain;" />
+        <div>
+          <div style="font-weight: 700; color: #f8fafc; font-size: 12.5px;">Hydro Industries Rapid Deployment Technology</div>
+          <div style="font-size: 10px; color: #fbbf24;">Containerized Modular Process Skid (25 - 50 m³/h capacity)</div>
+        </div>
+      </div>
+
+      <p style="margin-bottom: 10px; color: #cbd5e1; font-size: 11px; line-height: 1.45;">
+        Engineered for rapid deployment in remote locations, temporary facilities, and critical response situations. These systems combine biological treatment, electrochemical processes, and advanced filtration technologies into a compact, transportable platform with options for diesel, grid, and renewable energy operation.
+      </p>
+
+      <div class="info-features-grid">
+        <div class="info-feature-card">
+          <div class="info-feature-title">Pod 1: Electrocoagulation (EC)</div>
+          <div class="info-feature-desc">In-situ electrolytic destabilization of emulsified oils, colloidal organics, and heavy metals without bulk chemical dosing.</div>
+        </div>
+        <div class="info-feature-card">
+          <div class="info-feature-title">Pod 2: DAF Clarification</div>
+          <div class="info-feature-desc">Micro-bubble flotation separator floating destabilized flocs to the surface for automatic mechanical skimming.</div>
+        </div>
+        <div class="info-feature-card">
+          <div class="info-feature-title">Pod 3: Multi-Media Filtration</div>
+          <div class="info-feature-desc">Deep-bed media and granular activated carbon (GAC) filtration columns achieving &lt;1 NTU turbidity.</div>
+        </div>
+        <div class="info-feature-card">
+          <div class="info-feature-title">Pod 4: Automation & SCADA</div>
+          <div class="info-feature-desc">Centralized PLC automation, power distribution, satellite telemetry, and clean water disinfection injection.</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 10px; font-size: 10px; color: #94a3b8;">
+        <strong>Deployment Applications:</strong> Emergency response • Construction infrastructure • Humanitarian & military missions • Remote communities & off-grid industrial wastewater.
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation & Controls -->
+  <div class="hud-card hud-controls">
+    <button class="btn tour-btn" id="btn-start-tour">✨ Guided Process Tour</button>
+    <div class="control-separator"></div>
+    <button class="btn active" id="btn-cam-overview">🚁 Aerial Overview</button>
+    <button class="btn" id="btn-cam-pods">📦 Pod Quad Array</button>
+    <button class="btn" id="btn-cam-buffer">🛢️ Buffer & Pump Skid</button>
+    <button class="btn" id="btn-cam-ec">⚡ EC Reactor (Pod 1)</button>
+    <button class="btn" id="btn-cam-daf">🫧 DAF Separator (Pod 2)</button>
+    <button class="btn" id="btn-cam-filter">🧪 Filtration (Pod 3)</button>
+    <button class="btn" id="btn-cam-ground">👁️ Operator Eye-Level</button>
+    
+    <div class="control-separator"></div>
+
+    <button class="btn" id="btn-wireframe" title="Toggle Clean CAD Blueprint Wireframe">📐 CAD Wireframe</button>
+    <button class="btn toggle-on" id="btn-text-labels" title="Toggle 3D Text & Annotations">🏷️ Text Pins: ON</button>
+    <button class="btn" id="btn-debug-toggle" title="Toggle Debug Telemetry & Helpers">🛠️ Debug HUD</button>
+    <button class="btn" id="btn-animate">Pause Motion</button>
+  </div>
+
+  <!-- Guided Tour Drawer -->
+  <div class="hud-card tour-drawer" id="tour-drawer">
+    <div class="tour-header">
+      <div class="tour-step-tag">
+        <span class="badge tour" id="tour-badge-stage">STAGE 01 / 04</span>
+        <span id="tour-stage-status" class="badge dirty">RAW INTAKE BUFFER</span>
+      </div>
+      <button class="btn" id="btn-tour-close" style="padding:2px 8px; font-size:11px;">✕ Exit</button>
+    </div>
+    <div class="tour-title" id="tour-title">1. Raw Feed Equalization & Skid Pumping</div>
+    <div class="tour-desc" id="tour-desc">
+      Raw industrial or emergency wastewater is held in the horizontal equalization tank and buffered into the black vertical HDPE tank. The PC-10 pump skid draws influent through duplex basket strainers, pumping it into the treatment array.
+    </div>
+
+    <!-- Live Process Chemistry Telemetry -->
+    <div class="tour-metrics">
+      <div class="tour-metric-col">
+        <span class="tour-metric-lbl">Turbidity</span>
+        <span class="tour-metric-val dirty-val" id="tour-val-turb">420 NTU</span>
+      </div>
+      <div class="tour-metric-col">
+        <span class="tour-metric-lbl">TSS</span>
+        <span class="tour-metric-val dirty-val" id="tour-val-tss">850 mg/L</span>
+      </div>
+      <div class="tour-metric-col">
+        <span class="tour-metric-lbl">Purification</span>
+        <span class="tour-metric-val" id="tour-val-eff">0% (Raw Feed)</span>
+      </div>
+    </div>
+
+    <div class="tour-progress-track">
+      <div class="tour-progress-bar" id="tour-progress-bar"></div>
+    </div>
+
+    <div class="tour-nav-row">
+      <button class="btn" id="btn-tour-prev" style="padding:4px 10px; font-size:11px;">◀ Prev</button>
+      <button class="btn" id="btn-tour-autoplay" style="padding:4px 10px; font-size:11px;">⏸ Auto-Play</button>
+      <button class="btn" id="btn-tour-next" style="padding:4px 10px; font-size:11px;">Next ▶</button>
+    </div>
+  </div>
+
+  <!-- Top Right Stats Panel -->
+  <div class="hud-card stats-panel" id="stats-panel">
+    <div class="panel-header-row">
+      <span style="font-weight: 700; color: #fbbf24; font-size: 11px;">Mobile SCADA Telemetry</span>
+      <button class="btn btn-close" id="btn-stats-close" title="Close Panel">✕</button>
+    </div>
+    <div class="stat-row"><span>FPS / FRAMETIME:</span> <span class="stat-val fps-good" id="stat-fps">60.0 fps (16.6ms)</span></div>
+    <div class="stat-row"><span>POD ARRAY TRIANGLES:</span> <span class="stat-val" id="stat-triangles">38,420</span></div>
+    <div class="stat-row"><span>DRAW CALLS:</span> <span class="stat-val" id="stat-calls">310</span></div>
+    <div class="stat-row"><span>FIELD PUMPING:</span> <span class="stat-val" id="stat-flow">Active (32.5 m³/h)</span></div>
+    <div class="stat-row"><span>EC CURRENT:</span> <span class="stat-val" id="stat-ec">350 A (28.4 VDC)</span></div>
+    <div class="stat-row"><span>TREATED WATER:</span> <span class="stat-val" style="color: #34d399;" id="stat-quality">&lt; 0.6 NTU (99.8%)</span></div>
+    <div class="stat-row"><span>SHADING MODE:</span> <span class="stat-val" id="stat-shading">Desert PBR Sun</span></div>
+    <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 4px;">
+      <button class="btn active" id="btn-mode-pbr" style="padding:3px 6px; font-size:10px;">PBR</button>
+      <button class="btn" id="btn-mode-wire" style="padding:3px 6px; font-size:10px;">Wireframe</button>
+      <button class="btn" id="btn-mode-normals" style="padding:3px 6px; font-size:10px;">Normals</button>
+      <button class="btn" id="btn-mode-clay" style="padding:3px 6px; font-size:10px;">Clay</button>
+    </div>
+  </div>
+
+  <!-- Interactive Component Inspector Panel -->
+  <div class="hud-card inspector-panel" id="inspector-panel">
+    <div class="panel-header-row">
+      <span style="font-weight: 700; color: #fbbf24; font-size: 11px;" id="insp-title">Component Inspector</span>
+      <button class="btn btn-close" id="btn-insp-close" title="Close">✕</button>
+    </div>
+    <div style="margin-bottom: 6px; font-size: 11px; color: #94a3b8;" id="insp-subtitle">Subsystem Details</div>
+    <div class="stat-row"><span>SPECIFICATION:</span> <span class="stat-val" id="insp-spec" style="font-size: 10px; max-width: 170px; text-align: right;">-</span></div>
+    <div class="stat-row"><span>STATUS:</span> <span class="stat-val" id="insp-status" style="color: #34d399;">Operational</span></div>
+    <div class="stat-row"><span>POWER DRAW:</span> <span class="stat-val" id="insp-power">14.2 kW</span></div>
+  </div>
+
+  <!-- Three.js Simulation Logic -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+    import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+
+    // =========================================================================
+    // 1. SCENE, CAMERA, RENDERER & POST-PROCESSING
+    // =========================================================================
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#c99368'); // Warm desert horizon tone
+    scene.fog = new THREE.Fog('#d4a373', 75, 420);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.2, 2000);
+    camera.position.set(22.0, 16.0, 24.0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2.05;
+    controls.minDistance = 2.0;
+    controls.maxDistance = 160.0;
+    controls.target.set(0, 1.2, 0);
+
+    // Desert Sunlight & Ambient Skies
+    const sunLight = new THREE.DirectionalLight('#fff1e0', 2.8);
+    sunLight.position.set(38, 55, 32);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 1.0;
+    sunLight.shadow.camera.far = 180;
+    const shadowD = 35;
+    sunLight.shadow.camera.left = -shadowD;
+    sunLight.shadow.camera.right = shadowD;
+    sunLight.shadow.camera.top = shadowD;
+    sunLight.shadow.camera.bottom = -shadowD;
+    sunLight.shadow.bias = -0.0003;
+    scene.add(sunLight);
+
+    const hemiLight = new THREE.HemisphereLight('#fef08a', '#78350f', 0.85);
+    scene.add(hemiLight);
+
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.08, 0.45, 0.85
+    );
+    composer.addPass(bloomPass);
+    composer.addPass(new OutputPass());
+
+    // =========================================================================
+    // 2. PROCEDURAL TEXTURES FOR DESERT ENVIRONMENT & HYDRO UNITS
+    // =========================================================================
+
+    // (A) Red-Ochre Desert Clay Ground Texture with fine tyre tracks and gravel
+    function generateDesertTerrainCanvas(w = 2048, h = 2048) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      // Graded arid earth base
+      const grad = ctx.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, '#9e5127');
+      grad.addColorStop(0.5, '#b45d2e');
+      grad.addColorStop(1, '#8f451f');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Fine dust and pebble micro-noise
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const d = imgData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 36;
+        d[i] = Math.min(255, Math.max(0, d[i] + noise));
+        d[i+1] = Math.min(255, Math.max(0, d[i+1] + noise * 0.8));
+        d[i+2] = Math.min(255, Math.max(0, d[i+2] + noise * 0.5));
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      // Compacted central work pad (lighter, graded clay with fine aggregate)
+      const cx = w * 0.5, cy = h * 0.5;
+      const padGrad = ctx.createRadialGradient(cx, cy, 100, cx, cy, 580);
+      padGrad.addColorStop(0, 'rgba(196, 115, 68, 0.75)');
+      padGrad.addColorStop(0.7, 'rgba(180, 98, 52, 0.45)');
+      padGrad.addColorStop(1, 'rgba(142, 69, 31, 0)');
+      ctx.fillStyle = padGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Heavy machinery tyre tracks across the pad
+      ctx.strokeStyle = 'rgba(74, 32, 12, 0.45)';
+      ctx.lineWidth = 14;
+      for (let t = -240; t <= 240; t += 120) {
+        ctx.beginPath();
+        ctx.moveTo(0, cy + t + Math.sin(t) * 40);
+        ctx.bezierCurveTo(cx * 0.5, cy + t + 20, cx * 1.5, cy + t - 20, w, cy + t);
+        ctx.stroke();
+      }
+
+      // Fine tread ribs
+      ctx.strokeStyle = 'rgba(60, 25, 9, 0.35)';
+      ctx.lineWidth = 3;
+      for (let x = 60; x < w; x += 35) {
+        ctx.beginPath();
+        ctx.moveTo(x, cy - 250);
+        ctx.lineTo(x + 15, cy - 230);
+        ctx.stroke();
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(1, 1);
+      return tex;
+    }
+
+    // (B) Hydro Pod Front & Side Decal Canvas (Matches user reference photo!)
+    function generatePodDecalCanvas(podTitle = "Hydro", podSub = "...generating clean water") {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024; canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 1024, 512);
+
+      // White powder coated background panel
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, 1024, 512);
+
+      // Faint subtle roof patina gradient at top edge
+      const rustGrad = ctx.createLinearGradient(0, 0, 0, 90);
+      rustGrad.addColorStop(0, 'rgba(168, 85, 38, 0.45)');
+      rustGrad.addColorStop(1, 'rgba(248, 250, 252, 0)');
+      ctx.fillStyle = rustGrad;
+      ctx.fillRect(0, 0, 1024, 90);
+
+      // Hydro Dragon Crest Vector Profile (Iconic stylized dragon mark from logo)
+      ctx.fillStyle = '#005ca9';
+      ctx.beginPath();
+      // Draw dragon silhouette
+      ctx.moveTo(120, 150);
+      ctx.bezierCurveTo(100, 180, 80, 210, 60, 240);
+      ctx.bezierCurveTo(90, 250, 120, 235, 140, 220);
+      ctx.bezierCurveTo(115, 260, 95, 300, 80, 340);
+      ctx.bezierCurveTo(130, 320, 170, 280, 195, 230);
+      ctx.bezierCurveTo(210, 270, 230, 310, 260, 350);
+      ctx.bezierCurveTo(250, 280, 240, 210, 225, 160);
+      ctx.bezierCurveTo(205, 120, 160, 110, 120, 150);
+      ctx.fill();
+
+      // Main Hydro Typography
+      ctx.fillStyle = '#374151';
+      ctx.font = 'bold 130px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText("Hydro", 280, 260);
+
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '600 44px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText("industries", 285, 315);
+
+      // Slogan matching the real pods in the photo
+      ctx.fillStyle = '#2563eb';
+      ctx.font = 'italic 500 32px Georgia, serif';
+      ctx.fillText(podSub, 285, 365);
+
+      // Union Jack flag badge on upper right corner (as seen on the real units)
+      const flagX = 850, flagY = 80, flagW = 90, flagH = 55;
+      ctx.fillStyle = '#012169';
+      ctx.fillRect(flagX, flagY, flagW, flagH);
+      // White saltire
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 14;
+      ctx.beginPath(); ctx.moveTo(flagX, flagY); ctx.lineTo(flagX + flagW, flagY + flagH); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(flagX + flagW, flagY); ctx.lineTo(flagX, flagY + flagH); ctx.stroke();
+      // Red saltire
+      ctx.strokeStyle = '#c8102e'; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(flagX, flagY); ctx.lineTo(flagX + flagW, flagY + flagH); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(flagX + flagW, flagY); ctx.lineTo(flagX, flagY + flagH); ctx.stroke();
+      // White cross
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(flagX + flagW/2 - 9, flagY, 18, flagH);
+      ctx.fillRect(flagX, flagY + flagH/2 - 9, flagW, 18);
+      // Red cross
+      ctx.fillStyle = '#c8102e';
+      ctx.fillRect(flagX + flagW/2 - 5, flagY, 10, flagH);
+      ctx.fillRect(flagX, flagY + flagH/2 - 5, flagW, 10);
+      ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.5; ctx.strokeRect(flagX, flagY, flagW, flagH);
+
+      // Lower service inspection label
+      ctx.fillStyle = '#1e3a8a';
+      ctx.font = 'bold 22px ui-monospace, monospace';
+      ctx.fillText("MOBILE RAPID RESPONSE TREATMENT POD | ISO-9001", 120, 450);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // (C) Soft Radial Particle Canvas (for clear water bubbles & fluid flow)
+    function generateSoftParticleTexture(size = 64) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const half = size * 0.5;
+      const grad = ctx.createRadialGradient(half, half, 0, half, half, half);
+      grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+      grad.addColorStop(0.3, 'rgba(255, 255, 255, 0.85)');
+      grad.addColorStop(0.65, 'rgba(255, 255, 255, 0.35)');
+      grad.addColorStop(1.0, 'rgba(255, 255, 255, 0.0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    // =========================================================================
+    // 3. MASTER MATERIAL PALETTE
+    // =========================================================================
+    const desertTerrainMap = generateDesertTerrainCanvas(2048, 2048);
+    const softParticleMap = generateSoftParticleTexture(64);
+    const podDecalTex = generatePodDecalCanvas();
+
+    const materials = {
+      desertGround: new THREE.MeshStandardMaterial({
+        map: desertTerrainMap,
+        roughness: 0.95,
+        metalness: 0.02
+      }),
+      // Hydro Signature Deep Blue Structural Steel (Corner columns, skid base)
+      hydroBlueSteel: new THREE.MeshStandardMaterial({
+        color: '#003a6b',
+        roughness: 0.35,
+        metalness: 0.55
+      }),
+      // White Powder-Coated Pod Wall Panels
+      podWhiteWall: new THREE.MeshStandardMaterial({
+        color: '#f8fafc',
+        roughness: 0.40,
+        metalness: 0.15
+      }),
+      podDecalWall: new THREE.MeshStandardMaterial({
+        map: podDecalTex,
+        roughness: 0.35,
+        metalness: 0.15
+      }),
+      podRoofPatina: new THREE.MeshStandardMaterial({
+        color: '#d4a373', // Clay/dust patina on roof
+        roughness: 0.90,
+        metalness: 0.05
+      }),
+      galvanizedTray: new THREE.MeshStandardMaterial({
+        color: '#94a3b8',
+        roughness: 0.45,
+        metalness: 0.70
+      }),
+      steelGrate: new THREE.MeshStandardMaterial({
+        color: '#64748b',
+        roughness: 0.50,
+        metalness: 0.65,
+        wireframe: false
+      }),
+      rawBufferTankSteel: new THREE.MeshStandardMaterial({
+        color: '#71717a', // Weathered matte steel horizontal vessel
+        roughness: 0.65,
+        metalness: 0.45
+      }),
+      polyBlackTank: new THREE.MeshStandardMaterial({
+        color: '#18181b', // Heavy black UV-stabilized HDPE poly tank
+        roughness: 0.25,
+        metalness: 0.05
+      }),
+      processPipeBlue: new THREE.MeshStandardMaterial({
+        color: '#0284c7',
+        roughness: 0.35,
+        metalness: 0.45
+      }),
+      flexibleHoseBlack: new THREE.MeshStandardMaterial({
+        color: '#1e293b',
+        roughness: 0.85,
+        metalness: 0.05
+      }),
+      flexibleHoseOrange: new THREE.MeshStandardMaterial({
+        color: '#ea580c', // High voltage electrical umbilical cable
+        roughness: 0.60,
+        metalness: 0.08
+      }),
+      clearSightGlass: new THREE.MeshPhysicalMaterial({
+        color: '#e0f2fe',
+        transmission: 0.92,
+        roughness: 0.05,
+        ior: 1.48,
+        transparent: true,
+        opacity: 0.85
+      }),
+      clearTreatedWater: new THREE.MeshPhysicalMaterial({
+        color: '#38bdf8',
+        transmission: 0.95,
+        roughness: 0.02,
+        ior: 1.333,
+        transparent: true,
+        opacity: 0.80
+      }),
+      turbidDirtyWater: new THREE.MeshPhysicalMaterial({
+        color: '#78350f',
+        transmission: 0.25,
+        roughness: 0.30,
+        transparent: true,
+        opacity: 0.95
+      }),
+      stainlessSteel: new THREE.MeshStandardMaterial({
+        color: '#e2e8f0',
+        roughness: 0.25,
+        metalness: 0.85
+      }),
+      safetyYellow: new THREE.MeshStandardMaterial({
+        color: '#facc15',
+        roughness: 0.35,
+        metalness: 0.20
+      })
+    };
+
+    // =========================================================================
+    // 4. ENVIRONMENT & ARID DESERT HORIZON
+    // =========================================================================
+    const mobilePlantGroup = new THREE.Group();
+    mobilePlantGroup.name = "Hydro Industries Mobile Wastewater Facility";
+    scene.add(mobilePlantGroup);
+
+    // 1. Graded Red-Clay Terrain Pad (220m x 220m)
+    const terrainGeom = new THREE.PlaneGeometry(240, 240, 64, 64);
+    const tPos = terrainGeom.attributes.position;
+    for (let i = 0; i < tPos.count; i++) {
+      const x = tPos.getX(i);
+      const y = tPos.getY(i);
+      const r = Math.hypot(x, y);
+      let elev = 0;
+      if (r > 35) {
+        elev = Math.sin(x * 0.04) * Math.cos(y * 0.035) * 2.8 +
+               Math.sin(x * 0.015 - y * 0.018) * 4.2;
+      }
+      tPos.setZ(i, elev);
+    }
+    terrainGeom.computeVertexNormals();
+
+    const terrainMesh = new THREE.Mesh(terrainGeom, materials.desertGround);
+    terrainMesh.rotation.x = -Math.PI / 2;
+    terrainMesh.receiveShadow = true;
+    mobilePlantGroup.add(terrainMesh);
+
+    // Distant Desert Ridge Mesas
+    const ridgeGeom = new THREE.CylinderGeometry(180, 210, 18, 36, 1, true);
+    const ridgeMat = new THREE.MeshStandardMaterial({
+      color: '#9e5127',
+      roughness: 0.98,
+      metalness: 0.02,
+      side: THREE.BackSide
+    });
+    const ridgeMesh = new THREE.Mesh(ridgeGeom, ridgeMat);
+    ridgeMesh.position.y = 8;
+    scene.add(ridgeMesh);
+
+    // =========================================================================
+    // 5. CORE MOBILE TREATMENT POD ARRAY (4 CONTAINERIZED CUBICLES)
+    // =========================================================================
+    // Real Dimensions from photos: 2.4m W x 2.4m L x 2.6m H
+    // Arranged in 2x2 grid with central maintenance & cable aisle
+    const podArrayGroup = new THREE.Group();
+    podArrayGroup.name = "Hydro Containerized Treatment Pods";
+    mobilePlantGroup.add(podArrayGroup);
+
+    // Reusable Function to Build High-Fidelity Hydro Pod (Exact visual match to photos)
+    function createHydroPod(title, subtitle, stageSpec) {
+      const pod = new THREE.Group();
+      pod.name = title;
+      pod.userData = { subsystem: title, spec: stageSpec };
+
+      const pw = 2.4, pl = 2.4, ph = 2.55;
+
+      // 1. Structural Heavy Steel Base Skid with Forklift Pockets
+      const baseSkid = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.16, pl), materials.hydroBlueSteel);
+      baseSkid.position.y = 0.08;
+      baseSkid.castShadow = true;
+      pod.add(baseSkid);
+
+      // Fork pockets
+      for (let fk = -0.55; fk <= 0.55; fk += 1.1) {
+        const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.10, pl + 0.02), new THREE.MeshStandardMaterial({ color: '#002545', roughness: 0.5 }));
+        pocket.position.set(fk, 0.08, 0);
+        pod.add(pocket);
+      }
+
+      // 2. Insulated White Composite Enclosure Body
+      const bodyGeom = new THREE.BoxGeometry(pw - 0.08, ph - 0.22, pl - 0.08);
+      const wallMat = materials.podWhiteWall;
+      const frontMat = materials.podDecalWall;
+      // Multi-material for pod: front face gets decal, others clean white
+      const podBody = new THREE.Mesh(bodyGeom, [
+        wallMat, // right
+        wallMat, // left
+        materials.podRoofPatina, // top
+        materials.hydroBlueSteel, // bottom
+        frontMat, // front (decal)
+        wallMat  // back (doors)
+      ]);
+      podBody.position.y = (ph - 0.22) * 0.5 + 0.16;
+      podBody.castShadow = true;
+      podBody.receiveShadow = true;
+      pod.add(podBody);
+
+      // 3. Deep Hydro Blue Perimeter Corner Columns
+      const colThick = 0.11;
+      const colGeom = new THREE.BoxGeometry(colThick, ph, colThick);
+      const colOffsets = [
+        [-pw/2 + colThick/2, -pl/2 + colThick/2],
+        [ pw/2 - colThick/2, -pl/2 + colThick/2],
+        [-pw/2 + colThick/2,  pl/2 - colThick/2],
+        [ pw/2 - colThick/2,  pl/2 - colThick/2]
+      ];
+      colOffsets.forEach(([cx, cz]) => {
+        const col = new THREE.Mesh(colGeom, materials.hydroBlueSteel);
+        col.position.set(cx, ph * 0.5, cz);
+        col.castShadow = true;
+        pod.add(col);
+
+        // Heavy-duty crane lifting eye lugs on top 4 corners (exact match to photo!)
+        const lug = new THREE.Mesh(new THREE.TorusGeometry(0.065, 0.022, 8, 16), materials.stainlessSteel);
+        lug.position.set(cx, ph + 0.04, cz);
+        lug.rotation.x = Math.PI / 2;
+        pod.add(lug);
+      });
+
+      // 4. Roof Perimeter Header Rail
+      const topRailN = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.08, colThick), materials.hydroBlueSteel);
+      topRailN.position.set(0, ph - 0.04, -pl/2 + colThick/2); pod.add(topRailN);
+      const topRailS = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.08, colThick), materials.hydroBlueSteel);
+      topRailS.position.set(0, ph - 0.04, pl/2 - colThick/2); pod.add(topRailS);
+
+      // 5. External Filter Sight-Glass Housings mounted on side bracket (Identified in user photo!)
+      for (let f = -0.45; f <= 0.45; f += 0.90) {
+        const filterGroup = new THREE.Group();
+        filterGroup.position.set(pw * 0.5 + 0.08, 1.25 + f * 0.4, 0.45);
+
+        // Bracket
+        const brk = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.16), materials.hydroBlueSteel);
+        filterGroup.add(brk);
+
+        // Transparent polycarbonate cylindrical housing
+        const glassCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.42, 16), materials.clearSightGlass);
+        glassCyl.position.x = 0.06;
+        filterGroup.add(glassCyl);
+
+        // Internal fluid core with flow particles
+        const fluidCore = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.38, 16), materials.clearTreatedWater);
+        fluidCore.position.x = 0.06;
+        filterGroup.add(fluidCore);
+
+        // Blue top/bottom manifold heads
+        const topCap = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.06, 16), materials.hydroBlueSteel);
+        topCap.position.set(0.06, 0.22, 0); filterGroup.add(topCap);
+        const botCap = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.06, 16), materials.hydroBlueSteel);
+        botCap.position.set(0.06, -0.22, 0); filterGroup.add(botCap);
+
+        pod.add(filterGroup);
+      }
+
+      // 6. Access Double Doors at rear with stainless hinges and lever handle
+      const doorL = new THREE.Mesh(new THREE.PlaneGeometry(pw * 0.46, ph * 0.78), materials.podWhiteWall);
+      doorL.position.set(-pw * 0.23, ph * 0.48, -pl * 0.5 - 0.01);
+      doorL.rotation.y = Math.PI;
+      pod.add(doorL);
+
+      const doorR = new THREE.Mesh(new THREE.PlaneGeometry(pw * 0.46, ph * 0.78), materials.podWhiteWall);
+      doorR.position.set(pw * 0.23, ph * 0.48, -pl * 0.5 - 0.01);
+      doorR.rotation.y = Math.PI;
+      pod.add(doorR);
+
+      // Stainless handles
+      const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.25, 8), materials.stainlessSteel);
+      handle.position.set(0.06, 1.2, -pl * 0.5 - 0.04);
+      pod.add(handle);
+
+      return pod;
+    }
+
+    // Grid coordinates for the 4 Pods (exactly as configured on the real site)
+    // Pod 1 (Front Left): Electrocoagulation & Advanced Oxidation (EC Pod)
+    const pod1 = createHydroPod(
+      "Pod 1: Electrocoagulation (EC Reactor)",
+      "In-situ electrochemical oxidation & colloidal destabilization",
+      "High-amperage sacrificial electrolytic cells (350A, 28V) breaking emulsified hydrocarbons and destabilizing heavy metals without bulk coagulants"
+    );
+    pod1.position.set(-1.6, 0, 1.6);
+    podArrayGroup.add(pod1);
+
+    // Pod 2 (Front Right): Dissolved Air Flotation & Clarification (DAF Pod)
+    const pod2 = createHydroPod(
+      "Pod 2: Dissolved Air Flotation (DAF)",
+      "Micro-bubble separation & automatic surface skimming",
+      "High-efficiency air saturation vessel generating 20-40µm micro-bubbles that float coagulated pin-floc to the surface for automatic sludge extraction"
+    );
+    pod2.position.set(1.6, 0, 1.6);
+    podArrayGroup.add(pod2);
+
+    // Pod 3 (Rear Left): Multi-Media & Activated Carbon Polishing
+    const pod3 = createHydroPod(
+      "Pod 3: Multi-Media & GAC Filtration",
+      "Deep-bed sand, anthracite & granular activated carbon",
+      "Pressurized ASME multi-barrier polishing vessels extracting residual hydrocarbons, fine particulates, and trace odors down to <0.6 NTU"
+    );
+    pod3.position.set(-1.6, 0, -1.6);
+    podArrayGroup.add(pod3);
+
+    // Pod 4 (Rear Right): PLC Automation, Power Conditioning & Disinfection
+    const pod4 = createHydroPod(
+      "Pod 4: Automation & Power Center",
+      "SCADA control, cellular telemetry & hybrid power input",
+      "Centralized programmable logic controller (PLC), automated variable frequency drives, satellite telemetry, and clean water final disinfection module"
+    );
+    pod4.position.set(1.6, 0, -1.6);
+    podArrayGroup.add(pod4);
+
+    // =========================================================================
+    // 6. GALVANIZED CONTAINMENT BUND & PERIMETER CABLE TRAY
+    // =========================================================================
+    // Surrounds the 4 pods with industrial grating and cable management
+    const trayGroup = new THREE.Group();
+    trayGroup.name = "Perimeter Containment Bund & Grating Tray";
+    mobilePlantGroup.add(trayGroup);
+
+    const trayWidth = 6.8, trayLength = 6.8;
+    const trayBase = new THREE.Mesh(new THREE.BoxGeometry(trayWidth, 0.08, trayLength), materials.galvanizedTray);
+    trayBase.position.y = 0.04;
+    trayBase.receiveShadow = true;
+    trayGroup.add(trayBase);
+
+    // Perimeter kickplate curbs
+    const curbH = 0.22, curbT = 0.06;
+    const curbN = new THREE.Mesh(new THREE.BoxGeometry(trayWidth, curbH, curbT), materials.galvanizedTray);
+    curbN.position.set(0, curbH * 0.5, -trayLength * 0.5); trayGroup.add(curbN);
+    const curbS = new THREE.Mesh(new THREE.BoxGeometry(trayWidth, curbH, curbT), materials.galvanizedTray);
+    curbS.position.set(0, curbH * 0.5,  trayLength * 0.5); trayGroup.add(curbS);
+    const curbW = new THREE.Mesh(new THREE.BoxGeometry(curbT, curbH, trayLength), materials.galvanizedTray);
+    curbW.position.set(-trayWidth * 0.5, curbH * 0.5, 0); trayGroup.add(curbW);
+    const curbE = new THREE.Mesh(new THREE.BoxGeometry(curbT, curbH, trayLength), materials.galvanizedTray);
+    curbE.position.set( trayWidth * 0.5, curbH * 0.5, 0); trayGroup.add(curbE);
+
+    // Cable & Pipe Runways between pods (Interconnecting manifolds)
+    const aisleGrating = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.04, trayLength - 0.4), materials.steelGrate);
+    aisleGrating.position.set(0, 0.12, 0);
+    trayGroup.add(aisleGrating);
+
+    // =========================================================================
+    // 7. RAW FEED EQUALIZATION & BUFFER TANK INFRASTRUCTURE
+    // =========================================================================
+    const bufferGroup = new THREE.Group();
+    bufferGroup.name = "Raw Feed Equalization & Buffer Storage";
+    mobilePlantGroup.add(bufferGroup);
+
+    // 1. Horizontal Cylindrical Raw Wastewater Buffer Tank (Weathered Industrial Steel)
+    // Located to the West/Northwest of the pod array (matches photo)
+    const horizTankGroup = new THREE.Group();
+    horizTankGroup.name = "Horizontal Raw Wastewater Equalization Vessel";
+    horizTankGroup.userData = { subsystem: "Equalization Storage", spec: "45 m³ horizontal carbon steel buffer vessel damping peak hydraulic surges and equalizing influent chemistry" };
+    horizTankGroup.position.set(-7.5, 0, -4.5);
+    bufferGroup.add(horizTankGroup);
+
+    // Tank Cylinder Body (Dia 2.2m x Length 7.2m)
+    const hTankGeom = new THREE.CylinderGeometry(1.1, 1.1, 7.2, 32);
+    hTankGeom.rotateZ(Math.PI / 2);
+    const hTankMesh = new THREE.Mesh(hTankGeom, materials.rawBufferTankSteel);
+    hTankMesh.position.y = 1.6;
+    hTankMesh.castShadow = true;
+    horizTankGroup.add(hTankMesh);
+
+    // Dished Hemispherical End Caps
+    const capGeomL = new THREE.SphereGeometry(1.1, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+    capGeomL.rotateZ(Math.PI / 2);
+    const capL = new THREE.Mesh(capGeomL, materials.rawBufferTankSteel);
+    capL.position.set(-3.6, 1.6, 0);
+    horizTankGroup.add(capL);
+
+    const capGeomR = new THREE.SphereGeometry(1.1, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+    capGeomR.rotateZ(-Math.PI / 2);
+    const capR = new THREE.Mesh(capGeomR, materials.rawBufferTankSteel);
+    capR.position.set(3.6, 1.6, 0);
+    horizTankGroup.add(capR);
+
+    // Structural Saddle Support Cradles
+    for (let s = -2.2; s <= 2.2; s += 4.4) {
+      const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.65, 2.4), materials.galvanizedTray);
+      saddle.position.set(s, 0.325, 0);
+      saddle.castShadow = true;
+      horizTankGroup.add(saddle);
+    }
+
+    // Top Inspection Manway Dome
+    const manway = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16), materials.rawBufferTankSteel);
+    manway.position.set(0, 2.8, 0);
+    horizTankGroup.add(manway);
+
+    // 2. Vertical Black HDPE Equalization & Dosing Feed Tank (Identified in foreground left of photo)
+    const vertTankGroup = new THREE.Group();
+    vertTankGroup.name = "Vertical Polyethylene Chemical & Equalization Tank";
+    vertTankGroup.userData = { subsystem: "Feed Buffer Tank", spec: "12 m³ UV-stabilized heavy polyethylene conical-top buffer vessel with bottom cone drain" };
+    vertTankGroup.position.set(-6.8, 0, 1.8);
+    bufferGroup.add(vertTankGroup);
+
+    // Heavy black tank body
+    const vTankBody = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 2.8, 28), materials.polyBlackTank);
+    vTankBody.position.y = 1.9;
+    vTankBody.castShadow = true;
+    vertTankGroup.add(vTankBody);
+
+    // Dome cap
+    const vTankDome = new THREE.Mesh(new THREE.SphereGeometry(1.05, 24, 12, 0, Math.PI * 2, 0, Math.PI / 3), materials.polyBlackTank);
+    vTankDome.position.y = 3.3;
+    vertTankGroup.add(vTankDome);
+
+    // Steel support frame legs
+    for (let l = 0; l < 4; l++) {
+      const lang = (l / 4) * Math.PI * 2;
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.6, 8), materials.hydroBlueSteel);
+      leg.position.set(Math.cos(lang) * 0.95, 0.3, Math.sin(lang) * 0.95);
+      vertTankGroup.add(leg);
+    }
+
+    // =========================================================================
+    // 8. PC-10 PRIMARY INTAKE & SCREENING PUMP SKID
+    // =========================================================================
+    // Skid-mounted booster pumping unit positioned between raw tanks and pods (labeled PC-10 in photo)
+    const skidGroup = new THREE.Group();
+    skidGroup.name = "PC-10 Primary Booster Pumping Skid";
+    skidGroup.userData = { subsystem: "Influent Pumping", spec: "Duplex end-suction centrifugal booster pumps (35 m³/h) with coarse basket strainers and variable speed drives" };
+    skidGroup.position.set(-4.2, 0, -1.8);
+    mobilePlantGroup.add(skidGroup);
+
+    const skidBase = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.14, 1.4), materials.hydroBlueSteel);
+    skidBase.position.y = 0.07;
+    skidBase.castShadow = true;
+    skidGroup.add(skidBase);
+
+    // Dual Pumping Assemblies (Motors + Volutes)
+    for (let p = -0.55; p <= 0.55; p += 1.1) {
+      // Electric TEFC motor (blue)
+      const motor = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.55, 16), materials.processPipeBlue);
+      motor.rotation.x = Math.PI / 2;
+      motor.position.set(p, 0.35, -0.2);
+      skidGroup.add(motor);
+
+      // Pump volute casing
+      const volute = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.22, 16), materials.stainlessSteel);
+      volute.position.set(p, 0.35, 0.2);
+      skidGroup.add(volute);
+
+      // Duplex Basket Strainer canister
+      const strainer = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.45, 12), materials.stainlessSteel);
+      strainer.position.set(p, 0.45, 0.5);
+      skidGroup.add(strainer);
+    }
+
+    // Local Skid Control Panel & E-Stop
+    const skidPanel = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.6, 0.2), materials.podWhiteWall);
+    skidPanel.position.set(-0.8, 0.8, -0.4);
+    skidGroup.add(skidPanel);
+
+    // =========================================================================
+    // 9. ELECTRICAL MARSHALLING & SCADA FIELD CABINET
+    // =========================================================================
+    // Freestanding white/cream enclosure on unistrut legs (visible foreground left in photo)
+    const electCabinetGroup = new THREE.Group();
+    electCabinetGroup.name = "Main Electrical Marshalling & SCADA Field Enclosure";
+    electCabinetGroup.userData = { subsystem: "Power & Automation", spec: "NEMA 4X / IP66 stainless distribution cabinet housing 480V 3-phase switchgear, surge suppression & PLC I/O" };
+    electCabinetGroup.position.set(-4.6, 0, 3.6);
+    mobilePlantGroup.add(electCabinetGroup);
+
+    const cabBox = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.4, 0.45), materials.podWhiteWall);
+    cabBox.position.y = 1.45;
+    cabBox.castShadow = true;
+    electCabinetGroup.add(cabBox);
+
+    // Support Unistrut Legs
+    for (let leg = -0.35; leg <= 0.35; leg += 0.70) {
+      const cLeg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.8, 0.06), materials.galvanizedTray);
+      cLeg.position.set(leg, 0.4, 0);
+      electCabinetGroup.add(cLeg);
+    }
+
+    // Heavy orange power conduits running from cabinet into tray
+    const conduit = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 3.2, 12), materials.flexibleHoseOrange);
+    conduit.rotation.z = Math.PI / 2.3;
+    conduit.position.set(1.4, 0.18, 0.4);
+    electCabinetGroup.add(conduit);
+
+    // =========================================================================
+    // 10. INTERCONNECTING PROCESS HOSE MANIFOLDS & FLUID FLOW PARTICLES
+    // =========================================================================
+    const hoseGroup = new THREE.Group();
+    hoseGroup.name = "Flexible Interconnecting Process Hoses";
+    mobilePlantGroup.add(hoseGroup);
+
+    // Flexible hose connections with realistic sag and industrial cam-lock fittings
+    function createFlexibleHose(p1, p2, colorMat, sag = 0.25) {
+      const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+      mid.y = Math.min(p1.y, p2.y) - sag;
+      const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
+      const hoseGeom = new THREE.TubeGeometry(curve, 24, 0.045, 8, false);
+      const hoseMesh = new THREE.Mesh(hoseGeom, colorMat);
+      hoseMesh.castShadow = true;
+      hoseGroup.add(hoseMesh);
+      return curve;
+    }
+
+    // Hose 1: Raw Tank -> PC-10 Pump Skid (Turbid Brown Influent)
+    const curveRaw = createFlexibleHose(
+      new THREE.Vector3(-6.4, 0.6, -3.8),
+      new THREE.Vector3(-4.2, 0.35, -1.6),
+      materials.turbidDirtyWater,
+      0.15
+    );
+
+    // Hose 2: PC-10 Skid -> Pod 1 (Electrocoagulation Feed)
+    const curveFeed = createFlexibleHose(
+      new THREE.Vector3(-3.8, 0.35, -1.2),
+      new THREE.Vector3(-1.6, 0.35, 0.4),
+      materials.processPipeBlue,
+      0.18
+    );
+
+    // Hose 3: Pod 1 (EC) -> Pod 2 (DAF Clarifier) across central aisle
+    const curveInter = createFlexibleHose(
+      new THREE.Vector3(-0.4, 0.4, 1.6),
+      new THREE.Vector3(0.4, 0.4, 1.6),
+      materials.processPipeBlue,
+      0.12
+    );
+
+    // Hose 4: Pod 2 (DAF) -> Pod 3 (Filter)
+    const curveDafToFilt = createFlexibleHose(
+      new THREE.Vector3(1.6, 0.4, 0.4),
+      new THREE.Vector3(0.4, 0.4, -1.6),
+      materials.clearTreatedWater,
+      0.22
+    );
+
+    // Dynamic Flow Tracers (Animated fluid pulses showing active mobile treatment)
+    const fluidParticlesCount = 60;
+    const fluidGeom = new THREE.BufferGeometry();
+    const fluidPos = new Float32Array(fluidParticlesCount * 3);
+    const fluidData = [];
+
+    for (let f = 0; f < fluidParticlesCount; f++) {
+      fluidPos[f * 3] = -1.6;
+      fluidPos[f * 3 + 1] = 0.5;
+      fluidPos[f * 3 + 2] = 1.6;
+      fluidData.push({
+        curve: f < 30 ? curveFeed : curveInter,
+        progress: Math.random(),
+        speed: 0.25 + Math.random() * 0.15
+      });
+    }
+    fluidGeom.setAttribute('position', new THREE.BufferAttribute(fluidPos, 3));
+    const fluidMat = new THREE.PointsMaterial({
+      color: '#38bdf8',
+      size: 0.16,
+      map: softParticleMap,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const fluidParticles = new THREE.Points(fluidGeom, fluidMat);
+    mobilePlantGroup.add(fluidParticles);
+
+    // =========================================================================
+    // 11. OPERATIONS VEHICLE & FIELD HUMAN FIGURES (AUTHENTIC CONTEXT)
+    // =========================================================================
+    // Utility pickup truck parked adjacent (matches photo background)
+    const truckGroup = new THREE.Group();
+    truckGroup.name = "Operations Field Utility Truck";
+    truckGroup.position.set(-2.5, 0, -8.5);
+    truckGroup.rotation.y = 0.35;
+    mobilePlantGroup.add(truckGroup);
+
+    // Cab & Bed
+    const truckCab = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.2, 2.2), materials.podWhiteWall);
+    truckCab.position.set(0, 1.0, 0.6); truckCab.castShadow = true; truckGroup.add(truckCab);
+    const truckBed = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.7, 2.4), materials.podWhiteWall);
+    truckBed.position.set(0, 0.75, -1.4); truckBed.castShadow = true; truckGroup.add(truckBed);
+    // Wheels
+    for (let wx = -0.95; wx <= 0.95; wx += 1.9) {
+      for (let wz = -1.3; wz <= 1.3; wz += 2.6) {
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.26, 16), materials.flexibleHoseBlack);
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(wx, 0.38, wz); wheel.castShadow = true; truckGroup.add(wheel);
+      }
+    }
+
+    // Field Human Figures in PPE / High-Vis Hardhats (Human scale from photo)
+    function createFieldOperator(x, z, rotY = 0) {
+      const op = new THREE.Group();
+      op.position.set(x, 0, z);
+      op.rotation.y = rotY;
+
+      // Legs / work trousers (dark cargo pants)
+      const legs = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.85, 0.22), new THREE.MeshStandardMaterial({ color: '#334155', roughness: 0.8 }));
+      legs.position.y = 0.425; legs.castShadow = true; op.add(legs);
+
+      // Torso / High-Vis safety vest / jacket
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.55, 0.26), materials.safetyYellow);
+      torso.position.y = 1.125; torso.castShadow = true; op.add(torso);
+
+      // Head & White Safety Hardhat
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), new THREE.MeshStandardMaterial({ color: '#fed7aa', roughness: 0.6 }));
+      head.position.y = 1.48; op.add(head);
+
+      const hardhat = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.12, 12), materials.podWhiteWall);
+      hardhat.position.y = 1.55; op.add(hardhat);
+
+      return op;
+    }
+
+    // Place operators exactly where engineers stand in user reference photo
+    mobilePlantGroup.add(createFieldOperator(-2.9, 2.4, 0.4));
+    mobilePlantGroup.add(createFieldOperator(0.0, -0.4, Math.PI * 0.9));
+
+    // =========================================================================
+    // 12. 3D ANNOTATION PINS LAYER
+    // =========================================================================
+    const annotationPins = [
+      { id: "01", text: "Raw Feed Equalization Vessel", worldPos: new THREE.Vector3(-7.5, 2.2, -4.5), desc: "45 m³ horizontal raw feed buffer tank with dual saddle supports" },
+      { id: "02", text: "PC-10 Booster Pumping Skid", worldPos: new THREE.Vector3(-4.2, 1.4, -1.8), desc: "Duplex booster pump skid feeding primary wastewater to treatment pods" },
+      { id: "03", text: "Pod 1: Electrocoagulation Cell", worldPos: new THREE.Vector3(-1.6, 2.7, 1.6), desc: "High-amperage electrolytic oxidation destroying oils and heavy metals" },
+      { id: "04", text: "Pod 2: DAF Clarification Unit", worldPos: new THREE.Vector3(1.6, 2.7, 1.6), desc: "Micro-bubble dissolved air flotation and surface sludge skimmer" },
+      { id: "05", text: "Pod 3: Multi-Media Polishing", worldPos: new THREE.Vector3(-1.6, 2.7, -1.6), desc: "Pressurized dual-media and granular activated carbon deep-bed filters" },
+      { id: "06", text: "Pod 4: Automation & Power Center", worldPos: new THREE.Vector3(1.6, 2.7, -1.6), desc: "Central PLC, satellite SCADA telemetry, and disinfection injection" },
+      { id: "07", text: "Electrical Marshalling Enclosure", worldPos: new THREE.Vector3(-4.6, 1.8, 3.6), desc: "Field power conditioning and 480V 3-phase distribution cabinet" }
+    ];
+
+    const annotationsContainer = document.getElementById('annotations-layer');
+    const pinElements = [];
+    let textLabelsVisible = true;
+
+    annotationPins.forEach(pin => {
+      const pinEl = document.createElement('div');
+      pinEl.className = 'annotation-pin';
+      pinEl.innerHTML = `
+        <div class="pin-pill">
+          <span class="pin-badge">${pin.id}</span>
+          <span>${pin.text}</span>
+        </div>
+        <div class="pin-stem"></div>
+        <div class="pin-dot"></div>
+      `;
+      pinEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openInspector(pin.text, pin.desc, "18.4 kW", "Active Treatment");
+      });
+      annotationsContainer.appendChild(pinEl);
+      pinElements.push({ el: pinEl, worldPos: pin.worldPos, pinData: pin });
+    });
+
+    const tempV = new THREE.Vector3();
+    function updateAnnotationPins() {
+      if (!textLabelsVisible) return;
+      const w = window.innerWidth, h = window.innerHeight;
+
+      for (let i = 0; i < pinElements.length; i++) {
+        const item = pinElements[i];
+        tempV.copy(item.worldPos);
+        tempV.project(camera);
+
+        const isBehind = tempV.z > 1.0;
+        const sx = (tempV.x * 0.5 + 0.5) * w;
+        const sy = (-(tempV.y * 0.5) + 0.5) * h;
+        const isOffscreen = isBehind || sx < -80 || sx > w + 80 || sy < -80 || sy > h + 80;
+
+        if (isOffscreen) {
+          item.el.style.display = 'none';
+          continue;
+        }
+
+        item.el.style.display = 'flex';
+        const camDist = camera.position.distanceTo(item.worldPos);
+        const opacity = Math.max(0, Math.min(1, (90 - camDist) / 40));
+        const scale = Math.max(0.75, Math.min(1.05, 28 / camDist));
+
+        item.el.style.left = `${sx}px`;
+        item.el.style.top = `${sy}px`;
+        item.el.style.opacity = opacity.toFixed(2);
+        item.el.style.transform = `translate(-50%, -100%) scale(${scale.toFixed(2)})`;
+        item.el.style.pointerEvents = opacity > 0.35 ? 'auto' : 'none';
+      }
+    }
+
+    const btnTextLabels = document.getElementById('btn-text-labels');
+    btnTextLabels.addEventListener('click', () => {
+      textLabelsVisible = !textLabelsVisible;
+      btnTextLabels.classList.toggle('toggle-on', textLabelsVisible);
+      btnTextLabels.textContent = textLabelsVisible ? '🏷️ Text Pins: ON' : '🏷️ Text Pins: OFF';
+      annotationsContainer.style.display = textLabelsVisible ? 'block' : 'none';
+    });
+
+    // =========================================================================
+    // 13. GUIDED PROCESS TOUR ENGINE (4 HIGH-YIELD STAGES)
+    // =========================================================================
+    const tourStages = [
+      {
+        step: "STAGE 01 / 04",
+        status: "RAW INTAKE BUFFER",
+        badgeClass: "badge dirty",
+        title: "1. Raw Feed Equalization & Skid Pumping",
+        desc: "Raw wastewater arrives into the 45 m³ horizontal buffer vessel and passes through the vertical poly feed tank. The PC-10 pump skid draws influent through duplex strainers, damping hydraulic surges before treatment.",
+        turbidity: "420 NTU",
+        tss: "850 mg/L",
+        eff: "0% (Raw Feed)",
+        camPos: new THREE.Vector3(-10.5, 5.5, 0.5),
+        camTarget: new THREE.Vector3(-5.8, 1.4, -1.5)
+      },
+      {
+        step: "STAGE 02 / 04",
+        status: "ELECTROCHEMICAL OXIDATION",
+        badgeClass: "badge flow",
+        title: "2. Electrocoagulation & AOP Reactor (Pod 1)",
+        desc: "Influent enters Pod 1 containing high-amperage sacrificial electrolytic cells. In-situ generated electrons break oil emulsions, destabilize heavy metals, and generate hydroxyl radicals without toxic bulk chemicals.",
+        turbidity: "110 NTU (Destabilized)",
+        tss: "240 mg/L (71% clumped)",
+        eff: "72% Destabilized",
+        camPos: new THREE.Vector3(-3.8, 4.2, 4.8),
+        camTarget: new THREE.Vector3(-1.6, 1.5, 1.6)
+      },
+      {
+        step: "STAGE 03 / 04",
+        status: "MICRO-BUBBLE FLOTATION",
+        badgeClass: "badge flow",
+        title: "3. Dissolved Air Flotation & Sludge Separation (Pod 2)",
+        desc: "Coagulated liquor transfers across the containment aisle to Pod 2. Millions of 20-40µm micro-bubbles lift suspended flocs to the surface for automated mechanical skimming into the concentrated sludge collector.",
+        turbidity: "8.5 NTU (Clarified)",
+        tss: "18 mg/L (97% removed)",
+        eff: "97.8% Clarified",
+        camPos: new THREE.Vector3(4.8, 4.2, 3.8),
+        camTarget: new THREE.Vector3(1.6, 1.5, 1.6)
+      },
+      {
+        step: "STAGE 04 / 04",
+        status: "CLEAN WATER DISCHARGE",
+        badgeClass: "badge clean",
+        title: "4. Multi-Barrier Polishing & Ultra-Clean Outflow (Pods 3 & 4)",
+        desc: "Clarified water passes through Pod 3's pressurized deep-bed media and granular activated carbon columns, receiving final pathogen disinfection from Pod 4. Pristine treated effluent discharges at <0.6 NTU purity!",
+        turbidity: "0.4 NTU (Pristine)",
+        tss: "< 2.0 mg/L (99.8%)",
+        eff: "99.8% Ultra-Pure Outflow",
+        camPos: new THREE.Vector3(2.5, 4.8, -4.5),
+        camTarget: new THREE.Vector3(0.0, 1.4, -1.6)
+      }
+    ];
+
+    let currentTourIndex = 0;
+    let tourActive = false;
+    let tourAutoPlay = true;
+    let tourTimer = null;
+
+    const tourDrawer = document.getElementById('tour-drawer');
+    const btnStartTour = document.getElementById('btn-start-tour');
+    const btnTourClose = document.getElementById('btn-tour-close');
+    const btnTourNext = document.getElementById('btn-tour-next');
+    const btnTourPrev = document.getElementById('btn-tour-prev');
+    const btnTourAutoplay = document.getElementById('btn-tour-autoplay');
+
+    function applyTourStage(idx) {
+      currentTourIndex = idx;
+      const stage = tourStages[idx];
+
+      document.getElementById('tour-badge-stage').textContent = stage.step;
+      const statusEl = document.getElementById('tour-stage-status');
+      statusEl.textContent = stage.status;
+      statusEl.className = stage.badgeClass;
+
+      document.getElementById('tour-title').textContent = stage.title;
+      document.getElementById('tour-desc').textContent = stage.desc;
+
+      const turbEl = document.getElementById('tour-val-turb');
+      turbEl.textContent = stage.turbidity;
+
+      const tssEl = document.getElementById('tour-val-tss');
+      tssEl.textContent = stage.tss;
+
+      document.getElementById('tour-val-eff').textContent = stage.eff;
+
+      // Progress bar
+      document.getElementById('tour-progress-bar').style.width = `${((idx + 1) / tourStages.length) * 100}%`;
+
+      // Smooth camera transition
+      smoothTransitionCamera(stage.camPos, stage.camTarget);
+    }
+
+    function startTour() {
+      tourActive = true;
+      tourDrawer.style.display = 'block';
+      btnStartTour.classList.add('tour-active');
+      applyTourStage(0);
+      resetAutoPlayTimer();
+    }
+
+    function exitTour() {
+      tourActive = false;
+      tourDrawer.style.display = 'none';
+      btnStartTour.classList.remove('tour-active');
+      if (tourTimer) clearTimeout(tourTimer);
+    }
+
+    function nextTourStage() {
+      const nextIdx = (currentTourIndex + 1) % tourStages.length;
+      applyTourStage(nextIdx);
+      resetAutoPlayTimer();
+    }
+
+    function prevTourStage() {
+      const prevIdx = (currentTourIndex - 1 + tourStages.length) % tourStages.length;
+      applyTourStage(prevIdx);
+      resetAutoPlayTimer();
+    }
+
+    function resetAutoPlayTimer() {
+      if (tourTimer) clearTimeout(tourTimer);
+      if (tourActive && tourAutoPlay) {
+        tourTimer = setTimeout(() => {
+          nextTourStage();
+        }, 8500);
+      }
+    }
+
+    btnStartTour.addEventListener('click', startTour);
+    btnTourClose.addEventListener('click', exitTour);
+    btnTourNext.addEventListener('click', nextTourStage);
+    btnTourPrev.addEventListener('click', prevTourStage);
+    btnTourAutoplay.addEventListener('click', () => {
+      tourAutoPlay = !tourAutoPlay;
+      btnTourAutoplay.textContent = tourAutoPlay ? '⏸ Auto-Play' : '▶ Play';
+      resetAutoPlayTimer();
+    });
+
+    // =========================================================================
+    // 14. INTERACTIVE INSPECTOR & MODALS
+    // =========================================================================
+    const inspectorPanel = document.getElementById('inspector-panel');
+    function openInspector(title, spec, power, status = "Operational") {
+      document.getElementById('insp-title').textContent = title;
+      document.getElementById('insp-spec').textContent = spec;
+      document.getElementById('insp-power').textContent = power;
+      document.getElementById('insp-status').textContent = status;
+      inspectorPanel.style.display = 'block';
+    }
+    window.openInspector = openInspector;
+    document.getElementById('btn-insp-close').addEventListener('click', () => {
+      inspectorPanel.style.display = 'none';
+    });
+
+    const infoModal = document.getElementById('info-modal');
+    document.getElementById('btn-mobile-info').addEventListener('click', () => {
+      infoModal.style.display = 'block';
+    });
+    document.getElementById('btn-info-close').addEventListener('click', () => {
+      infoModal.style.display = 'none';
+    });
+
+    const statsPanel = document.getElementById('stats-panel');
+    document.getElementById('btn-mobile-stats').addEventListener('click', () => {
+      statsPanel.classList.toggle('open');
+      statsPanel.classList.toggle('hidden');
+    });
+    document.getElementById('btn-stats-close').addEventListener('click', () => {
+      statsPanel.classList.add('hidden');
+      statsPanel.classList.remove('open');
+    });
+    document.getElementById('btn-debug-toggle').addEventListener('click', () => {
+      statsPanel.classList.toggle('hidden');
+    });
+
+    // Raycaster for 3D Click Interaction
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let isDragging = false;
+    window.addEventListener('pointerdown', () => { isDragging = false; });
+    window.addEventListener('pointermove', () => { isDragging = true; });
+    window.addEventListener('pointerup', (event) => {
+      if (isDragging) return;
+      if (event.target.closest('.hud-card') || event.target.closest('button') || event.target.closest('a')) return;
+
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      const intersects = raycaster.intersectObjects(mobilePlantGroup.children, true);
+      if (intersects.length > 0) {
+        let hit = intersects[0].object;
+        while (hit.parent && hit.parent !== mobilePlantGroup && !hit.userData.spec) {
+          hit = hit.parent;
+        }
+        if (hit.userData && hit.userData.spec) {
+          openInspector(hit.name, hit.userData.spec, "16.8 kW", "Active Treatment");
+        }
+      }
+    });
+
+    // =========================================================================
+    // 15. CAMERA PRESETS & SMOOTH TRANSITIONS
+    // =========================================================================
+    let isTransitioningCamera = false;
+    let camStartTime = 0;
+    const camStartPos = new THREE.Vector3();
+    const camEndPos = new THREE.Vector3();
+    const lookStartPos = new THREE.Vector3();
+    const lookEndPos = new THREE.Vector3();
+    const transitionDuration = 1400;
+
+    function smoothTransitionCamera(targetPos, targetLook) {
+      camStartPos.copy(camera.position);
+      camEndPos.copy(targetPos);
+      lookStartPos.copy(controls.target);
+      lookEndPos.copy(targetLook);
+      camStartTime = performance.now();
+      isTransitioningCamera = true;
+    }
+
+    const cameraPresets = {
+      overview: { pos: new THREE.Vector3(22.0, 16.0, 24.0), target: new THREE.Vector3(0, 1.2, 0) },
+      pods: { pos: new THREE.Vector3(6.5, 6.2, 7.5), target: new THREE.Vector3(0, 1.4, 0) },
+      buffer: { pos: new THREE.Vector3(-12.5, 5.8, -1.0), target: new THREE.Vector3(-6.2, 1.5, -1.5) },
+      ec: { pos: new THREE.Vector3(-3.8, 3.8, 4.6), target: new THREE.Vector3(-1.6, 1.4, 1.6) },
+      daf: { pos: new THREE.Vector3(4.8, 3.8, 4.2), target: new THREE.Vector3(1.6, 1.4, 1.6) },
+      filter: { pos: new THREE.Vector3(3.2, 4.2, -4.6), target: new THREE.Vector3(0.0, 1.4, -1.6) },
+      ground: { pos: new THREE.Vector3(0.0, 1.7, 8.2), target: new THREE.Vector3(0.0, 1.4, 0.0) }
+    };
+
+    function setActiveBtn(btnId) {
+      document.querySelectorAll('.hud-controls .btn').forEach(b => {
+        if (!b.classList.contains('tour-btn') && b.id !== 'btn-wireframe' && b.id !== 'btn-text-labels' && b.id !== 'btn-debug-toggle' && b.id !== 'btn-animate') {
+          b.classList.remove('active');
+        }
+      });
+      const target = document.getElementById(btnId);
+      if (target) target.classList.add('active');
+    }
+
+    document.getElementById('btn-cam-overview').addEventListener('click', () => {
+      setActiveBtn('btn-cam-overview');
+      smoothTransitionCamera(cameraPresets.overview.pos, cameraPresets.overview.target);
+    });
+    document.getElementById('btn-cam-pods').addEventListener('click', () => {
+      setActiveBtn('btn-cam-pods');
+      smoothTransitionCamera(cameraPresets.pods.pos, cameraPresets.pods.target);
+    });
+    document.getElementById('btn-cam-buffer').addEventListener('click', () => {
+      setActiveBtn('btn-cam-buffer');
+      smoothTransitionCamera(cameraPresets.buffer.pos, cameraPresets.buffer.target);
+    });
+    document.getElementById('btn-cam-ec').addEventListener('click', () => {
+      setActiveBtn('btn-cam-ec');
+      smoothTransitionCamera(cameraPresets.ec.pos, cameraPresets.ec.target);
+    });
+    document.getElementById('btn-cam-daf').addEventListener('click', () => {
+      setActiveBtn('btn-cam-daf');
+      smoothTransitionCamera(cameraPresets.daf.pos, cameraPresets.daf.target);
+    });
+    document.getElementById('btn-cam-filter').addEventListener('click', () => {
+      setActiveBtn('btn-cam-filter');
+      smoothTransitionCamera(cameraPresets.filter.pos, cameraPresets.filter.target);
+    });
+    document.getElementById('btn-cam-ground').addEventListener('click', () => {
+      setActiveBtn('btn-cam-ground');
+      smoothTransitionCamera(cameraPresets.ground.pos, cameraPresets.ground.target);
+    });
+
+    // =========================================================================
+    // 16. SHADING MODES (PBR, CAD WIREFRAME, NORMALS, CLAY)
+    // =========================================================================
+    let currentShadingMode = 'pbr';
+    const originalMeshMaterials = new Map();
+    mobilePlantGroup.traverse(obj => {
+      if (obj.isMesh) originalMeshMaterials.set(obj, obj.material);
+    });
+
+    const cadWireMat = new THREE.MeshBasicMaterial({ color: '#fbbf24', wireframe: true });
+    const cadGroundSolid = new THREE.MeshBasicMaterial({ color: '#18110b' });
+
+    function setShadingMode(mode) {
+      currentShadingMode = mode;
+      const modeBadge = document.getElementById('render-mode-badge');
+      const statShading = document.getElementById('stat-shading');
+      const wireframeBtn = document.getElementById('btn-wireframe');
+
+      ['pbr', 'wire', 'normals', 'clay'].forEach(m => {
+        const b = document.getElementById(`btn-mode-${m}`);
+        if (b) b.classList.toggle('active', (m === 'wire' && mode === 'wireframe') || m === mode);
+      });
+
+      if (mode === 'pbr') {
+        modeBadge.textContent = 'RAPID DEPLOY';
+        modeBadge.className = 'badge mobile';
+        statShading.textContent = 'Desert PBR Sun';
+        scene.background = new THREE.Color('#c99368');
+        scene.fog = new THREE.Fog('#d4a373', 75, 420);
+        wireframeBtn.classList.remove('wireframe-active');
+        wireframeBtn.textContent = '📐 CAD Wireframe';
+
+        mobilePlantGroup.traverse(obj => {
+          if (obj.isMesh && originalMeshMaterials.has(obj)) {
+            obj.material = originalMeshMaterials.get(obj);
+          }
+        });
+      } else if (mode === 'wireframe') {
+        modeBadge.textContent = 'CAD BLUEPRINT';
+        modeBadge.className = 'badge tour';
+        statShading.textContent = 'CAD Wireframe';
+        scene.background = new THREE.Color('#0a0705');
+        scene.fog = new THREE.FogExp2('#0a0705', 0.015);
+        wireframeBtn.classList.add('wireframe-active');
+        wireframeBtn.textContent = '📐 CAD Wireframe: ON';
+
+        mobilePlantGroup.traverse(obj => {
+          if (!obj.isMesh) return;
+          if (obj === terrainMesh) {
+            obj.material = cadGroundSolid;
+          } else {
+            obj.material = cadWireMat;
+          }
+        });
+      } else if (mode === 'normals') {
+        modeBadge.textContent = 'SURFACE NORMALS';
+        modeBadge.className = 'badge flow';
+        statShading.textContent = 'Geometric Normals';
+        scene.background = new THREE.Color('#0f172a');
+        scene.fog = null;
+        wireframeBtn.classList.remove('wireframe-active');
+
+        const normMat = new THREE.MeshNormalMaterial();
+        mobilePlantGroup.traverse(obj => {
+          if (obj.isMesh) obj.material = normMat;
+        });
+      } else if (mode === 'clay') {
+        modeBadge.textContent = 'CLAY STUDY';
+        modeBadge.className = 'badge';
+        statShading.textContent = 'Clay Ambient Occlusion';
+        scene.background = new THREE.Color('#c99368');
+        scene.fog = new THREE.Fog('#d4a373', 75, 420);
+        wireframeBtn.classList.remove('wireframe-active');
+
+        const clayMat = new THREE.MeshStandardMaterial({ color: '#f5f5f4', roughness: 0.9, metalness: 0.05 });
+        mobilePlantGroup.traverse(obj => {
+          if (obj.isMesh) obj.material = clayMat;
+        });
+      }
+    }
+
+    document.getElementById('btn-mode-pbr').addEventListener('click', () => setShadingMode('pbr'));
+    document.getElementById('btn-mode-wire').addEventListener('click', () => setShadingMode('wireframe'));
+    document.getElementById('btn-mode-normals').addEventListener('click', () => setShadingMode('normals'));
+    document.getElementById('btn-mode-clay').addEventListener('click', () => setShadingMode('clay'));
+    document.getElementById('btn-wireframe').addEventListener('click', () => {
+      setShadingMode(currentShadingMode === 'wireframe' ? 'pbr' : 'wireframe');
+    });
+
+    let isMotionActive = true;
+    const btnAnimate = document.getElementById('btn-animate');
+    btnAnimate.addEventListener('click', () => {
+      isMotionActive = !isMotionActive;
+      btnAnimate.textContent = isMotionActive ? 'Pause Motion' : 'Resume Motion';
+      btnAnimate.classList.toggle('active', !isMotionActive);
+    });
+
+    // =========================================================================
+    // 17. MAIN ANIMATION LOOP & TELEMETRY
+    // =========================================================================
+    const clock = new THREE.Clock();
+    let frameCount = 0;
+    let lastFpsUpdate = 0;
+    const statFps = document.getElementById('stat-fps');
+
+    window.camera = camera;
+    window.controls = controls;
+    window.scene = scene;
+    window.cameraPresets = cameraPresets;
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const elapsed = clock.getElapsedTime();
+      const delta = clock.getDelta();
+
+      // Camera Smooth Interpolation
+      if (isTransitioningCamera) {
+        const now = performance.now();
+        const t = Math.min(1.0, (now - camStartTime) / transitionDuration);
+        const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+        camera.position.lerpVectors(camStartPos, camEndPos, ease);
+        controls.target.lerpVectors(lookStartPos, lookEndPos, ease);
+        controls.update();
+
+        if (t >= 1.0) isTransitioningCamera = false;
+      } else {
+        controls.update();
+      }
+
+      // Fluid Flow Streamline Animation
+      if (isMotionActive) {
+        const pAttr = fluidGeom.attributes.position;
+        for (let i = 0; i < fluidParticlesCount; i++) {
+          const item = fluidData[i];
+          item.progress = (item.progress + delta * item.speed) % 1.0;
+          const pos = item.curve.getPoint(item.progress);
+          pAttr.setXYZ(i, pos.x, pos.y + 0.02, pos.z);
+        }
+        pAttr.needsUpdate = true;
+      }
+
+      updateAnnotationPins();
+      composer.render();
+
+      // Telemetry HUD updates
+      frameCount++;
+      const now = performance.now();
+      if (now - lastFpsUpdate >= 500) {
+        const fps = Math.round((frameCount * 1000) / (now - lastFpsUpdate));
+        const frametime = (1000 / Math.max(1, fps)).toFixed(1);
+        statFps.textContent = `${fps} fps (${frametime}ms)`;
+        statFps.className = `stat-val ${fps >= 50 ? 'fps-good' : (fps >= 30 ? 'fps-med' : 'fps-low')}`;
+        frameCount = 0;
+        lastFpsUpdate = now;
+      }
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

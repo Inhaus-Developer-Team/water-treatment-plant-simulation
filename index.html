@@ -50,13 +50,44 @@
     .hud-header {
       top: 16px;
       left: 16px;
-      max-width: 440px;
+      max-width: 480px;
     }
     .hud-header-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 10px;
+    }
+    .hydro-brand-logo {
+      height: 30px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+      transition: transform 0.2s ease;
+    }
+    .hydro-brand-logo:hover {
+      transform: scale(1.05);
+    }
+    .btn-switch-sim {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.28), rgba(14, 165, 233, 0.18));
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      color: #38bdf8;
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-switch-sim:hover {
+      background: rgba(56, 189, 248, 0.35);
+      border-color: #38bdf8;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.45);
     }
     .hud-title-group {
       display: flex;
@@ -620,18 +651,22 @@
   <div class="hud-card hud-header">
     <div class="hud-header-bar">
       <div class="hud-title-group">
+        <a href="https://hydro-industries.com" target="_blank" rel="noopener noreferrer" title="Hydro Industries Official Site" style="display:flex; align-items:center;">
+          <img src="assets/hydro-logo.png" alt="Hydro Industries" class="hydro-brand-logo" />
+        </a>
         <div class="hud-title">
-          <span>Wastewater Facility</span>
+          <span>Municipal WRRF</span>
           <span class="badge flow" id="render-mode-badge">PROCESS SIM</span>
         </div>
       </div>
       <div class="hud-header-actions">
+        <a href="mobile.html" class="btn-switch-sim" title="Switch to Mobile Wastewater System Simulation">🚛 Mobile System</a>
         <button class="btn btn-icon" id="btn-mobile-info" title="Facility Engineering Overview">ℹ️<span class="btn-text-desktop"> Info</span></button>
         <button class="btn btn-icon" id="btn-mobile-stats" title="Telemetry & Diagnostics">📊<span class="btn-text-desktop"> Stats</span></button>
       </div>
     </div>
     <div class="hud-desc" id="hud-desktop-desc">
-      Engineered photorealistic reconstruction with natural industrial spacing. Demonstrates raw sewage influent intake, fine-bubble biological aeration, dual secondary clarification, clean effluent outfall cascade into wetlands, procedural cloud dome, and low-cut instanced grass.
+      Hydro Industries engineered digital twin. Demonstrates municipal biological aeration, secondary clarification, clean effluent cascade outfall into wetlands, and renewable biogas recovery.
     </div>
   </div>
 
@@ -645,6 +680,13 @@
       <button class="btn btn-close" id="btn-info-close" title="Close">✕</button>
     </div>
     <div class="modal-body">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <img src="assets/hydro-logo.png" alt="Hydro Industries" style="height: 36px; object-fit: contain;" />
+        <div>
+          <div style="font-weight: 700; color: #f8fafc; font-size: 12.5px;">Hydro Industries Environmental Engineering</div>
+          <div style="font-size: 10px; color: #38bdf8;">Municipal Water Resource Recovery Facility (WRRF)</div>
+        </div>
+      </div>
       <p style="margin-bottom: 8px; color: #94a3b8; font-size: 11px;">
         High-precision 3D digital twin of a modern municipal Water Resource Recovery Facility (WRRF) with biologically active process simulation.
       </p>
@@ -3827,6 +3869,21 @@
     labCanopy.position.set(0, 2.75, 4.05);
     labCanopy.castShadow = true;
     labGroup.add(labCanopy);
+
+    // Hydro Industries Architectural Facade Signage Plaque
+    const hydroLogoTex = new THREE.TextureLoader().load('assets/hydro-logo.png');
+    const facadeSignMat = new THREE.MeshStandardMaterial({
+      map: hydroLogoTex,
+      transparent: true,
+      roughness: 0.25,
+      metalness: 0.1
+    });
+    const facadeSignPlate = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.75, 0.04), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.3 }));
+    facadeSignPlate.position.set(0, 3.25, 3.20);
+    labGroup.add(facadeSignPlate);
+    const facadeSign = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.65), facadeSignMat);
+    facadeSign.position.set(0, 3.25, 3.23);
+    labGroup.add(facadeSign);
 
     const canopyPoles1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.75, 12), materials.structuralSteel);
     canopyPoles1.position.set(-1.4, 1.375, 4.8);

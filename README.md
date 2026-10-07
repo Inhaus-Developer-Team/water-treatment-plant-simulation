@@ -142,14 +142,37 @@ cd water-treatment-plant-simulation
 # Start a local static HTTP server (Python 3)
 python3 -m http.server 8080
 
-# Open in your browser
+# Open Municipal Simulation
 open http://localhost:8080/index.html
+
+# Open Hydro Industries Mobile Wastewater Simulation
+open http://localhost:8080/mobile.html
 ```
 
 Or run directly with URL query flags:
-* `http://localhost:8080/index.html?tour=true` — Auto-starts the 6-stage guided tour.
-* `http://localhost:8080/index.html?mode=wireframe` — Boots directly in CAD blueprint wireframe.
-* `http://localhost:8080/index.html?cam=tertiary` — Focuses immediately on the Tertiary & UV Complex.
+* `http://localhost:8080/index.html?tour=true` — Auto-starts the 6-stage municipal guided tour.
+* `http://localhost:8080/mobile.html?tour=true` — Auto-starts the 4-stage mobile treatment pod tour.
+* `http://localhost:8080/mobile.html?mode=wireframe` — Boots mobile simulation in CAD wireframe.
+
+---
+
+## 🚛 Hydro Industries Mobile Wastewater Treatment System (`mobile.html`)
+
+An authentic, field-calibrated 3D digital twin of **Hydro Industries'** containerized mobile treatment platform deployed for rapid disaster response, industrial remediation, and military operations:
+
+* **4 Containerized Treatment Pods ($2.4\text{m} \times 2.4\text{m} \times 2.6\text{m}$)**:
+  * **Pod 1 — Electrocoagulation (EC Reactor)**: 350A / 28V sacrificial electrolytic cells breaking oil emulsions and heavy metal bonds in-situ without bulk coagulants.
+  * **Pod 2 — Dissolved Air Flotation (DAF)**: Pressurized micro-bubble flotation (20–40µm) lifting pin-floc to continuous automatic scum skimmers.
+  * **Pod 3 — Multi-Media & GAC Filtration**: Pressurized ASME deep-bed sand, anthracite, and granular activated carbon filtration (<0.6 NTU polishing).
+  * **Pod 4 — Automation & Power Center**: Integrated PLC logic, satellite telemetry, variable frequency drives, and final disinfection injection.
+* **Feed & Storage Infrastructure**:
+  * $45\text{ m}^3$ horizontal raw wastewater equalization vessel with dual saddle cradle supports.
+  * $12\text{ m}^3$ vertical polyethylene buffer vessel with bottom cone drain.
+  * PC-10 duplex centrifugal booster pump skid with stainless basket strainers.
+  * NEMA 4X / IP66 freestanding electrical marshalling enclosure with heavy orange conduits.
+  * Galvanized containment bund tray with floor grating and central access aisle.
+* **Realistic Arid Environment**: Procedural graded clay terrain with tyre treads, distant horizon mesas, operations pickup truck, and PPE field personnel.
+* **Full Mobile Responsiveness & SCADA HUD**: 4-stage Guided Process Tour, click-to-inspect subsystem raycaster, CAD wireframe mode, and seamless bidirectional navigation with the municipal plant simulation.
 
 ---
 
