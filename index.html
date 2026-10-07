@@ -2680,7 +2680,7 @@
     const coniferGeom = buildTieredConiferGeometries();
     const shrubGeom = buildRealisticShrubGeometries();
 
-    const deciduousCount = 55;
+    const deciduousCount = 45;
     const coniferCount = 42;
 
     const trunkInst = new THREE.InstancedMesh(deciduousGeom.trunk, materials.treeTrunk, deciduousCount);
@@ -2699,43 +2699,67 @@
     coniferCanopyInst.name = "Evergreen Conifer Branch Tiers";
     coniferCanopyInst.castShadow = true;
 
-    // Strict Tree Safety Filter: Validates that tree trunks and canopies never intersect roads, fences, or structures
+    const treeDummy = new THREE.Object3D();
+    // Pre-initialize all instanced meshes off-screen with zero scale so unplaced instances never default to (0, 0, 0)
+    treeDummy.position.set(0, -9999, 0);
+    treeDummy.scale.set(0, 0, 0);
+    treeDummy.updateMatrix();
+    for (let i = 0; i < deciduousCount; i++) {
+      trunkInst.setMatrixAt(i, treeDummy.matrix);
+      foliageInst.setMatrixAt(i, treeDummy.matrix);
+    }
+    for (let i = 0; i < coniferCount; i++) {
+      coniferTrunkInst.setMatrixAt(i, treeDummy.matrix);
+      coniferCanopyInst.setMatrixAt(i, treeDummy.matrix);
+    }
+
+    // Strict Tree Safety Filter: Validates that tree trunks and canopies never intersect roads, fences, or process structures
     function isTreeAllowed(x, z) {
       if (Math.abs(x) > 55 || Math.abs(z) > 55) return false;
 
-      // 1. Clear of ALL ROADS & SHOULDERS (Minimum 6.8m buffer from centerline)
+      // 1. STRICT INDUSTRIAL INTERIOR CORE FILTER:
+      // Absolutely NO trees permitted inside the active industrial treatment plant core
+      if (x >= -10.0 && x <= 34.0 && z >= -16.0 && z <= 26.0) return false;
+
+      // 2. Concrete equipment pads (minimum safety buffer)
+      const concretePads = [
+        [-3.0, 15.0, 3.0, 12.0],     // Aeration Basin Pad
+        [15.0, 21.0, 4.0, 11.0],     // Headworks Pad
+        [-9.1, 0.1, -9.1, 0.1],      // Clarifier 1 Pad
+        [0.9, 10.1, -9.1, 0.1],      // Clarifier 2 Pad
+        [-1.75, 2.75, -0.7, 3.1],    // Splitter Vault
+        [9.1, 13.9, -6.9, -2.1],     // RAS/WAS Pad
+        [-5.75, 6.75, -12.7, -6.5],  // Tertiary/UV Pad
+        [-20.25, -10.75, -9.25, 0.25],// Lab Pad
+        [11.5, 29.5, -12.25, 1.25]   // Digesters Pad
+      ];
+      for (let k = 0; k < concretePads.length; k++) {
+        const [x1, x2, z1, z2] = concretePads[k];
+        if (x >= x1 - 1.0 && x <= x2 + 1.0 && z >= z1 - 1.0 && z <= z2 + 1.0) return false;
+      }
+
+      // 3. Clear of ALL ROADS & SHOULDERS (Minimum 6.8m buffer from centerline)
       if (Math.abs(z - (-38.34)) < 6.8 && x >= -45.0 && x <= 45.0) return false; // North road
       if (Math.abs(z - 30.83) < 6.8 && x >= -45.0 && x <= 45.0) return false;   // South road
       if (Math.abs(x - (-33.65)) < 6.8 && z >= -45.0 && z <= 37.0) return false; // West road
       if (Math.abs(x - 34.94) < 6.8 && z >= -45.0 && z <= 37.0) return false;   // East road
-      if (Math.abs(x) < 6.0 && z >= 26.0) return false;                          // South entrance highway
+      if (Math.abs(x) < 6.5 && z >= 25.0) return false;                          // South entrance highway
       if (Math.abs(z - (-4.5)) < 5.8 && x >= -36.0 && x <= -9.0) return false;  // West spur to Lab
       if (Math.abs(z - (-4.5)) < 5.8 && x >= 10.0 && x <= 36.0) return false;   // East spur to Digesters
 
-      // 2. Clear of ALL PERIMETER FENCES & SECURITY GATES (Minimum 2.5m buffer)
+      // 4. Clear of ALL PERIMETER FENCES & SECURITY GATES (Minimum 2.5m buffer)
       if (Math.abs(z - (-44.5)) < 2.5 && x >= -44.0 && x <= 44.0) return false; // North fence
       if (Math.abs(z - 36.5) < 2.5 && x >= -44.0 && x <= 44.0) return false;   // South fence
       if (Math.abs(x - (-42.0)) < 2.5 && z >= -46.0 && z <= 38.0) return false; // West fence
       if (Math.abs(x - 42.0) < 2.5 && z >= -46.0 && z <= 38.0) return false;   // East fence
 
-      // 3. Clear of ALL PROCESS STRUCTURES & CONCRETE FOUNDATIONS
+      // 5. Clear of lab, lagoon water & guardrails
       if (x >= -23.0 && x <= -8.0 && z >= -11.0 && z <= 1.5) return false;     // Lab & parking
-      if (x >= -5.0 && x <= 16.5 && z >= 1.5 && z <= 13.5) return false;        // Aeration basins
-      if (x >= 14.0 && x <= 22.5 && z >= 2.5 && z <= 12.5) return false;        // Headworks & screen
-      if (Math.hypot(x - (-4.5), z - (-4.5)) < 7.0) return false;                // Clarifier 1
-      if (Math.hypot(x - 5.5, z - (-4.5)) < 7.0) return false;                 // Clarifier 2
-      if (Math.abs(x - 0.5) < 3.8 && Math.abs(z - 1.2) < 3.5) return false;     // Splitter vault
-      if (Math.abs(x - 11.5) < 4.2 && Math.abs(z - (-4.5)) < 4.2) return false; // RAS/WAS station
-      if (Math.abs(x - 0.5) < 8.2 && Math.abs(z - (-9.6)) < 4.8) return false;  // Tertiary & UV
-      if (Math.abs(x - 0.5) < 4.0 && z >= -19.5 && z <= -11.0) return false;   // Cascade outfall
-      if (x >= 9.5 && x <= 31.5 && z >= -14.5 && z <= 3.0) return false;        // Digesters & flare
-      if (Math.hypot(x - 0.5, z - (-22.5)) < 9.6) return false;                 // Wetland lagoon water
-      if (Math.abs(z - (-35.2)) < 2.0 && x >= -16.5 && x <= 17.5) return false; // Guardrail
+      if (Math.hypot(x - 0.5, z - (-22.5)) < 10.0) return false;                // Wetland lagoon water & bank
+      if (Math.abs(z - (-35.2)) < 2.5 && x >= -18.5 && x <= 18.5) return false; // Guardrail
 
       return true;
     }
-
-    const treeDummy = new THREE.Object3D();
 
     // Natural Deciduous Groves (Riparian buffer, western lawn, southern backdrop)
     let placedDeciduous = 0;
@@ -2743,20 +2767,21 @@
     while (placedDeciduous < deciduousCount && attemptsDec < 8000) {
       attemptsDec++;
       let tx, tz;
-      if (placedDeciduous < 16) {
-        // Riparian grove along Wetland Lagoon southern/western bank
-        const a = (placedDeciduous / 16) * Math.PI * 1.5 + 0.35;
+      const zone = placedDeciduous % 3;
+      if (zone === 0) {
+        // Wetland lagoon riparian buffer (northeast and northwest banks)
+        const ang = Math.random() < 0.5 ? (0.15 + Math.random() * 1.05) : (1.95 + Math.random() * 1.05);
         const r = 11.0 + Math.random() * 3.5;
-        tx = 0.5 + Math.cos(a) * r;
-        tz = -22.5 - Math.sin(a) * (r * 0.72 + 0.8);
-      } else if (placedDeciduous < 34) {
+        tx = 0.5 + Math.cos(ang) * r;
+        tz = -22.5 - Math.sin(ang) * (r * 0.72);
+      } else if (zone === 1) {
         // Western lawn screening grove (between lab mulch and west road / west fence)
-        tx = -18.0 - Math.random() * 30.0;
-        tz = -32.0 + Math.random() * 62.0;
+        tx = -22.0 - Math.random() * 8.0;
+        tz = -28.0 + Math.random() * 50.0;
       } else {
         // South woodland buffer (outside south fence, flanking access entrance)
-        tx = (Math.random() - 0.5) * 90.0;
-        tz = 39.0 + Math.random() * 14.0;
+        tx = (Math.random() - 0.5) * 80.0;
+        tz = 39.5 + Math.random() * 12.0;
       }
 
       if (!isTreeAllowed(tx, tz)) continue;
@@ -2771,6 +2796,8 @@
       foliageInst.setMatrixAt(placedDeciduous, treeDummy.matrix);
       placedDeciduous++;
     }
+    trunkInst.count = placedDeciduous;
+    foliageInst.count = placedDeciduous;
     trunkInst.instanceMatrix.needsUpdate = true;
     foliageInst.instanceMatrix.needsUpdate = true;
     facilityGroup.add(trunkInst);
@@ -2804,29 +2831,28 @@
       coniferCanopyInst.setMatrixAt(placedConifers, treeDummy.matrix);
       placedConifers++;
     }
+    coniferTrunkInst.count = placedConifers;
+    coniferCanopyInst.count = placedConifers;
     coniferTrunkInst.instanceMatrix.needsUpdate = true;
     coniferCanopyInst.instanceMatrix.needsUpdate = true;
     facilityGroup.add(coniferTrunkInst);
     facilityGroup.add(coniferCanopyInst);
 
-    // Foundation Landscaping Shrubs (Curated mulch beds around Operations Lab & Entrance)
-    const shrubCount = 26;
+    // Foundation Landscaping Shrubs (Strictly situated on natural turf/mulch garden beds; ZERO on concrete pads or walkways)
+    const shrubPositions = [
+      // Operations Lab West Garden Bed (organic turf/mulch west of building foundation)
+      { x: -21.8, z: -2.0 }, { x: -21.8, z: -3.8 }, { x: -21.8, z: -5.6 }, { x: -21.8, z: -7.2 },
+      // Operations Lab North Lawn Bed (lawn north of lab building)
+      { x: -18.5, z: -10.2 }, { x: -16.5, z: -10.2 }, { x: -14.5, z: -10.2 },
+      // South Entrance Gateway Landscaping (flanking access road in lawn outside road shoulders)
+      { x: -4.5, z: 27.5 }, { x: -4.5, z: 29.2 }, { x: 4.5, z: 27.5 }, { x: 4.5, z: 29.2 },
+      // Retention Wetland Outer Shoreline Greenery (natural turf margin outside water and path)
+      { x: 10.8, z: -17.2 }, { x: 11.8, z: -18.5 }, { x: -9.8, z: -17.2 }, { x: -10.8, z: -18.5 }
+    ];
+    const shrubCount = shrubPositions.length;
     const shrubInst = new THREE.InstancedMesh(shrubGeom, materials.shrubCanopy, shrubCount);
     shrubInst.name = "Foundation Landscaping Shrubs";
     shrubInst.castShadow = true;
-
-    const shrubPositions = [
-      // Lab Entrance Plaza curb mulch beds
-      { x: -13.2, z: -0.8 }, { x: -14.0, z: -0.8 }, { x: -17.0, z: -0.8 }, { x: -17.8, z: -0.8 },
-      { x: -13.2, z: -8.2 }, { x: -14.2, z: -8.2 }, { x: -16.8, z: -8.2 }, { x: -17.8, z: -8.2 },
-      { x: -20.2, z: -2.5 }, { x: -20.2, z: -4.0 }, { x: -20.2, z: -5.5 }, { x: -20.2, z: -7.0 },
-      // Driveway apron decorative shrubs
-      { x: -2.2, z: 12.5 }, { x: -2.2, z: 14.0 }, { x: 2.2, z: 12.5 }, { x: 2.2, z: 14.0 },
-      // Headworks & Walkway corners
-      { x: 15.0, z: 2.8 }, { x: 15.8, z: 2.8 }, { x: 21.0, z: 2.8 }, { x: 21.8, z: 2.8 },
-      { x: 11.2, z: -1.2 }, { x: 12.0, z: -1.2 }, { x: -9.8, z: -1.2 }, { x: -10.6, z: -1.2 },
-      { x: 8.8, z: -7.8 }, { x: 9.6, z: -7.8 }
-    ];
 
     shrubPositions.forEach((sp, idx) => {
       const ss = 0.75 + Math.random() * 0.45;
@@ -2836,6 +2862,7 @@
       treeDummy.updateMatrix();
       shrubInst.setMatrixAt(idx, treeDummy.matrix);
     });
+    shrubInst.count = shrubCount;
     shrubInst.instanceMatrix.needsUpdate = true;
     facilityGroup.add(shrubInst);
 
@@ -5815,18 +5842,7 @@
             }
           }
 
-          // Gentle Organic Wind Sway on Vegetation Canopies & Shrubs
-          if (typeof foliageInst !== 'undefined') {
-            foliageInst.rotation.z = Math.sin(elapsed * 1.1) * 0.012;
-            foliageInst.rotation.x = Math.cos(elapsed * 0.85) * 0.008;
-          }
-          if (typeof coniferCanopyInst !== 'undefined') {
-            coniferCanopyInst.rotation.z = Math.sin(elapsed * 0.95 + 1.0) * 0.010;
-            coniferCanopyInst.rotation.x = Math.cos(elapsed * 0.80 + 0.5) * 0.006;
-          }
-          if (typeof shrubInst !== 'undefined') {
-            shrubInst.rotation.y = Math.sin(elapsed * 1.3) * 0.015;
-          }
+          // Trees and shrubs remain firmly anchored to their root coordinates
         }
       }
 
