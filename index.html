@@ -826,6 +826,7 @@
     import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
     import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
     // =========================================================================
     // 1. PROCEDURAL TEXTURES & ATMOSPHERIC REAL SKY
@@ -1807,6 +1808,58 @@
       sunLight.position.set(sun.x * 70, sun.y * 70, sun.z * 70);
     }
     updateSunPosition(52, -55);
+
+    // Photorealistic Municipal IBL Environment Map via PMREMGenerator
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+
+    function generateRealisticEnvMap(w = 2048, h = 1024) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+      skyGrad.addColorStop(0.0, '#104e92');
+      skyGrad.addColorStop(0.35, '#3b82f6');
+      skyGrad.addColorStop(0.48, '#bae6fd');
+      skyGrad.addColorStop(0.50, '#94a3b8');
+      skyGrad.addColorStop(0.65, '#334155');
+      skyGrad.addColorStop(1.0, '#0f172a');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Sun disk matching sun position (azimuth -55 deg, elevation 52 deg)
+      const sunX = w * 0.65;
+      const sunY = h * 0.28;
+      const sunGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 200);
+      sunGrad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+      sunGrad.addColorStop(0.12, 'rgba(255, 250, 235, 0.95)');
+      sunGrad.addColorStop(0.45, 'rgba(224, 242, 254, 0.40)');
+      sunGrad.addColorStop(1.0, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = sunGrad;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 200, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Atmospheric wisps
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.20)';
+      for (let i = 0; i < 50; i++) {
+        const cx = (i * 47) % w;
+        const cy = h * (0.15 + (i * 0.006));
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 180, 16, -0.02, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.mapping = THREE.EquirectangularReflectionMapping;
+      return tex;
+    }
+
+    const envTex = generateRealisticEnvMap();
+    const envMap = pmremGenerator.fromEquirectangular(envTex).texture;
+    scene.environment = envMap;
 
     const composer = new EffectComposer(renderer);
     const renderPass = new RenderPass(scene, camera);
@@ -3640,6 +3693,66 @@
 
       cGroup.add(bridgeGroup);
       clarifierBridges.push(bridgeGroup);
+    });
+
+    // =========================================================================
+    // BLENDER MCP PHOTOREALISTIC ASSET PIPELINE (Clarifier Drive & Landscape Trees)
+    // =========================================================================
+    const gltfLoader = new GLTFLoader();
+
+    // 1. Photorealistic Clarifier Center Turntable & Rotating Bridge Mechanism
+    gltfLoader.load('assets/models/clarifier_drive.glb', (gltf) => {
+      clarifierCenters.forEach((c, idx) => {
+        const cGroup = facilityGroup.getObjectByName(c.name);
+        if (!cGroup) return;
+        const bridgeClone = (idx === 0) ? gltf.scene : gltf.scene.clone();
+        bridgeClone.name = "ClarifierBridge_GLB_" + idx;
+        bridgeClone.position.y = 1.35 + 0.18;
+        const scaleRatio = (3.4 * 2) / 14.0;
+        bridgeClone.scale.set(scaleRatio, 0.95, scaleRatio);
+        bridgeClone.traverse(child => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            if (child.material) child.material.envMapIntensity = 1.3;
+          }
+        });
+        const oldBridge = cGroup.children.find(ch => ch.isGroup && ch.children.length > 5);
+        if (oldBridge) cGroup.remove(oldBridge);
+        cGroup.add(bridgeClone);
+        clarifierBridges[idx] = bridgeClone;
+      });
+    }, undefined, (err) => {
+      console.warn("Retaining procedural clarifier bridge fallback:", err);
+    });
+
+    // 2. Photorealistic Mature Deciduous Campus Trees at Validated Landscape Sites
+    gltfLoader.load('assets/models/realistic_tree.glb', (gltf) => {
+      const heroTreeLocations = [
+        [28.0, 16.0], [28.0, 24.0], [18.0, 28.0],
+        [-26.0, 26.0], [-34.0, 24.0], [-34.0, 12.0],
+        [-34.0, -12.0], [-34.0, -24.0], [-26.0, -28.0],
+        [28.0, -16.0], [28.0, -24.0], [18.0, -28.0]
+      ];
+      heroTreeLocations.forEach(([hx, hz], i) => {
+        if (isTreeAllowed(hx, hz)) {
+          const tree = (i === 0) ? gltf.scene : gltf.scene.clone();
+          const s = 0.90 + (i % 3) * 0.15;
+          tree.scale.set(s, s, s);
+          tree.position.set(hx, 0, hz);
+          tree.rotation.y = (i * 1.7) % (Math.PI * 2);
+          tree.traverse(c => {
+            if (c.isMesh) {
+              c.castShadow = true;
+              c.receiveShadow = true;
+              if (c.material) c.material.envMapIntensity = 1.15;
+            }
+          });
+          facilityGroup.add(tree);
+        }
+      });
+    }, undefined, (err) => {
+      console.warn("Retaining procedural tree fallback:", err);
     });
 
     // --- Clarifier Effluent Flumes discharging to Tertiary Complex ---

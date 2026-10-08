@@ -728,6 +728,7 @@
     import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
     import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
     // =========================================================================
     // 1. SCENE, CAMERA, RENDERER & POST-PROCESSING
@@ -748,6 +749,59 @@
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
     container.appendChild(renderer.domElement);
+
+    // Photorealistic Desert IBL Environment Map via PMREMGenerator
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+
+    function generateEquirectangularSkyTexture() {
+      const w = 2048, h = 1024;
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0.0, '#2b6cb0');
+      grad.addColorStop(0.32, '#6ba4e8');
+      grad.addColorStop(0.47, '#fcdba1');
+      grad.addColorStop(0.50, '#d97d43');
+      grad.addColorStop(0.65, '#9e4b20');
+      grad.addColorStop(1.0, '#4a1e0a');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Intense Sun disk with specular corona matching sunLight azimuth (38, 55, 32)
+      const sunX = w * 0.38;
+      const sunY = h * 0.26;
+      const sunGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 220);
+      sunGrad.addColorStop(0, 'rgba(255, 255, 252, 1.0)');
+      sunGrad.addColorStop(0.12, 'rgba(255, 248, 215, 0.95)');
+      sunGrad.addColorStop(0.45, 'rgba(255, 215, 155, 0.45)');
+      sunGrad.addColorStop(1.0, 'rgba(255, 190, 120, 0.0)');
+      ctx.fillStyle = sunGrad;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 220, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Atmospheric high-altitude wisps
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+      for (let i = 0; i < 45; i++) {
+        const cx = (i * 67) % w;
+        const cy = h * (0.12 + (i * 0.007));
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 160, 14, -0.04, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.mapping = THREE.EquirectangularReflectionMapping;
+      return tex;
+    }
+
+    const envTex = generateEquirectangularSkyTexture();
+    const envMap = pmremGenerator.fromEquirectangular(envTex).texture;
+    scene.environment = envMap;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -3496,6 +3550,7 @@
     // High-Fidelity Photoreal Field Personnel (Exact match to the 2 engineers in user photo!)
     function createPhotorealEngineer(role = 'lead', x = 0, z = 0, rotY = 0) {
       const engineer = new THREE.Group();
+      engineer.name = 'Engineer_' + role;
       engineer.position.set(x, 0, z);
       engineer.rotation.y = rotY;
 
@@ -3880,6 +3935,148 @@
     mobilePlantGroup.add(createPhotorealEngineer('truck', -4.10, -7.50, 0.45));
 
     // =========================================================================
+    // 11B. BLENDER MCP PHOTOREALISTIC ASSET PIPELINE (High-Density GLTF Upgrades)
+    // =========================================================================
+    const gltfLoader = new GLTFLoader();
+
+    // 1. Photorealistic 4x4 Operations Utility Field Truck
+    gltfLoader.load('assets/models/mobile_truck.glb', (gltf) => {
+      const truckModel = gltf.scene;
+      truckModel.position.set(-2.8, 0, -8.6);
+      truckModel.rotation.y = 0.38;
+      truckModel.name = "Operations Field 4x4 Utility Truck";
+      truckModel.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          if (c.material) {
+            c.material.envMapIntensity = 1.25;
+            c.material.needsUpdate = true;
+          }
+        }
+      });
+
+      // Apply real Hydro Industries fleet livery decal to driver and passenger cab doors
+      const logoLoader = new THREE.TextureLoader();
+      logoLoader.load('assets/hydro-logo.png', (logoTex) => {
+        logoTex.colorSpace = THREE.SRGBColorSpace;
+        const decalMat = new THREE.MeshBasicMaterial({ map: logoTex, transparent: true, opacity: 0.96, depthWrite: false });
+        [-0.99, 0.99].forEach((side) => {
+          const doorDecal = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.28), decalMat);
+          doorDecal.position.set(side, 1.25, 0.45);
+          doorDecal.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
+          truckModel.add(doorDecal);
+        });
+      });
+
+      const oldTruck = mobilePlantGroup.getObjectByName("Operations Field 4x4 Utility Truck");
+      if (oldTruck) mobilePlantGroup.remove(oldTruck);
+      mobilePlantGroup.add(truckModel);
+    }, undefined, (err) => {
+      console.warn("Retaining procedural truck fallback:", err);
+    });
+
+    // 2. Photorealistic Operations Field Engineer (arms relaxed down by his sides)
+    gltfLoader.load('assets/models/field_engineer.glb', (gltf) => {
+      const engTruck = gltf.scene;
+      engTruck.position.set(-4.10, 0, -7.50);
+      engTruck.rotation.y = 0.45;
+      engTruck.name = "Engineer_truck";
+      engTruck.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          if (c.material) c.material.envMapIntensity = 1.2;
+        }
+      });
+      const oldEngTruck = mobilePlantGroup.getObjectByName("Engineer_truck");
+      if (oldEngTruck) mobilePlantGroup.remove(oldEngTruck);
+      mobilePlantGroup.add(engTruck);
+    }, undefined, (err) => {
+      console.warn("Retaining procedural engineer fallback:", err);
+    });
+
+    // 3. Photorealistic Lead Field Engineer beside Pod 1
+    gltfLoader.load('assets/models/field_engineer.glb', (gltf) => {
+      const engLead = gltf.scene.clone();
+      engLead.position.set(-3.25, 0, 2.10);
+      engLead.rotation.y = 0.40;
+      engLead.name = "Engineer_lead";
+      engLead.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          if (c.material) c.material.envMapIntensity = 1.2;
+        }
+      });
+      const oldEngLead = mobilePlantGroup.getObjectByName("Engineer_lead");
+      if (oldEngLead) mobilePlantGroup.remove(oldEngLead);
+      mobilePlantGroup.add(engLead);
+    }, undefined, (err) => {
+      console.warn("Retaining procedural lead engineer fallback:", err);
+    });
+
+    // 4. Photorealistic ASME/HI PC-10 Duplex Pump Skid
+    gltfLoader.load('assets/models/pump_skid.glb', (gltf) => {
+      const skidModel = gltf.scene;
+      skidModel.position.set(-4.2, 0, -1.8);
+      skidModel.name = "PC-10 Primary Booster Pumping Skid";
+      skidModel.userData = { subsystem: "Influent Pumping", spec: "Duplex end-suction centrifugal booster pumps (35 m³/h) with coarse basket strainers and variable speed drives" };
+      skidModel.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          if (c.material) c.material.envMapIntensity = 1.3;
+        }
+      });
+      const oldSkid = mobilePlantGroup.getObjectByName("PC-10 Primary Booster Pumping Skid");
+      if (oldSkid) mobilePlantGroup.remove(oldSkid);
+      mobilePlantGroup.add(skidModel);
+    }, undefined, (err) => {
+      console.warn("Retaining procedural pump skid fallback:", err);
+    });
+
+    // 5. Photorealistic ASME Section VIII Horizontal Buffer Vessel
+    gltfLoader.load('assets/models/asme_horizontal_tank.glb', (gltf) => {
+      const asmeModel = gltf.scene;
+      asmeModel.position.set(-7.5, 0, -4.5);
+      asmeModel.name = "ASME Section VIII Div 1 Buffer Tank";
+      asmeModel.userData = { subsystem: "Raw Influent Equalization", spec: "45 m³ ASME Sec VIII Div 1 Buffer Vessel with 2:1 ellipsoidal heads and Zick saddles" };
+      asmeModel.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          if (c.material) c.material.envMapIntensity = 1.35;
+        }
+      });
+      const oldHoriz = mobilePlantGroup.getObjectByName("ASME Section VIII Div 1 Buffer Tank");
+      if (oldHoriz) mobilePlantGroup.remove(oldHoriz);
+      mobilePlantGroup.add(asmeModel);
+    }, undefined, (err) => {
+      console.warn("Retaining procedural ASME tank fallback:", err);
+    });
+
+    // 6. Photorealistic ASTM Cone-Bottom Vertical Tank
+    gltfLoader.load('assets/models/astm_vertical_tank.glb', (gltf) => {
+      const astmModel = gltf.scene;
+      astmModel.position.set(-4.5, 0, -4.5);
+      astmModel.name = "ASTM D1998 Cone-Bottom Equalization Vessel";
+      astmModel.userData = { subsystem: "Feed Equalization & Blending", spec: "18 m³ ASTM D1998 cone-bottom polymer tank on I-beam stand with dual-tier hydrofoil mixer" };
+      astmModel.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          if (c.material) c.material.envMapIntensity = 1.35;
+        }
+      });
+      const oldVert = mobilePlantGroup.getObjectByName("ASTM D1998 Cone-Bottom Equalization Vessel");
+      if (oldVert) mobilePlantGroup.remove(oldVert);
+      mobilePlantGroup.add(astmModel);
+    }, undefined, (err) => {
+      console.warn("Retaining procedural ASTM tank fallback:", err);
+    });
+
+    // =========================================================================
     // 12. 3D ANNOTATION PINS LAYER
     // =========================================================================
     const annotationPins = [
@@ -4186,7 +4383,7 @@
       daf: { pos: new THREE.Vector3(4.8, 3.8, 4.2), target: new THREE.Vector3(1.6, 1.4, 1.6) },
       filter: { pos: new THREE.Vector3(3.2, 4.2, -4.6), target: new THREE.Vector3(0.0, 1.4, -1.6) },
       ground: { pos: new THREE.Vector3(0.0, 1.7, 8.2), target: new THREE.Vector3(0.0, 1.4, 0.0) },
-      truck: { pos: new THREE.Vector3(-1.2, 2.2, -4.8), target: new THREE.Vector3(-3.4, 1.2, -7.8) }
+      truck: { pos: new THREE.Vector3(-6.0, 1.8, -6.8), target: new THREE.Vector3(-3.0, 1.2, -8.2) }
     };
 
     function setActiveBtn(btnId) {
