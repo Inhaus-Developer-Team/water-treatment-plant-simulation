@@ -2185,6 +2185,16 @@
     const facilityGroup = new THREE.Group();
     facilityGroup.name = "Industrial Wastewater Facility";
     scene.add(facilityGroup);
+    window.facilityGroup = facilityGroup;
+
+    const originalMeshMaterials = new Map();
+    function registerMeshMaterial(mesh) {
+      if (!mesh || !mesh.isMesh) return;
+      if (!mesh.userData.originalMaterial) {
+        mesh.userData.originalMaterial = mesh.material;
+      }
+      originalMeshMaterials.set(mesh, mesh.userData.originalMaterial);
+    }
 
     // --- (A1) Expansive Regional Horizon Topography & Rolling Countryside Skirt ---
     // Eliminates the floating square tray; extends rolling green countryside to the horizon (r = 800m)
@@ -3712,6 +3722,7 @@
             child.castShadow = true;
             child.receiveShadow = true;
             if (child.material) child.material.envMapIntensity = 1.35;
+            if (typeof registerMeshMaterial === 'function') registerMeshMaterial(child);
           }
         });
         const oldBridge = cGroup.getObjectByName("ClarifierBridgeGroup");
@@ -3752,6 +3763,7 @@
               c.castShadow = true;
               c.receiveShadow = true;
               if (c.material) c.material.envMapIntensity = 1.15;
+              if (typeof registerMeshMaterial === 'function') registerMeshMaterial(c);
             }
           });
           facilityGroup.add(tree);
@@ -5503,12 +5515,7 @@
     let currentShadingMode = 'pbr';
     let isWireframeActive = false;
 
-    const originalMeshMaterials = new Map();
-    facilityGroup.traverse((obj) => {
-      if (obj.isMesh) {
-        originalMeshMaterials.set(obj, obj.material);
-      }
-    });
+    facilityGroup.traverse(registerMeshMaterial);
 
     const cadSteelWire = new THREE.MeshBasicMaterial({ color: '#f8fafc', wireframe: true });
     const cadPipeWire = new THREE.MeshBasicMaterial({ color: '#38bdf8', wireframe: true });
@@ -5554,8 +5561,9 @@
         bloomPass.strength = parseFloat(document.getElementById('bloom-strength').value) / 100.0;
 
         facilityGroup.traverse((obj) => {
-          if (obj.isMesh && originalMeshMaterials.has(obj)) {
-            obj.material = originalMeshMaterials.get(obj);
+          if (obj.isMesh) {
+            const orig = obj.userData.originalMaterial || originalMeshMaterials.get(obj);
+            if (orig) obj.material = orig;
           }
         });
       } else if (mode === 'wireframe') {
@@ -5571,7 +5579,8 @@
 
         facilityGroup.traverse((obj) => {
           if (!obj.isMesh) return;
-          const orig = originalMeshMaterials.get(obj);
+          registerMeshMaterial(obj);
+          const orig = obj.userData.originalMaterial || originalMeshMaterials.get(obj);
           if (obj === terrainMesh) {
             obj.material = cadGroundSolid;
           } else if (orig === materials.safetyYellow) {
@@ -5596,7 +5605,10 @@
 
         const normalMat = new THREE.MeshNormalMaterial();
         facilityGroup.traverse((obj) => {
-          if (obj.isMesh) obj.material = normalMat;
+          if (obj.isMesh) {
+            registerMeshMaterial(obj);
+            obj.material = normalMat;
+          }
         });
       } else if (mode === 'clay') {
         modeBadge.textContent = 'CLAY STUDY';
@@ -5609,7 +5621,10 @@
 
         const clayMat = new THREE.MeshStandardMaterial({ color: '#f1f5f9', roughness: 0.9, metalness: 0.05 });
         facilityGroup.traverse((obj) => {
-          if (obj.isMesh) obj.material = clayMat;
+          if (obj.isMesh) {
+            registerMeshMaterial(obj);
+            obj.material = clayMat;
+          }
         });
       }
     }
@@ -6044,6 +6059,7 @@
     window.controls = controls;
     window.cameraPresets = cameraPresets;
     window.scene = scene;
+    window.facilityGroup = facilityGroup;
 
     function smoothTransitionCamera(preset) {
       const isMobile = window.innerWidth <= 768 || (window.innerWidth / window.innerHeight) < 1.0;

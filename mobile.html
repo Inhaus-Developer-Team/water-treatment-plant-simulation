@@ -1764,6 +1764,16 @@
     const mobilePlantGroup = new THREE.Group();
     mobilePlantGroup.name = "Hydro Industries Mobile Wastewater Facility";
     scene.add(mobilePlantGroup);
+    window.mobilePlantGroup = mobilePlantGroup;
+
+    const originalMeshMaterials = new Map();
+    function registerMeshMaterial(mesh) {
+      if (!mesh || !mesh.isMesh) return;
+      if (!mesh.userData.originalMaterial) {
+        mesh.userData.originalMaterial = mesh.material;
+      }
+      originalMeshMaterials.set(mesh, mesh.userData.originalMaterial);
+    }
 
     // 1. Graded Red-Clay Terrain Pad (220m x 220m)
     const terrainGeom = new THREE.PlaneGeometry(240, 240, 64, 64);
@@ -2000,9 +2010,9 @@
           terminal.position.set((i % 2 === 0 ? 0.5 : -0.5), 1.55, zOffset);
           internals.add(terminal);
 
-          // Electrolytic ionization micro-arcs/sparks between plates
+          // Electrolytic ionization micro-arcs/plasma between plates
           if (i < 11) {
-            const sparkMat = new THREE.MeshBasicMaterial({ color: '#38bdf8', wireframe: true });
+            const sparkMat = new THREE.MeshBasicMaterial({ color: '#38bdf8', transparent: true, opacity: 0.75, wireframe: false });
             const spark = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 0.04), sparkMat);
             spark.position.set(0, 0.95, zOffset + 0.05);
             internals.add(spark);
@@ -4056,6 +4066,7 @@
             c.material.envMapIntensity = 1.25;
             c.material.needsUpdate = true;
           }
+          if (typeof registerMeshMaterial === 'function') registerMeshMaterial(c);
         }
       });
 
@@ -4068,6 +4079,7 @@
           const doorDecal = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.28), decalMat);
           doorDecal.position.set(side, 1.25, 0.45);
           doorDecal.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
+          if (typeof registerMeshMaterial === 'function') registerMeshMaterial(doorDecal);
           truckModel.add(doorDecal);
         });
       });
@@ -4090,6 +4102,7 @@
           c.castShadow = true;
           c.receiveShadow = true;
           if (c.material) c.material.envMapIntensity = 1.2;
+          if (typeof registerMeshMaterial === 'function') registerMeshMaterial(c);
         }
       });
       const oldEngTruck = mobilePlantGroup.getObjectByName("Engineer_truck");
@@ -4110,6 +4123,7 @@
           c.castShadow = true;
           c.receiveShadow = true;
           if (c.material) c.material.envMapIntensity = 1.2;
+          if (typeof registerMeshMaterial === 'function') registerMeshMaterial(c);
         }
       });
       const oldEngLead = mobilePlantGroup.getObjectByName("Engineer_lead");
@@ -4130,6 +4144,7 @@
           c.castShadow = true;
           c.receiveShadow = true;
           if (c.material) c.material.envMapIntensity = 1.3;
+          if (typeof registerMeshMaterial === 'function') registerMeshMaterial(c);
         }
       });
       const oldSkid = mobilePlantGroup.getObjectByName("PC-10 Primary Booster Pumping Skid");
@@ -4498,10 +4513,8 @@
     // 16. SHADING MODES (PBR, CAD WIREFRAME, NORMALS, CLAY)
     // =========================================================================
     let currentShadingMode = 'pbr';
-    const originalMeshMaterials = new Map();
-    mobilePlantGroup.traverse(obj => {
-      if (obj.isMesh) originalMeshMaterials.set(obj, obj.material);
-    });
+
+    mobilePlantGroup.traverse(registerMeshMaterial);
 
     const cadWireMat = new THREE.MeshBasicMaterial({ color: '#fbbf24', wireframe: true });
     const cadGroundSolid = new THREE.MeshBasicMaterial({ color: '#18110b' });
@@ -4527,10 +4540,20 @@
         wireframeBtn.textContent = '📐 CAD Wireframe';
 
         mobilePlantGroup.traverse(obj => {
-          if (obj.isMesh && originalMeshMaterials.has(obj)) {
-            obj.material = originalMeshMaterials.get(obj);
+          if (obj.isMesh) {
+            const orig = obj.userData.originalMaterial || originalMeshMaterials.get(obj);
+            if (orig) {
+              obj.material = orig;
+            }
           }
         });
+
+        // If X-Ray was active, re-apply X-Ray overrides to outer meshes
+        if (isXRayActive && typeof allOuterMeshes !== 'undefined') {
+          allOuterMeshes.forEach(item => {
+            item.mesh.material = item.xrayMat || materials.xrayGhostWall;
+          });
+        }
       } else if (mode === 'wireframe') {
         modeBadge.textContent = 'CAD BLUEPRINT';
         modeBadge.className = 'badge tour';
@@ -4542,6 +4565,7 @@
 
         mobilePlantGroup.traverse(obj => {
           if (!obj.isMesh) return;
+          registerMeshMaterial(obj);
           if (obj === terrainMesh) {
             obj.material = cadGroundSolid;
           } else {
@@ -4558,7 +4582,10 @@
 
         const normMat = new THREE.MeshNormalMaterial();
         mobilePlantGroup.traverse(obj => {
-          if (obj.isMesh) obj.material = normMat;
+          if (obj.isMesh) {
+            registerMeshMaterial(obj);
+            obj.material = normMat;
+          }
         });
       } else if (mode === 'clay') {
         modeBadge.textContent = 'CLAY STUDY';
@@ -4570,7 +4597,10 @@
 
         const clayMat = new THREE.MeshStandardMaterial({ color: '#f5f5f4', roughness: 0.9, metalness: 0.05 });
         mobilePlantGroup.traverse(obj => {
-          if (obj.isMesh) obj.material = clayMat;
+          if (obj.isMesh) {
+            registerMeshMaterial(obj);
+            obj.material = clayMat;
+          }
         });
       }
     }
@@ -4683,6 +4713,7 @@
     window.controls = controls;
     window.scene = scene;
     window.cameraPresets = cameraPresets;
+    window.mobilePlantGroup = mobilePlantGroup;
 
     function animate() {
       requestAnimationFrame(animate);
