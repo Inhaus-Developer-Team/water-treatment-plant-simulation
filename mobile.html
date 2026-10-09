@@ -1243,6 +1243,61 @@
       return new THREE.CanvasTexture(canvas);
     }
 
+    // (H) Photorealistic Water Wave Normal Map (5-Harmonic fluid ripples)
+    function generateWaterNormalTexture(w = 512, h = 512) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      const imgData = ctx.createImageData(w, h);
+      const data = imgData.data;
+
+      const heights = new Float32Array(w * h);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const u = (x / w) * Math.PI * 2;
+          const v = (y / h) * Math.PI * 2;
+          const wave1 = Math.sin(u * 4.0 + v * 3.0);
+          const wave2 = Math.cos(u * 7.0 - v * 5.0) * 0.6;
+          const wave3 = Math.sin(u * 12.0 + v * 10.0) * 0.35;
+          const wave4 = Math.cos(u * 22.0 - v * 18.0) * 0.18;
+          const wave5 = Math.sin(u * 38.0 + v * 34.0) * 0.08;
+          heights[y * w + x] = wave1 + wave2 + wave3 + wave4 + wave5;
+        }
+      }
+
+      const strength = 2.4;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const xPrev = (x - 1 + w) % w;
+          const xNext = (x + 1) % w;
+          const yPrev = (y - 1 + h) % h;
+          const yNext = (y + 1) % h;
+
+          const dX = (heights[y * w + xNext] - heights[y * w + xPrev]) * strength;
+          const dY = (heights[yNext * w + x] - heights[yPrev * w + x]) * strength;
+
+          const len = Math.hypot(dX, dY, 1.0);
+          const nx = (-dX / len);
+          const ny = (-dY / len);
+          const nz = (1.0 / len);
+
+          const idx = (y * w + x) * 4;
+          data[idx] = Math.floor((nx * 0.5 + 0.5) * 255);
+          data[idx + 1] = Math.floor((ny * 0.5 + 0.5) * 255);
+          data[idx + 2] = Math.floor((nz * 0.5 + 0.5) * 255);
+          data[idx + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(4, 4);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
     // =========================================================================
     // 3. MASTER MATERIAL PALETTE
     // =========================================================================
@@ -1252,6 +1307,7 @@
     const podRoofTex = generatePodRoofCanvas(512);
     const pc10SkidTex = generatePC10SkidCanvas(512, 128);
     const dialGaugeTex = generateDialGaugeCanvas(256);
+    const waterNormalMap = generateWaterNormalTexture(512, 512);
 
     const materials = {
       desertGround: new THREE.MeshStandardMaterial({
@@ -1292,14 +1348,14 @@
         metalness: 0.20
       }),
       wetPuddleReflective: new THREE.MeshPhysicalMaterial({
-        color: '#3d1e0c',
+        color: '#2a1a0e',
         roughness: 0.04,
         metalness: 0.10,
-        transmission: 0.60,
         ior: 1.333,
-        reflectivity: 0.96,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.04,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.82,
         depthWrite: false
       }),
       galvanizedTray: new THREE.MeshStandardMaterial({
@@ -1407,18 +1463,30 @@
         side: THREE.DoubleSide
       }),
       liquidRawTurbid: new THREE.MeshPhysicalMaterial({
-        color: '#78350f',
-        transmission: 0.45,
-        roughness: 0.20,
+        color: '#5c3317',
+        roughness: 0.18,
+        metalness: 0.04,
+        ior: 1.333,
+        clearcoat: 0.85,
+        clearcoatRoughness: 0.08,
+        normalMap: waterNormalMap,
+        normalScale: new THREE.Vector2(0.40, 0.40),
         transparent: true,
-        opacity: 0.82
+        opacity: 0.88,
+        depthWrite: false
       }),
       liquidSwirlingChem: new THREE.MeshPhysicalMaterial({
-        color: '#0369a1',
-        transmission: 0.55,
-        roughness: 0.15,
+        color: '#086e9e',
+        roughness: 0.10,
+        metalness: 0.06,
+        ior: 1.333,
+        clearcoat: 0.95,
+        clearcoatRoughness: 0.05,
+        normalMap: waterNormalMap,
+        normalScale: new THREE.Vector2(0.45, 0.45),
         transparent: true,
-        opacity: 0.75
+        opacity: 0.82,
+        depthWrite: false
       }),
       sludgeSediment: new THREE.MeshStandardMaterial({
         color: '#451a03',
@@ -1442,26 +1510,40 @@
       }),
       clearSightGlass: new THREE.MeshPhysicalMaterial({
         color: '#e0f2fe',
-        transmission: 0.92,
-        roughness: 0.05,
+        roughness: 0.04,
+        metalness: 0.05,
         ior: 1.48,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.03,
         transparent: true,
-        opacity: 0.85
+        opacity: 0.45,
+        depthWrite: false
       }),
       clearTreatedWater: new THREE.MeshPhysicalMaterial({
-        color: '#38bdf8',
-        transmission: 0.95,
-        roughness: 0.02,
+        color: '#22b4e8',
+        roughness: 0.03,
+        metalness: 0.04,
         ior: 1.333,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.03,
+        normalMap: waterNormalMap,
+        normalScale: new THREE.Vector2(0.35, 0.35),
         transparent: true,
-        opacity: 0.80
+        opacity: 0.78,
+        depthWrite: false
       }),
       turbidDirtyWater: new THREE.MeshPhysicalMaterial({
-        color: '#78350f',
-        transmission: 0.25,
-        roughness: 0.30,
+        color: '#653512',
+        roughness: 0.18,
+        metalness: 0.04,
+        ior: 1.333,
+        clearcoat: 0.80,
+        clearcoatRoughness: 0.10,
+        normalMap: waterNormalMap,
+        normalScale: new THREE.Vector2(0.40, 0.40),
         transparent: true,
-        opacity: 0.95
+        opacity: 0.88,
+        depthWrite: false
       }),
       stainlessSteel: new THREE.MeshStandardMaterial({
         color: '#e2e8f0',
@@ -1485,10 +1567,12 @@
       }),
       ecCellTank: new THREE.MeshPhysicalMaterial({
         color: '#1e293b',
-        transmission: 0.6,
-        roughness: 0.2,
+        roughness: 0.15,
+        metalness: 0.10,
+        clearcoat: 0.8,
         transparent: true,
-        opacity: 0.85
+        opacity: 0.60,
+        depthWrite: false
       }),
       ecPlateSteel: new THREE.MeshStandardMaterial({
         color: '#94a3b8',
@@ -1501,11 +1585,17 @@
         roughness: 0.4
       }),
       dafWaterTurbid: new THREE.MeshPhysicalMaterial({
-        color: '#92400e', // dirty floc water
-        transmission: 0.5,
-        roughness: 0.2,
+        color: '#7c4314', // dirty floc water
+        roughness: 0.16,
+        metalness: 0.05,
+        ior: 1.333,
+        clearcoat: 0.85,
+        clearcoatRoughness: 0.08,
+        normalMap: waterNormalMap,
+        normalScale: new THREE.Vector2(0.35, 0.35),
         transparent: true,
-        opacity: 0.85
+        opacity: 0.85,
+        depthWrite: false
       }),
       dafScumBlanket: new THREE.MeshStandardMaterial({
         color: '#713f12', // thick brown floated scum
@@ -1524,11 +1614,11 @@
       }),
       filterVesselVitreous: new THREE.MeshPhysicalMaterial({
         color: '#0284c7',
-        transmission: 0.8,
-        roughness: 0.1,
-        metalness: 0.3,
+        roughness: 0.10,
+        metalness: 0.15,
+        clearcoat: 0.9,
         transparent: true,
-        opacity: 0.75,
+        opacity: 0.55,
         depthWrite: false
       }),
       uvGermicidalGlow: new THREE.MeshBasicMaterial({
@@ -1940,12 +2030,13 @@
         // Dense micro-bubble separation cloud (dissolved air release)
         const bubbleCloud = new THREE.Mesh(
           new THREE.BoxGeometry(1.58, 0.6, 1.48),
-          new THREE.MeshPhysicalMaterial({
+          new THREE.MeshStandardMaterial({
             color: '#e0f2fe',
-            transmission: 0.8,
-            roughness: 0.1,
+            roughness: 0.25,
+            metalness: 0.02,
             transparent: true,
-            opacity: 0.65
+            opacity: 0.55,
+            depthWrite: false
           })
         );
         bubbleCloud.position.set(0, 0.95, 0);
@@ -2608,6 +2699,12 @@
     rawLiquidMesh.position.y = 1.55;
     horizTankGroup.add(rawLiquidMesh);
 
+    // Horizontal Liquid Surface Plane (with animated normal ripples)
+    const hWaterSurface = new THREE.Mesh(new THREE.PlaneGeometry(6.65, 1.95), materials.liquidRawTurbid);
+    hWaterSurface.rotation.x = -Math.PI / 2;
+    hWaterSurface.position.set(0, 1.68, 0);
+    horizTankGroup.add(hWaterSurface);
+
     // 2. Bottom Settled Sludge Sediment Blanket
     const sludgeBlanket = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.16, 1.2), materials.sludgeSediment);
     sludgeBlanket.position.set(0, 0.65, 0);
@@ -2785,6 +2882,12 @@
     const swirlLiquid = new THREE.Mesh(new THREE.CylinderGeometry(1.02, 1.02, 2.4, 28), materials.liquidSwirlingChem);
     swirlLiquid.position.y = 2.1;
     vertTankGroup.add(swirlLiquid);
+
+    // Liquid Meniscus Surface Plane (with animated normal ripples)
+    const vWaterSurface = new THREE.Mesh(new THREE.CircleGeometry(1.02, 32), materials.liquidSwirlingChem);
+    vWaterSurface.rotation.x = -Math.PI / 2;
+    vWaterSurface.position.set(0, 3.28, 0);
+    vertTankGroup.add(vWaterSurface);
 
     // Internal Anti-Vortex Wall Baffles (4 vertical stainless plates)
     for (let b = 0; b < 4; b++) {
@@ -4036,45 +4139,7 @@
       console.warn("Retaining procedural pump skid fallback:", err);
     });
 
-    // 5. Photorealistic ASME Section VIII Horizontal Buffer Vessel
-    gltfLoader.load('assets/models/asme_horizontal_tank.glb', (gltf) => {
-      const asmeModel = gltf.scene;
-      asmeModel.position.set(-7.5, 0, -4.5);
-      asmeModel.name = "ASME Section VIII Div 1 Buffer Tank";
-      asmeModel.userData = { subsystem: "Raw Influent Equalization", spec: "45 m³ ASME Sec VIII Div 1 Buffer Vessel with 2:1 ellipsoidal heads and Zick saddles" };
-      asmeModel.traverse(c => {
-        if (c.isMesh) {
-          c.castShadow = true;
-          c.receiveShadow = true;
-          if (c.material) c.material.envMapIntensity = 1.35;
-        }
-      });
-      const oldHoriz = mobilePlantGroup.getObjectByName("ASME Section VIII Div 1 Buffer Tank");
-      if (oldHoriz) mobilePlantGroup.remove(oldHoriz);
-      mobilePlantGroup.add(asmeModel);
-    }, undefined, (err) => {
-      console.warn("Retaining procedural ASME tank fallback:", err);
-    });
 
-    // 6. Photorealistic ASTM Cone-Bottom Vertical Tank
-    gltfLoader.load('assets/models/astm_vertical_tank.glb', (gltf) => {
-      const astmModel = gltf.scene;
-      astmModel.position.set(-4.5, 0, -4.5);
-      astmModel.name = "ASTM D1998 Cone-Bottom Equalization Vessel";
-      astmModel.userData = { subsystem: "Feed Equalization & Blending", spec: "18 m³ ASTM D1998 cone-bottom polymer tank on I-beam stand with dual-tier hydrofoil mixer" };
-      astmModel.traverse(c => {
-        if (c.isMesh) {
-          c.castShadow = true;
-          c.receiveShadow = true;
-          if (c.material) c.material.envMapIntensity = 1.35;
-        }
-      });
-      const oldVert = mobilePlantGroup.getObjectByName("ASTM D1998 Cone-Bottom Equalization Vessel");
-      if (oldVert) mobilePlantGroup.remove(oldVert);
-      mobilePlantGroup.add(astmModel);
-    }, undefined, (err) => {
-      console.warn("Retaining procedural ASTM tank fallback:", err);
-    });
 
     // =========================================================================
     // 12. 3D ANNOTATION PINS LAYER
@@ -4658,6 +4723,12 @@
           animatedInternals.ecSparks.forEach((sp, idx) => {
             sp.visible = ((sparkTime + idx * 3) % 4 === 0) || Math.random() > 0.45;
           });
+        }
+
+        // Animate Photorealistic Fluid Wave Ripples Continuously
+        if (typeof waterNormalMap !== 'undefined' && waterNormalMap) {
+          waterNormalMap.offset.x = (elapsed * 0.028) % 1;
+          waterNormalMap.offset.y = (elapsed * 0.020) % 1;
         }
       }
 

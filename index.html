@@ -1948,39 +1948,37 @@
       }),
       // STAGE 1: DIRTY RAW INFLUENT SEWAGE WATER (Opaque deep turbid sludge with surface grease glint)
       dirtyInfluentWater: new THREE.MeshPhysicalMaterial({
-        color: '#3d2611',
-        roughness: 0.28,
-        metalness: 0.05,
-        transmission: 0.22,
+        color: '#3d2814',
+        roughness: 0.22,
+        metalness: 0.04,
         ior: 1.333,
-        clearcoat: 0.75,
-        clearcoatRoughness: 0.12,
+        clearcoat: 0.72,
+        clearcoatRoughness: 0.10,
         normalMap: waterNormalMap,
         normalScale: new THREE.Vector2(0.40, 0.40),
         transparent: true,
-        opacity: 0.96
+        opacity: 0.94,
+        depthWrite: false
       }),
       // STAGE 2: BIOLOGICAL MIXED LIQUOR AERATION WATER & FOAM (Realistic physical water with fluid normal waves)
       aerationWater: new THREE.MeshPhysicalMaterial({
-        color: '#1a4e63',
-        roughness: 0.10,
-        metalness: 0.08,
-        transmission: 0.58,
+        color: '#1a5468',
+        roughness: 0.12,
+        metalness: 0.06,
         ior: 1.333,
-        clearcoat: 0.92,
-        clearcoatRoughness: 0.06,
+        clearcoat: 0.96,
+        clearcoatRoughness: 0.05,
         normalMap: waterNormalMap,
-        normalScale: new THREE.Vector2(0.38, 0.38),
-        attenuationColor: new THREE.Color('#0b2a38'),
-        attenuationDistance: 1.3,
+        normalScale: new THREE.Vector2(0.42, 0.42),
         transparent: true,
-        opacity: 0.92
+        opacity: 0.86,
+        depthWrite: false
       }),
       aerationFoam: new THREE.MeshStandardMaterial({
         map: aerationFoamMap,
         transparent: true,
-        opacity: 0.24,
-        roughness: 0.30,
+        opacity: 0.32,
+        roughness: 0.28,
         metalness: 0.02,
         depthWrite: false,
         polygonOffset: true,
@@ -1989,35 +1987,31 @@
       }),
       // STAGE 3: SECONDARY CLARIFIED WATER (High-clarity physical fluid with Fresnel reflections)
       clarifierWater: new THREE.MeshPhysicalMaterial({
-        color: '#0e5f78',
-        roughness: 0.04,
-        metalness: 0.06,
-        transmission: 0.80,
+        color: '#14687d',
+        roughness: 0.05,
+        metalness: 0.08,
         ior: 1.333,
         clearcoat: 1.0,
         clearcoatRoughness: 0.04,
         normalMap: waterNormalMap,
-        normalScale: new THREE.Vector2(0.25, 0.25),
-        attenuationColor: new THREE.Color('#063847'),
-        attenuationDistance: 2.4,
+        normalScale: new THREE.Vector2(0.35, 0.35),
         transparent: true,
-        opacity: 0.88
+        opacity: 0.82,
+        depthWrite: false
       }),
       // STAGE 5: PRISTINE TREATED CLEAN EFFLUENT WATER & POLISHING LAGOON
       cleanEffluentWater: new THREE.MeshPhysicalMaterial({
-        color: '#38bdf8',
-        roughness: 0.02,
+        color: '#24b6e6',
+        roughness: 0.03,
         metalness: 0.04,
-        transmission: 0.90,
         ior: 1.333,
         clearcoat: 1.0,
         clearcoatRoughness: 0.03,
         normalMap: waterNormalMap,
-        normalScale: new THREE.Vector2(0.30, 0.30),
-        attenuationColor: new THREE.Color('#7dd3fc'),
-        attenuationDistance: 4.0,
+        normalScale: new THREE.Vector2(0.32, 0.32),
         transparent: true,
-        opacity: 0.78
+        opacity: 0.75,
+        depthWrite: false
       }),
       cleanWaterfall: new THREE.MeshStandardMaterial({
         color: '#f0f9ff',
@@ -2026,22 +2020,21 @@
         bumpMap: foamTexture,
         bumpScale: 0.08,
         transparent: true,
-        opacity: 0.88
+        opacity: 0.88,
+        depthWrite: false
       }),
       pondWater: new THREE.MeshPhysicalMaterial({
-        color: '#0d5c75',
+        color: '#106c87',
         roughness: 0.05,
         metalness: 0.06,
-        transmission: 0.84,
         ior: 1.333,
         clearcoat: 1.0,
         clearcoatRoughness: 0.04,
         normalMap: waterNormalMap,
         normalScale: new THREE.Vector2(0.38, 0.38),
-        attenuationColor: new THREE.Color('#083344'),
-        attenuationDistance: 2.8,
         transparent: true,
-        opacity: 0.88
+        opacity: 0.82,
+        depthWrite: false
       }),
       // REALISTIC BIOGAS FLARE MATERIALS (Incandescent methane plume with bloom activation)
       flameOuter: new THREE.MeshStandardMaterial({
@@ -3620,6 +3613,7 @@
         new THREE.CylinderGeometry(0.72, 0.72, 1.1, 24, 1, true),
         materials.structuralSteel
       );
+      feedWell.name = "ClarifierFeedwellMesh";
       feedWell.position.y = cHeight * 0.65;
       cGroup.add(feedWell);
 
@@ -3633,20 +3627,24 @@
 
       // Concrete Center Pier & Drive Motor Reducer
       const centerPier = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.30, cHeight + 0.45, 16), materials.concreteWall);
+      centerPier.name = "ClarifierPierMesh";
       centerPier.position.y = (cHeight + 0.45) / 2;
       cGroup.add(centerPier);
 
       // Center Drive Planetary Gearbox & Electric Motor
       const driveGearbox = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 0.32, 16), materials.structuralSteel);
+      driveGearbox.name = "ClarifierGearboxMesh";
       driveGearbox.position.y = cHeight + 0.58;
       cGroup.add(driveGearbox);
 
       const driveMotor = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.36, 12), materials.safetyYellow);
+      driveMotor.name = "ClarifierMotorMesh";
       driveMotor.position.set(0, cHeight + 0.88, 0);
       cGroup.add(driveMotor);
 
       // Rotating Scraper Bridge with Grating Deck, OSHA Handrails & Lifebuoy
       const bridgeGroup = new THREE.Group();
+      bridgeGroup.name = "ClarifierBridgeGroup";
       bridgeGroup.position.y = cHeight + 0.18;
 
       const bridgeWalk = new THREE.Mesh(new THREE.BoxGeometry(cRad * 2 + 0.3, 0.08, 0.72), materials.structuralSteel);
@@ -3707,18 +3705,26 @@
         if (!cGroup) return;
         const bridgeClone = (idx === 0) ? gltf.scene : gltf.scene.clone();
         bridgeClone.name = "ClarifierBridge_GLB_" + idx;
-        bridgeClone.position.y = 1.35 + 0.18;
-        const scaleRatio = (3.4 * 2) / 14.0;
-        bridgeClone.scale.set(scaleRatio, 0.95, scaleRatio);
+        bridgeClone.position.set(0, 0, 0);
+        bridgeClone.scale.set(1.0, 1.0, 1.0);
         bridgeClone.traverse(child => {
           if (child.isMesh) {
             child.castShadow = true;
             child.receiveShadow = true;
-            if (child.material) child.material.envMapIntensity = 1.3;
+            if (child.material) child.material.envMapIntensity = 1.35;
           }
         });
-        const oldBridge = cGroup.children.find(ch => ch.isGroup && ch.children.length > 5);
+        const oldBridge = cGroup.getObjectByName("ClarifierBridgeGroup");
         if (oldBridge) cGroup.remove(oldBridge);
+        const oldPier = cGroup.getObjectByName("ClarifierPierMesh");
+        if (oldPier) cGroup.remove(oldPier);
+        const oldFeed = cGroup.getObjectByName("ClarifierFeedwellMesh");
+        if (oldFeed) cGroup.remove(oldFeed);
+        const oldGearbox = cGroup.getObjectByName("ClarifierGearboxMesh");
+        if (oldGearbox) cGroup.remove(oldGearbox);
+        const oldMotor = cGroup.getObjectByName("ClarifierMotorMesh");
+        if (oldMotor) cGroup.remove(oldMotor);
+
         cGroup.add(bridgeClone);
         clarifierBridges[idx] = bridgeClone;
       });
