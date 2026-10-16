@@ -843,58 +843,90 @@
     // 2. PROCEDURAL TEXTURES FOR DESERT ENVIRONMENT & HYDRO UNITS
     // =========================================================================
 
-    // (A) Red-Ochre Desert Clay Ground Texture with fine tyre tracks and gravel
+    // (A) Red-Ochre Desert Clay & Graded Caliche Equipment Pad Texture
     function generateDesertTerrainCanvas(w = 2048, h = 2048) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
 
-      // Graded arid earth base
-      const grad = ctx.createLinearGradient(0, 0, w, h);
-      grad.addColorStop(0, '#9e5127');
-      grad.addColorStop(0.5, '#b45d2e');
-      grad.addColorStop(1, '#8f451f');
+      // 1. Natural arid desert hardpan base (warm terracotta & iron-oxide ochre)
+      const grad = ctx.createRadialGradient(w * 0.5, h * 0.5, 80, w * 0.5, h * 0.5, w * 0.72);
+      grad.addColorStop(0.0, '#b56537');
+      grad.addColorStop(0.45, '#a45429');
+      grad.addColorStop(1.0, '#87411d');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
 
-      // Fine dust and pebble micro-noise
+      // 2. Organic wind-scoured alluvium patches (non-directional, zero parallel stripes)
+      for (let p = 0; p < 85; p++) {
+        const px = Math.random() * w;
+        const py = Math.random() * h;
+        const pr = 50 + Math.random() * 180;
+        const pGrad = ctx.createRadialGradient(px, py, 5, px, py, pr);
+        if (p % 2 === 0) {
+          pGrad.addColorStop(0, 'rgba(198, 118, 68, 0.24)');
+          pGrad.addColorStop(1, 'rgba(198, 118, 68, 0)');
+        } else {
+          pGrad.addColorStop(0, 'rgba(108, 48, 20, 0.22)');
+          pGrad.addColorStop(1, 'rgba(108, 48, 20, 0)');
+        }
+        ctx.fillStyle = pGrad;
+        ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // 3. Engineered Compacted Crushed-Caliche Gravel Equipment Pad under the Plant
+      // Plant spans X: [-11m, +5m], Z: [-11m, +6m] -> mapped around canvas center
+      const toPx = (x, z) => ({
+        px: w * 0.5 + (x / 240.0) * w,
+        py: h * 0.5 + (z / 240.0) * h
+      });
+      const padTL = toPx(-12.5, -11.5);
+      const padBR = toPx(6.5, 7.5);
+      const padW = padBR.px - padTL.px;
+      const padH = padBR.py - padTL.py;
+
+      // Graded outer earth berm around equipment pad
+      ctx.fillStyle = 'rgba(120, 58, 26, 0.55)';
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(padTL.px - 22, padTL.py - 22, padW + 44, padH + 44, 28);
+      else ctx.rect(padTL.px - 22, padTL.py - 22, padW + 44, padH + 44);
+      ctx.fill();
+
+      // Compacted crushed limestone / caliche gravel pad
+      ctx.fillStyle = '#9c7a5c';
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(padTL.px, padTL.py, padW, padH, 16);
+      else ctx.rect(padTL.px, padTL.py, padW, padH);
+      ctx.fill();
+
+      // Subtle dual-wheel tire tracks curving from foreground desert road to the parked 4x4 truck (-2.8, -8.6)
+      const trk = toPx(-2.8, -8.6);
+      [-7, 7].forEach(offset => {
+        ctx.strokeStyle = 'rgba(82, 42, 20, 0.36)';
+        ctx.lineWidth = 4.5;
+        ctx.beginPath();
+        ctx.moveTo(trk.px + offset - 120, trk.py - 260);
+        ctx.quadraticCurveTo(trk.px + offset - 35, trk.py - 90, trk.px + offset, trk.py);
+        ctx.stroke();
+      });
+
+      // 4. High-frequency mineral sand grain & desert pebble micro-texture across entire canvas
       const imgData = ctx.getImageData(0, 0, w, h);
       const d = imgData.data;
       for (let i = 0; i < d.length; i += 4) {
-        const noise = (Math.random() - 0.5) * 36;
+        const noise = (Math.random() - 0.5) * 28;
         d[i] = Math.min(255, Math.max(0, d[i] + noise));
-        d[i+1] = Math.min(255, Math.max(0, d[i+1] + noise * 0.8));
-        d[i+2] = Math.min(255, Math.max(0, d[i+2] + noise * 0.5));
+        d[i+1] = Math.min(255, Math.max(0, d[i+1] + noise * 0.82));
+        d[i+2] = Math.min(255, Math.max(0, d[i+2] + noise * 0.65));
       }
       ctx.putImageData(imgData, 0, 0);
 
-      // Compacted central work pad (lighter, graded clay with fine aggregate)
-      const cx = w * 0.5, cy = h * 0.5;
-      const padGrad = ctx.createRadialGradient(cx, cy, 100, cx, cy, 580);
-      padGrad.addColorStop(0, 'rgba(196, 115, 68, 0.75)');
-      padGrad.addColorStop(0.7, 'rgba(180, 98, 52, 0.45)');
-      padGrad.addColorStop(1, 'rgba(142, 69, 31, 0)');
-      ctx.fillStyle = padGrad;
-      ctx.fillRect(0, 0, w, h);
-
-      // Heavy machinery tyre tracks across the pad
-      ctx.strokeStyle = 'rgba(74, 32, 12, 0.45)';
-      ctx.lineWidth = 14;
-      for (let t = -240; t <= 240; t += 120) {
-        ctx.beginPath();
-        ctx.moveTo(0, cy + t + Math.sin(t) * 40);
-        ctx.bezierCurveTo(cx * 0.5, cy + t + 20, cx * 1.5, cy + t - 20, w, cy + t);
-        ctx.stroke();
-      }
-
-      // Fine tread ribs
-      ctx.strokeStyle = 'rgba(60, 25, 9, 0.35)';
-      ctx.lineWidth = 3;
-      for (let x = 60; x < w; x += 35) {
-        ctx.beginPath();
-        ctx.moveTo(x, cy - 250);
-        ctx.lineTo(x + 15, cy - 230);
-        ctx.stroke();
+      // Coarse crushed gravel aggregate & desert pebbles near center pad
+      for (let g = 0; g < 18000; g++) {
+        const gx = padTL.px - 120 + Math.random() * (padW + 240);
+        const gy = padTL.py - 120 + Math.random() * (padH + 240);
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(215, 185, 150, 0.45)' : 'rgba(72, 38, 18, 0.45)';
+        ctx.fillRect(gx, gy, 1.8, 1.8);
       }
 
       const tex = new THREE.CanvasTexture(canvas);
@@ -1775,17 +1807,20 @@
       originalMeshMaterials.set(mesh, mesh.userData.originalMaterial);
     }
 
-    // 1. Graded Red-Clay Terrain Pad (220m x 220m)
-    const terrainGeom = new THREE.PlaneGeometry(240, 240, 64, 64);
+    // 1. Graded Red-Clay & Caliche Terrain Pad (240m x 240m) with Natural Desert Micro-Topography
+    const terrainGeom = new THREE.PlaneGeometry(240, 240, 96, 96);
     const tPos = terrainGeom.attributes.position;
     for (let i = 0; i < tPos.count; i++) {
       const x = tPos.getX(i);
       const y = tPos.getY(i);
       const r = Math.hypot(x, y);
       let elev = 0;
-      if (r > 35) {
-        elev = Math.sin(x * 0.04) * Math.cos(y * 0.035) * 2.8 +
-               Math.sin(x * 0.015 - y * 0.018) * 4.2;
+      if (r > 18) {
+        const blend = Math.min(1.0, (r - 18) / 38.0);
+        const rawElev = Math.sin(x * 0.032 + 0.5) * Math.cos(y * 0.028 - 0.3) * 2.2 +
+                        Math.sin(x * 0.014 - y * 0.017) * 3.4 +
+                        Math.cos(x * 0.075 + y * 0.065) * 0.45;
+        elev = Math.max(-0.4, rawElev) * blend;
       }
       tPos.setZ(i, elev);
     }
@@ -1795,6 +1830,52 @@
     terrainMesh.rotation.x = -Math.PI / 2;
     terrainMesh.receiveShadow = true;
     mobilePlantGroup.add(terrainMesh);
+
+    // Natural Arid Sandstone Boulders & Xeric Desert Scrub Bushes around Perimeter
+    const desertPropsGroup = new THREE.Group();
+    desertPropsGroup.name = "Arid Desert Geological & Botanical Context";
+    mobilePlantGroup.add(desertPropsGroup);
+
+    const boulderMat = new THREE.MeshStandardMaterial({ color: '#8c4b2b', roughness: 0.92, metalness: 0.03 });
+    const scrubMat = new THREE.MeshStandardMaterial({ color: '#4d5934', roughness: 0.88, metalness: 0.02 });
+
+    const boulderLocations = [
+      [-15.5, -10.5, 0.65], [-18.2, -4.0, 0.85], [-16.0, 7.5, 0.55],
+      [9.5, -11.0, 0.72], [12.8, -5.5, 0.90], [11.5, 6.8, 0.60],
+      [-6.5, 11.5, 0.75], [4.5, 10.8, 0.50], [-14.0, -14.5, 1.10],
+      [15.0, 12.0, 0.95], [-22.0, 2.0, 1.25], [19.5, -2.5, 1.05]
+    ];
+    boulderLocations.forEach(([bx, bz, bs], idx) => {
+      const bGeom = new THREE.IcosahedronGeometry(bs, 2);
+      const bPos = bGeom.attributes.position;
+      for (let v = 0; v < bPos.count; v++) {
+        let vx = bPos.getX(v), vy = bPos.getY(v), vz = bPos.getZ(v);
+        const n = 1.0 + Math.sin(vx * 3.5 + idx) * Math.cos(vz * 3.5 - idx) * 0.24;
+        bPos.setXYZ(v, vx * n * 1.2, Math.max(-bs * 0.2, vy * n * 0.65), vz * n);
+      }
+      bGeom.computeVertexNormals();
+      const bMesh = new THREE.Mesh(bGeom, boulderMat);
+      bMesh.position.set(bx, bs * 0.15, bz);
+      bMesh.rotation.y = idx * 1.4;
+      bMesh.castShadow = true;
+      bMesh.receiveShadow = true;
+      desertPropsGroup.add(bMesh);
+
+      // Pair selected boulders with low desert sage / creosote scrub clusters
+      if (idx % 2 === 0) {
+        const sGroup = new THREE.Group();
+        sGroup.position.set(bx + (idx % 4 === 0 ? 1.1 : -1.1), 0, bz + 0.6);
+        for (let c = 0; c < 4; c++) {
+          const cAng = (c / 4) * Math.PI * 2 + idx;
+          const lobe = new THREE.Mesh(new THREE.DodecahedronGeometry(0.28 + (c % 2) * 0.08, 1), scrubMat);
+          lobe.scale.set(1.1, 0.75, 1.1);
+          lobe.position.set(Math.cos(cAng) * 0.20, 0.20, Math.sin(cAng) * 0.20);
+          lobe.castShadow = true;
+          sGroup.add(lobe);
+        }
+        desertPropsGroup.add(sGroup);
+      }
+    });
 
     // Distant Desert Ridge Mesas
     const ridgeGeom = new THREE.CylinderGeometry(180, 210, 18, 36, 1, true);
@@ -1880,6 +1961,16 @@
         col.castShadow = true;
         pod.add(col);
 
+        // Heavy-duty ISO 1161 8-Corner Castings with Twist-Lock Apertures
+        [0.09, ph - 0.05].forEach(cy => {
+          const casting = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.13, 0.14), materials.hydroBlueSteel);
+          casting.position.set(cx, cy, cz);
+          pod.add(casting);
+          const aperture = new THREE.Mesh(new THREE.BoxGeometry(0.146, 0.045, 0.075), materials.truckTrimBlack);
+          aperture.position.set(cx, cy, cz);
+          pod.add(aperture);
+        });
+
         // Heavy-duty crane lifting eye lugs on top 4 corners
         const lug = new THREE.Mesh(new THREE.TorusGeometry(0.065, 0.022, 8, 16), materials.stainlessSteel);
         lug.position.set(cx, ph + 0.04, cz);
@@ -1887,11 +1978,27 @@
         pod.add(lug);
       });
 
-      // 4. Roof Perimeter Header Rail
+      // 4. Complete 4-Sided Roof Perimeter Header Rail
       const topRailN = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.08, colThick), materials.hydroBlueSteel);
       topRailN.position.set(0, ph - 0.04, -pl/2 + colThick/2); pod.add(topRailN);
       const topRailS = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.08, colThick), materials.hydroBlueSteel);
       topRailS.position.set(0, ph - 0.04, pl/2 - colThick/2); pod.add(topRailS);
+      const topRailW = new THREE.Mesh(new THREE.BoxGeometry(colThick, 0.08, pl), materials.hydroBlueSteel);
+      topRailW.position.set(-pw/2 + colThick/2, ph - 0.04, 0); pod.add(topRailW);
+      const topRailE = new THREE.Mesh(new THREE.BoxGeometry(colThick, 0.08, pl), materials.hydroBlueSteel);
+      topRailE.position.set(pw/2 - colThick/2, ph - 0.04, 0); pod.add(topRailE);
+
+      // Exterior Stainless Steel Process Bulkhead Penetration Plate & Camlock Stubs
+      const bulkheadSide = aisleSide === 'right' ? (pw * 0.5 - 0.03) : (-pw * 0.5 + 0.03);
+      const bhPlate = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.36, 0.62), materials.stainlessSteel);
+      bhPlate.position.set(bulkheadSide, 0.45, 0.0);
+      pod.add(bhPlate);
+      [-0.18, 0.18].forEach(bz => {
+        const stub = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.14, 14), materials.stainlessSteel);
+        stub.rotation.z = Math.PI / 2;
+        stub.position.set(bulkheadSide + (aisleSide === 'right' ? 0.05 : -0.05), 0.45, bz);
+        pod.add(stub);
+      });
 
       // 5. External White Monitoring Canisters / Sight Chambers (Exact match to front right corner of Pod 1 in photo!)
       for (let f = -0.38; f <= 0.38; f += 0.76) {
@@ -2688,6 +2795,30 @@
     mliFlag.position.set(0, 1.28, 1.172);
     horizTankGroup.add(mliFlag);
 
+    // OSHA Side Access Ladder & Top Inspection Catwalk Platform on Horizontal Vessel
+    [-0.90, -0.46].forEach(lx => {
+      const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 2.85, 8), materials.safetyYellow);
+      rail.position.set(lx, 1.48, 1.24);
+      horizTankGroup.add(rail);
+    });
+    for (let ry = 0.28; ry <= 2.75; ry += 0.30) {
+      const rung = new THREE.Mesh(new THREE.CylinderGeometry(0.010, 0.010, 0.44, 8), materials.safetyYellow);
+      rung.rotation.z = Math.PI / 2;
+      rung.position.set(-0.68, ry, 1.24);
+      horizTankGroup.add(rung);
+    }
+    const hCatwalk = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.04, 0.65), materials.galvanizedTray);
+    hCatwalk.position.set(-0.2, 2.75, 0.42);
+    horizTankGroup.add(hCatwalk);
+    const hCatRail = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.025, 0.025), materials.safetyYellow);
+    hCatRail.position.set(-0.2, 3.35, 0.72);
+    horizTankGroup.add(hCatRail);
+    [-1.35, -0.2, 0.95].forEach(px => {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.62, 8), materials.safetyYellow);
+      post.position.set(px, 3.05, 0.72);
+      horizTankGroup.add(post);
+    });
+
     // Equipment Identification & Safety Stencils
     // Stamped ASME / CE PED Stainless Data Nameplate
     const nameplate = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.01), materials.asmeFlangeSteel);
@@ -2887,6 +3018,26 @@
     const vOverflowDown = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 2.8, 12), materials.pipeRawGrey);
     vOverflowDown.position.set(1.30, 1.95, 0.45);
     vertTankGroup.add(vOverflowDown);
+
+    // OSHA Caged Vertical Access Ladder on Vertical Tank
+    [-0.22, 0.22].forEach(lx => {
+      const vRail = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 3.85, 8), materials.safetyYellow);
+      vRail.position.set(lx, 1.95, 1.18);
+      vertTankGroup.add(vRail);
+    });
+    for (let ry = 0.30; ry <= 3.70; ry += 0.30) {
+      const vRung = new THREE.Mesh(new THREE.CylinderGeometry(0.010, 0.010, 0.44, 8), materials.safetyYellow);
+      vRung.rotation.z = Math.PI / 2;
+      vRung.position.set(0, ry, 1.18);
+      vertTankGroup.add(vRung);
+    }
+    for (let cy = 2.15; cy <= 3.75; cy += 0.52) {
+      const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.012, 8, 18, Math.PI * 1.15), materials.safetyYellow);
+      hoop.rotation.x = Math.PI / 2;
+      hoop.rotation.z = -0.075 * Math.PI;
+      hoop.position.set(0, cy, 1.22);
+      vertTankGroup.add(hoop);
+    }
 
     // Internal Swirling Chemical Reaction Volume (Revealed in X-Ray)
     const swirlLiquid = new THREE.Mesh(new THREE.CylinderGeometry(1.02, 1.02, 2.4, 28), materials.liquidSwirlingChem);
@@ -4075,9 +4226,9 @@
       logoLoader.load('assets/hydro-logo.png', (logoTex) => {
         logoTex.colorSpace = THREE.SRGBColorSpace;
         const decalMat = new THREE.MeshBasicMaterial({ map: logoTex, transparent: true, opacity: 0.96, depthWrite: false });
-        [-0.99, 0.99].forEach((side) => {
+        [-1.01, 1.01].forEach((side) => {
           const doorDecal = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.28), decalMat);
-          doorDecal.position.set(side, 1.25, 0.45);
+          doorDecal.position.set(side, 1.05, -0.45);
           doorDecal.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
           if (typeof registerMeshMaterial === 'function') registerMeshMaterial(doorDecal);
           truckModel.add(doorDecal);
