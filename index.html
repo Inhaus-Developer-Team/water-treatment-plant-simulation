@@ -1374,8 +1374,8 @@
         ctx.lineTo(1620, 1550);
         ctx.lineTo(1024, 1550);
         // Spurs
-        ctx.moveTo(450, 1024 + (-4.5) * 17.06);
-        ctx.lineTo(toPx(-15.5, -4.5).px + 80, toPx(-15.5, -4.5).py);
+        ctx.moveTo(450, 1024 + 3.8 * 17.06);
+        ctx.lineTo(toPx(-9.5, 3.8).px, 1024 + 3.8 * 17.06);
         ctx.moveTo(1620, 1024 + (-4.5) * 17.06);
         ctx.lineTo(toPx(11.5, -4.5).px, toPx(11.5, -4.5).py);
       };
@@ -1438,8 +1438,8 @@
           }
         }
       }
-      // Crosswalk to Operations Lab
-      drawCrosswalk(450, 1024 + (-4.5) * 17.06 - 45, true);
+      // Crosswalk across west access road to Operations Lab entrance sidewalk
+      drawCrosswalk(450, 1024 + 3.8 * 17.06, true);
       // Crosswalk across south entrance road
       drawCrosswalk(1024, 1620, false);
 
@@ -1450,23 +1450,23 @@
       ctx.textAlign = 'center';
       ctx.fillText('STOP', 1024, 1630);
 
-      // 8. Angled Parking Stalls in front of Operations Lab with subtle engine oil drip marks
-      const parkX = toPx(-10.5, -4.5).px;
-      const parkY = toPx(-10.5, -4.5).py;
+      // 8. Angled Visitor & Operator Parking Stalls in front of Operations Lab (Z = +2.4m to +3.8m)
+      const roadSpurY = 1024 + 3.8 * 17.06;
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
       ctx.lineWidth = 3;
-      for (let pk = -30; pk <= 30; pk += 20) {
+      [-16.5, -14.4, -12.3, -10.2].forEach(stallX => {
+        const sx = toPx(stallX, 0).px;
         ctx.beginPath();
-        ctx.moveTo(parkX - 25, parkY + pk);
-        ctx.lineTo(parkX + 25, parkY + pk);
+        ctx.moveTo(sx, roadSpurY - 14);
+        ctx.lineTo(sx - 16, roadSpurY - 80);
         ctx.stroke();
 
-        // Subtle oil drip stain in parking stall center
-        ctx.fillStyle = 'rgba(12, 14, 16, 0.45)';
+        // Subtle engine oil drip stain centered inside parking stall
+        ctx.fillStyle = 'rgba(12, 14, 16, 0.40)';
         ctx.beginPath();
-        ctx.ellipse(parkX, parkY + pk, 12, 7, 0, 0, Math.PI * 2);
+        ctx.ellipse(sx - 8, roadSpurY - 48, 12, 6, -0.22, 0, Math.PI * 2);
         ctx.fill();
-      }
+      });
 
       // 9. Retention Wetland Pond Rim & Naturalized Shoreline
       const pondP = toPx(0.5, -22.5);
@@ -2814,7 +2814,7 @@
       if (Math.abs(x - (-33.65)) < 6.8 && z >= -45.0 && z <= 37.0) return false; // West road
       if (Math.abs(x - 34.94) < 6.8 && z >= -45.0 && z <= 37.0) return false;   // East road
       if (Math.abs(x) < 6.5 && z >= 25.0) return false;                          // South entrance highway
-      if (Math.abs(z - (-4.5)) < 5.8 && x >= -36.0 && x <= -9.0) return false;  // West spur to Lab
+      if (Math.abs(z - 3.8) < 5.8 && x >= -36.0 && x <= -9.0) return false;     // West spur to Lab & Parking
       if (Math.abs(z - (-4.5)) < 5.8 && x >= 10.0 && x <= 36.0) return false;   // East spur to Digesters
 
       // 4. Clear of ALL PERIMETER FENCES & SECURITY GATES (Minimum 2.5m buffer)
@@ -2823,8 +2823,8 @@
       if (Math.abs(x - (-42.0)) < 2.5 && z >= -46.0 && z <= 38.0) return false; // West fence
       if (Math.abs(x - 42.0) < 2.5 && z >= -46.0 && z <= 38.0) return false;   // East fence
 
-      // 5. Clear of lab, lagoon water & guardrails
-      if (x >= -23.0 && x <= -8.0 && z >= -11.0 && z <= 1.5) return false;     // Lab & parking
+      // 5. Clear of lab, parking stalls, lagoon water & guardrails
+      if (x >= -23.0 && x <= -8.0 && z >= -11.0 && z <= 7.0) return false;      // Lab building, entrance plaza & parking
       if (Math.hypot(x - 0.5, z - (-22.5)) < 10.0) return false;                // Wetland lagoon water & bank
       if (Math.abs(z - (-35.2)) < 2.5 && x >= -18.5 && x <= 18.5) return false; // Guardrail
 
@@ -3758,6 +3758,7 @@
     });
 
     // 2. Photorealistic Mature Deciduous Campus Trees at Validated Landscape Sites
+    const heroTreeInstances = [];
     gltfLoader.load('assets/models/realistic_tree.glb', (gltf) => {
       const heroTreeLocations = [
         [28.0, 16.0], [28.0, 24.0], [18.0, 28.0],
@@ -3781,6 +3782,7 @@
             }
           });
           facilityGroup.add(tree);
+          heroTreeInstances.push(tree);
         }
       });
     }, undefined, (err) => {
@@ -4165,12 +4167,12 @@
     labGroup.add(labSign);
 
     // --- Municipal Public Works Utility Pickup Truck ---
-    // Parked in marked visitor/operator parking stall in front of the Operations Lab (x=4.8, z=0.5 relative to labGroup)
+    // Parked in marked visitor/operator parking stall in front of the Operations Lab entrance plaza (x=1.8, z=7.2 relative to labGroup; World: -13.7, 0, +2.7)
     const truckGroup = new THREE.Group();
     truckGroup.name = "Municipal Water Utility Crew Pickup Truck";
     truckGroup.userData = { subsystem: "Plant Fleet Operations", spec: "Ford Super Duty 4x4 municipal utility maintenance truck with toolboxes and emergency beacon" };
-    truckGroup.position.set(4.8, 0, 0.5);
-    truckGroup.rotation.y = -Math.PI / 2 - 0.12; // Parked squarely inside angled parking stall
+    truckGroup.position.set(1.8, 0, 7.2);
+    truckGroup.rotation.y = -Math.PI * 0.12; // Angled parking stall facing toward entrance
     labGroup.add(truckGroup);
 
     // Rubber tires with steel hubcaps
@@ -4281,8 +4283,8 @@
       const muniTruck = gltf.scene;
       muniTruck.name = "Municipal Water Utility Crew Pickup Truck";
       muniTruck.userData = { subsystem: "Plant Fleet Operations", spec: "Ford Super Duty 4x4 municipal utility maintenance truck with toolboxes and emergency beacon" };
-      muniTruck.position.set(4.8, 0, 0.5);
-      muniTruck.rotation.y = -Math.PI / 2 - 0.12;
+      muniTruck.position.set(1.8, 0, 7.2);
+      muniTruck.rotation.y = -Math.PI * 0.12;
       muniTruck.traverse(c => {
         if (c.isMesh) {
           c.castShadow = true;
@@ -4312,8 +4314,8 @@
       const engLab = gltf.scene;
       engLab.name = "Municipal Operations Field Engineer";
       engLab.userData = { subsystem: "Plant Operations & QC", spec: "Certified Water Treatment Plant Operator in ANSI Class 2 PPE" };
-      engLab.position.set(3.4, 0, 2.2);
-      engLab.rotation.y = 0.65;
+      engLab.position.set(0.3, 0, 7.2);
+      engLab.rotation.y = Math.PI * 0.45;
       engLab.traverse(c => {
         if (c.isMesh) {
           c.castShadow = true;
@@ -5736,6 +5738,9 @@
         if (typeof coniferCanopyInst !== 'undefined') coniferCanopyInst.visible = vis;
         if (typeof shrubInst !== 'undefined') shrubInst.visible = vis;
         if (typeof distantTreesInst !== 'undefined') distantTreesInst.visible = vis;
+        if (typeof heroTreeInstances !== 'undefined') {
+          heroTreeInstances.forEach(t => { t.visible = vis; });
+        }
       };
 
       if (mode === 'pbr') {
@@ -5747,6 +5752,7 @@
         scene.background = new THREE.Color('#93c5fd');
         scene.fog = new THREE.Fog('#9dc4ea', 90, 520);
         toggleAllVegetation(true);
+        if (typeof regionalMesh !== 'undefined') regionalMesh.visible = true;
         bloomPass.strength = parseFloat(document.getElementById('bloom-strength').value) / 100.0;
 
         facilityGroup.traverse((obj) => {
@@ -5764,6 +5770,7 @@
         scene.background = new THREE.Color('#06090f');
         scene.fog = new THREE.FogExp2('#06090f', 0.015);
         toggleAllVegetation(false);
+        if (typeof regionalMesh !== 'undefined') regionalMesh.visible = false;
         bloomPass.strength = 0.04;
 
         facilityGroup.traverse((obj) => {
@@ -5791,6 +5798,7 @@
         scene.background = new THREE.Color('#10141c');
         scene.fog = null;
         toggleAllVegetation(true);
+        if (typeof regionalMesh !== 'undefined') regionalMesh.visible = true;
 
         const normalMat = new THREE.MeshNormalMaterial();
         facilityGroup.traverse((obj) => {
@@ -5807,6 +5815,7 @@
         cloudDome.visible = true;
         scene.fog = new THREE.Fog('#9dc4ea', 90, 520);
         toggleAllVegetation(true);
+        if (typeof regionalMesh !== 'undefined') regionalMesh.visible = true;
 
         const clayMat = new THREE.MeshStandardMaterial({ color: '#f1f5f9', roughness: 0.9, metalness: 0.05 });
         facilityGroup.traverse((obj) => {
