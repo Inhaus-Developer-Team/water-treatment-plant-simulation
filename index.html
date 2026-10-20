@@ -924,6 +924,148 @@
       return new THREE.CanvasTexture(canvas);
     }
 
+    // =========================================================================
+    // PHOTOREALISTIC SEAMLESS ORGANIC FLUID NOISE & TEXTURE ENGINE
+    // (Eliminates all rectilinear grids, diamond patterns, and z-fighting)
+    // =========================================================================
+    function createSeamlessNoiseEngine(gridSize = 16) {
+      const G = gridSize;
+      const gradX = new Float32Array(G * G);
+      const gradY = new Float32Array(G * G);
+      let seed = 1337;
+      function pseudoRandom() {
+        seed = (seed * 16807) % 2147483647;
+        return (seed - 1) / 2147483646;
+      }
+      for (let i = 0; i < G * G; i++) {
+        const angle = pseudoRandom() * Math.PI * 2;
+        gradX[i] = Math.cos(angle);
+        gradY[i] = Math.sin(angle);
+      }
+
+      function fade(t) {
+        return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+      }
+
+      function noise2D(u, v, freq = 1) {
+        const totalX = (u * freq) * G;
+        const totalY = (v * freq) * G;
+        const x0 = (Math.floor(totalX) % G + G) % G;
+        const y0 = (Math.floor(totalY) % G + G) % G;
+        const x1 = (x0 + 1) % G;
+        const y1 = (y0 + 1) % G;
+        const fx = totalX - Math.floor(totalX);
+        const fy = totalY - Math.floor(totalY);
+
+        const dot00 = gradX[y0 * G + x0] * fx + gradY[y0 * G + x0] * fy;
+        const dot10 = gradX[y0 * G + x1] * (fx - 1) + gradY[y0 * G + x1] * fy;
+        const dot01 = gradX[y1 * G + x0] * fx + gradY[y1 * G + x0] * (fy - 1);
+        const dot11 = gradX[y1 * G + x1] * (fx - 1) + gradY[y1 * G + x1] * (fy - 1);
+
+        const wx = fade(fx);
+        const wy = fade(fy);
+
+        const nx0 = dot00 * (1 - wx) + dot10 * wx;
+        const nx1 = dot01 * (1 - wx) + dot11 * wx;
+        return nx0 * (1 - wy) + nx1 * wy;
+      }
+
+      function fbm(u, v, octaves = 4, lacunarity = 2.0, gain = 0.5) {
+        let sum = 0.0;
+        let amp = 0.5;
+        let freq = 1.0;
+        let maxAmp = 0.0;
+        for (let o = 0; o < octaves; o++) {
+          sum += noise2D(u, v, freq) * amp;
+          maxAmp += amp;
+          freq *= lacunarity;
+          amp *= gain;
+        }
+        return sum / maxAmp;
+      }
+
+      return { noise2D, fbm };
+    }
+
+    const waterNoise = createSeamlessNoiseEngine(16);
+
+    // Generates a 100% organic, seamless tangent-space normal map (Zero Grid / Periodic Artifacts)
+    function generateOrganicWaterNormal(w = 512, h = 512, style = 'clean') {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      const imgData = ctx.createImageData(w, h);
+      const data = imgData.data;
+
+      const heights = new Float32Array(w * h);
+
+      for (let y = 0; y < h; y++) {
+        const v = y / h;
+        for (let x = 0; x < w; x++) {
+          const u = x / w;
+          let val = 0;
+          if (style === 'clean') {
+            // Pristine, smooth multi-octave water swell and gentle capillary ripples
+            val = waterNoise.fbm(u, v, 4, 2.0, 0.5) * 0.70
+                + waterNoise.noise2D(u, v, 2) * 0.30;
+          } else if (style === 'aeration') {
+            // Turbulent biological boiling churn & diffuser effervescence
+            val = waterNoise.fbm(u, v, 5, 2.0, 0.55) * 0.65
+                + waterNoise.fbm(u * 2, v * 2, 3, 2.0, 0.50) * 0.35;
+          } else if (style === 'directional') {
+            // Directional channel flow streamlines along Y axis with transverse shear eddies
+            val = waterNoise.noise2D(u * 3, v * 1, 1) * 0.55
+                + waterNoise.fbm(u * 2, v * 0.5, 3, 2.0, 0.45) * 0.45;
+          }
+          heights[y * w + x] = val;
+        }
+      }
+
+      const strength = style === 'clean' ? 1.4 : (style === 'aeration' ? 2.0 : 1.8);
+
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const xPrev = (x - 1 + w) % w;
+          const xNext = (x + 1) % w;
+          const yPrev = (y - 1 + h) % h;
+          const yNext = (y + 1) % h;
+
+          const dX = (heights[y * w + xNext] - heights[y * w + xPrev]) * strength;
+          const dY = (heights[yNext * w + x] - heights[yPrev * w + x]) * strength;
+
+          const len = Math.hypot(dX, dY, 1.0);
+          const nx = (-dX / len);
+          const ny = (-dY / len);
+          const nz = (1.0 / len);
+
+          const idx = (y * w + x) * 4;
+          data[idx] = Math.floor((nx * 0.5 + 0.5) * 255);
+          data[idx + 1] = Math.floor((ny * 0.5 + 0.5) * 255);
+          data[idx + 2] = Math.floor((nz * 0.5 + 0.5) * 255);
+          data[idx + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(1, 1);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    // Wrapped organic normal map generators for complete backward compatibility
+    function generateWaterNormalTexture(w = 512, h = 512) {
+      return generateOrganicWaterNormal(w, h, 'clean');
+    }
+    function generateAerationNormalTexture(w = 512, h = 512) {
+      return generateOrganicWaterNormal(w, h, 'aeration');
+    }
+    function generateDirectionalWaterNormal(w = 512, h = 512) {
+      return generateOrganicWaterNormal(w, h, 'directional');
+    }
+
     // (C) Foam & Aeration Wave Texture (Fallback bump map)
     function generateFoamTexture(w = 512, h = 512) {
       const canvas = document.createElement('canvas');
@@ -956,96 +1098,131 @@
       const ctx = canvas.getContext('2d');
 
       // Murky grey-brown base with turbidity
-      ctx.fillStyle = '#3a3026';
+      ctx.fillStyle = '#382e23';
       ctx.fillRect(0, 0, w, h);
 
       // Iridescent grease / petroleum sheen streaks along flow direction (Y axis)
-      for (let s = 0; s < 18; s++) {
+      for (let s = 0; s < 16; s++) {
         const sx = Math.random() * w;
-        const sw = 18 + Math.random() * 36;
+        const sw = 25 + Math.random() * 50;
         const grad = ctx.createLinearGradient(sx, 0, sx + sw, 0);
-        grad.addColorStop(0, 'rgba(68, 56, 44, 0)');
-        grad.addColorStop(0.3, 'rgba(100, 85, 68, 0.35)');
-        grad.addColorStop(0.5, 'rgba(120, 110, 80, 0.45)'); // petroleum sheen glint
-        grad.addColorStop(0.7, 'rgba(90, 82, 70, 0.35)');
-        grad.addColorStop(1, 'rgba(68, 56, 44, 0)');
+        grad.addColorStop(0.00, 'rgba(56, 46, 35, 0.0)');
+        grad.addColorStop(0.35, 'rgba(88, 76, 58, 0.35)');
+        grad.addColorStop(0.50, 'rgba(118, 108, 78, 0.45)'); // Golden/petroleum sheen glint
+        grad.addColorStop(0.65, 'rgba(84, 74, 58, 0.35)');
+        grad.addColorStop(1.00, 'rgba(56, 46, 35, 0.0)');
         ctx.fillStyle = grad;
         ctx.fillRect(sx, 0, sw, h);
       }
 
       // Suspended organic floc particulates & detritus flecks
-      for (let i = 0; i < 1200; i++) {
+      for (let i = 0; i < 1800; i++) {
         const x = Math.random() * w;
         const y = Math.random() * h;
-        const r = 0.8 + Math.random() * 2.2;
-        const isDark = Math.random() > 0.35;
-        ctx.fillStyle = isDark ? 'rgba(32, 24, 16, 0.65)' : 'rgba(92, 78, 58, 0.50)';
+        const r = 0.6 + Math.random() * 2.2;
+        const isDark = Math.random() > 0.4;
+        ctx.fillStyle = isDark ? 'rgba(28, 22, 15, 0.70)' : 'rgba(82, 70, 52, 0.55)';
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Floating organic scum curdles
+      for (let g = 0; g < 35; g++) {
+        const gx = Math.random() * w;
+        const gy = Math.random() * h;
+        const gr = 3 + Math.random() * 7;
+        ctx.fillStyle = 'rgba(130, 115, 85, 0.40)';
+        ctx.beginPath();
+        ctx.arc(gx, gy, gr, 0, Math.PI * 2);
         ctx.fill();
       }
 
       const tex = new THREE.CanvasTexture(canvas);
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(1, 3);
+      tex.repeat.set(1, 2);
       tex.needsUpdate = true;
       return tex;
     }
 
-    // (C2) Stage 2: True Biological Activated Sludge Foam Texture (Creamy Khaki / Buff Biosurfactant Froth)
-    function generateBiologicalFoamTexture(w = 1024, h = 1024) {
+    // (C2) Stage 2: Unified Photorealistic Mixed Liquor & Biosurfactant Foam Texture (Single Mesh, Zero Z-Fighting)
+    function generateMixedLiquorTexture(w = 1024, h = 1024) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, w, h);
 
-      // 1. Organic longitudinal foam blankets & drifting rafts along aeration channel passes
+      // 1. Base chocolate/coffee brown mixed liquor fluid
+      ctx.fillStyle = '#3e2b19';
+      ctx.fillRect(0, 0, w, h);
+
+      // 2. Fluid turbidity & microbial concentration gradients
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const d = imgData.data;
+      for (let y = 0; y < h; y++) {
+        const v = y / h;
+        for (let x = 0; x < w; x++) {
+          const u = x / w;
+          const n = waterNoise.fbm(u * 2, v * 2, 3, 2.0, 0.5);
+          const idx = (y * w + x) * 4;
+          const r = Math.min(255, Math.max(0, 62 + n * 24));
+          const g = Math.min(255, Math.max(0, 43 + n * 18));
+          const b = Math.min(255, Math.max(0, 25 + n * 12));
+          d[idx] = r;
+          d[idx + 1] = g;
+          d[idx + 2] = b;
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      // 3. Realistic Biological Foam Blankets (Naturally concentrated along channel passes & walls)
       for (let pass = 0; pass < 4; pass++) {
-        const passY = (pass + 0.5) * (h / 4);
-        for (let r = 0; r < 14; r++) {
-          const rx = Math.random() * w;
-          const ry = passY + (Math.random() - 0.5) * 120;
-          const rRadX = 65 + Math.random() * 110;
-          const rRadY = 32 + Math.random() * 55;
-          const grad = ctx.createRadialGradient(rx, ry, 5, rx, ry, rRadX);
-          grad.addColorStop(0, 'rgba(230, 218, 198, 0.82)'); // warm buff/khaki foam crown
-          grad.addColorStop(0.40, 'rgba(210, 196, 172, 0.65)');
-          grad.addColorStop(0.75, 'rgba(185, 170, 144, 0.38)');
-          grad.addColorStop(1.0, 'rgba(150, 134, 110, 0)');
+        const passCenterY = (pass + 0.5) * (h / 4);
+        for (let r = 0; r < 12; r++) {
+          const rx = (r / 12) * w + (Math.random() - 0.5) * 80;
+          const ry = passCenterY + (Math.random() - 0.5) * 75;
+          const rw = 90 + Math.random() * 140;
+          const rh = 40 + Math.random() * 65;
+
+          const grad = ctx.createRadialGradient(rx, ry, 8, rx, ry, rw);
+          grad.addColorStop(0.00, 'rgba(232, 222, 204, 0.88)'); // Warm creamy buff foam crest
+          grad.addColorStop(0.35, 'rgba(215, 202, 180, 0.72)');
+          grad.addColorStop(0.70, 'rgba(180, 164, 138, 0.40)');
+          grad.addColorStop(1.00, 'rgba(120, 104, 82, 0.00)');
+
           ctx.fillStyle = grad;
           ctx.beginPath();
-          ctx.ellipse(rx, ry, rRadX, rRadY, (Math.random() - 0.5) * 0.35, 0, Math.PI * 2);
+          ctx.ellipse(rx, ry, rw, rh, (Math.random() - 0.5) * 0.25, 0, Math.PI * 2);
           ctx.fill();
         }
       }
 
-      // 2. Polygonal & circular micro-bubble cellular honeycomb clusters
-      for (let c = 0; c < 240; c++) {
+      // 4. Fine cellular micro-bubble honeycomb pores & foam froth clusters
+      for (let c = 0; c < 280; c++) {
         const cx = Math.random() * w;
         const cy = Math.random() * h;
-        const cr = 5 + Math.random() * 16;
-        ctx.strokeStyle = 'rgba(245, 238, 226, 0.55)';
+        const cr = 4 + Math.random() * 14;
+        ctx.strokeStyle = 'rgba(248, 242, 230, 0.45)';
         ctx.lineWidth = 1.0;
         ctx.beginPath();
         ctx.arc(cx, cy, cr, 0, Math.PI * 2);
         ctx.stroke();
 
-        ctx.fillStyle = 'rgba(252, 248, 242, 0.35)';
+        ctx.fillStyle = 'rgba(255, 250, 240, 0.25)';
         ctx.beginPath();
-        ctx.arc(cx - cr * 0.25, cy - cr * 0.25, cr * 0.32, 0, Math.PI * 2);
+        ctx.arc(cx - cr * 0.2, cy - cr * 0.2, cr * 0.35, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // 3. Dense effervescent micro-bubble fizz dots & bio-floc entrapment speckles
-      for (let i = 0; i < 4200; i++) {
+      // 5. Entrapped biological floc particulates (dark organic biomass) & micro-fizz dots
+      for (let i = 0; i < 3500; i++) {
         const x = Math.random() * w;
         const y = Math.random() * h;
-        const r = 0.6 + Math.random() * 2.4;
-        const isFloc = Math.random() < 0.16;
+        const r = 0.6 + Math.random() * 2.2;
+        const isFloc = Math.random() < 0.22;
         ctx.fillStyle = isFloc
-          ? 'rgba(68, 48, 28, 0.50)'    // entrapped brown biomass floc
-          : 'rgba(248, 242, 232, 0.72)'; // white/buff foam microbubble
+          ? 'rgba(48, 32, 18, 0.65)'    // Organic sludge floc particle
+          : 'rgba(252, 246, 236, 0.75)'; // Popping micro-bubble dot
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fill();
@@ -1057,6 +1234,11 @@
       tex.repeat.set(1, 1);
       tex.needsUpdate = true;
       return tex;
+    }
+
+    // Biological foam generator alias for compatibility
+    function generateBiologicalFoamTexture(w = 1024, h = 1024) {
+      return generateMixedLiquorTexture(w, h);
     }
 
     // (C3) Stage 3: Secondary Clarifier Radial Clarification & Weir Gradient Texture
@@ -1207,170 +1389,7 @@
       return tex;
     }
 
-    // (C6) Turbulent Boiling Aeration Surface Normal Texture (Floor Diffuser Plumes)
-    function generateAerationNormalTexture(w = 512, h = 512) {
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      const imgData = ctx.createImageData(w, h);
-      const data = imgData.data;
 
-      const heights = new Float32Array(w * h);
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const u = (x / w) * Math.PI * 2;
-          const v = (y / h) * Math.PI * 2;
-          // Turbulent multi-scale boiling harmonics
-          const boil1 = Math.sin(u * 6.0 + v * 4.0);
-          const boil2 = Math.cos(u * 14.0 - v * 12.0) * 0.7;
-          const boil3 = Math.sin(u * 28.0 + v * 24.0) * 0.45;
-          const boil4 = Math.cos(u * 54.0 - v * 48.0) * 0.25;
-          const boil5 = Math.sin(u * 96.0 + v * 84.0) * 0.12;
-          heights[y * w + x] = boil1 + boil2 + boil3 + boil4 + boil5;
-        }
-      }
-
-      const strength = 3.6;
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const xPrev = (x - 1 + w) % w;
-          const xNext = (x + 1) % w;
-          const yPrev = (y - 1 + h) % h;
-          const yNext = (y + 1) % h;
-
-          const dX = (heights[y * w + xNext] - heights[y * w + xPrev]) * strength;
-          const dY = (heights[yNext * w + x] - heights[yPrev * w + x]) * strength;
-
-          const len = Math.hypot(dX, dY, 1.0);
-          const nx = (-dX / len);
-          const ny = (-dY / len);
-          const nz = (1.0 / len);
-
-          const idx = (y * w + x) * 4;
-          data[idx] = Math.floor((nx * 0.5 + 0.5) * 255);
-          data[idx + 1] = Math.floor((ny * 0.5 + 0.5) * 255);
-          data[idx + 2] = Math.floor((nz * 0.5 + 0.5) * 255);
-          data[idx + 3] = 255;
-        }
-      }
-
-      ctx.putImageData(imgData, 0, 0);
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(4, 3);
-      tex.needsUpdate = true;
-      return tex;
-    }
-
-    // (C7) Fast Directional Canal Flow Normal Texture (Flumes & Outfall Channels)
-    function generateDirectionalWaterNormal(w = 512, h = 512) {
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      const imgData = ctx.createImageData(w, h);
-      const data = imgData.data;
-
-      const heights = new Float32Array(w * h);
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const u = (x / w) * Math.PI * 2;
-          const v = (y / h) * Math.PI * 2;
-          // Elongated ripples along Y flow axis
-          const wave1 = Math.sin(u * 12.0 + v * 3.0);
-          const wave2 = Math.cos(u * 24.0 - v * 6.0) * 0.55;
-          const wave3 = Math.sin(u * 48.0 + v * 12.0) * 0.28;
-          heights[y * w + x] = wave1 + wave2 + wave3;
-        }
-      }
-
-      const strength = 2.8;
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const xPrev = (x - 1 + w) % w;
-          const xNext = (x + 1) % w;
-          const yPrev = (y - 1 + h) % h;
-          const yNext = (y + 1) % h;
-
-          const dX = (heights[y * w + xNext] - heights[y * w + xPrev]) * strength;
-          const dY = (heights[yNext * w + x] - heights[yPrev * w + x]) * strength;
-
-          const len = Math.hypot(dX, dY, 1.0);
-          const nx = (-dX / len);
-          const ny = (-dY / len);
-          const nz = (1.0 / len);
-
-          const idx = (y * w + x) * 4;
-          data[idx] = Math.floor((nx * 0.5 + 0.5) * 255);
-          data[idx + 1] = Math.floor((ny * 0.5 + 0.5) * 255);
-          data[idx + 2] = Math.floor((nz * 0.5 + 0.5) * 255);
-          data[idx + 3] = 255;
-        }
-      }
-
-      ctx.putImageData(imgData, 0, 0);
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(2, 6);
-      tex.needsUpdate = true;
-      return tex;
-    }
-
-    // (C3) Photorealistic Procedural Water Normal Map Texture (Harmonic Multi-Wave Tangent Space Normals)
-    function generateWaterNormalTexture(w = 512, h = 512) {
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      const imgData = ctx.createImageData(w, h);
-      const data = imgData.data;
-
-      const heights = new Float32Array(w * h);
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const u = (x / w) * Math.PI * 2;
-          const v = (y / h) * Math.PI * 2;
-          const wave1 = Math.sin(u * 4.0 + v * 3.0);
-          const wave2 = Math.cos(u * 7.0 - v * 5.0) * 0.6;
-          const wave3 = Math.sin(u * 12.0 + v * 10.0) * 0.35;
-          const wave4 = Math.cos(u * 22.0 - v * 18.0) * 0.18;
-          const wave5 = Math.sin(u * 38.0 + v * 34.0) * 0.08;
-          heights[y * w + x] = wave1 + wave2 + wave3 + wave4 + wave5;
-        }
-      }
-
-      const strength = 2.4;
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const xPrev = (x - 1 + w) % w;
-          const xNext = (x + 1) % w;
-          const yPrev = (y - 1 + h) % h;
-          const yNext = (y + 1) % h;
-
-          const dX = (heights[y * w + xNext] - heights[y * w + xPrev]) * strength;
-          const dY = (heights[yNext * w + x] - heights[yPrev * w + x]) * strength;
-
-          const len = Math.hypot(dX, dY, 1.0);
-          const nx = (-dX / len);
-          const ny = (-dY / len);
-          const nz = (1.0 / len);
-
-          const idx = (y * w + x) * 4;
-          data[idx] = Math.floor((nx * 0.5 + 0.5) * 255);
-          data[idx + 1] = Math.floor((ny * 0.5 + 0.5) * 255);
-          data[idx + 2] = Math.floor((nz * 0.5 + 0.5) * 255);
-          data[idx + 3] = 255;
-        }
-      }
-
-      ctx.putImageData(imgData, 0, 0);
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(4, 4);
-      tex.needsUpdate = true;
-      return tex;
-    }
 
     // (D) Natural Low-Cut Lawn Blade Texture (Realistic blade tuft with color gradation)
     function generateNaturalGrassTuftTexture() {
@@ -2201,21 +2220,21 @@
     concreteMap.repeat.set(2, 2);
 
     const foamTexture = generateFoamTexture(512, 512);
-    foamTexture.repeat.set(4, 8);
 
     const rawInfluentMap = generateRawInfluentTexture(512, 512);
-    const biologicalFoamMap = generateBiologicalFoamTexture(1024, 1024);
+    const mixedLiquorMap = generateMixedLiquorTexture(1024, 1024);
+    const biologicalFoamMap = mixedLiquorMap; // backwards compatibility
     const clarifierRadialMap = generateClarifierRadialTexture(1024, 1024);
     const sandMediaMap = generateSandMediaTexture(512, 512);
     const waterfallMap = generateWaterfallTexture(512, 1024);
     const aerationNormalMap = generateAerationNormalTexture(512, 512);
     const directionalNormalMap = generateDirectionalWaterNormal(512, 512);
-    const aerationFoamMap = biologicalFoamMap; // backwards compatibility
+    const aerationFoamMap = mixedLiquorMap; // backwards compatibility
 
     const waterNormalMap = generateWaterNormalTexture(512, 512);
     waterNormalMap.wrapS = THREE.RepeatWrapping;
     waterNormalMap.wrapT = THREE.RepeatWrapping;
-    waterNormalMap.repeat.set(6, 6);
+    waterNormalMap.repeat.set(1, 1);
 
     const grassTuftMap = generateNaturalGrassTuftTexture();
     const organicFoliageMap = generateOrganicFoliageTexture(512, 512);
@@ -2274,59 +2293,57 @@
       }),
       // STAGE 1: DIRTY RAW INFLUENT SEWAGE WATER (Opaque deep turbid sludge with surface grease glint)
       dirtyInfluentWater: new THREE.MeshPhysicalMaterial({
-        color: '#382e23', // Authentic murky grey-brown raw municipal sewage
+        color: '#ffffff', // Let rawInfluentMap drive authentic murky grey-brown sewage
         map: rawInfluentMap,
-        roughness: 0.16,
-        metalness: 0.04,
-        ior: 1.333,
-        clearcoat: 0.88,
-        clearcoatRoughness: 0.08,
-        normalMap: directionalNormalMap,
-        normalScale: new THREE.Vector2(0.45, 0.45),
-        transparent: true,
-        opacity: 0.95,
-        depthWrite: false
-      }),
-      // STAGE 2: BIOLOGICAL MIXED LIQUOR AERATION WATER & FOAM (Real chocolate-brown activated sludge)
-      aerationWater: new THREE.MeshPhysicalMaterial({
-        color: '#42301f', // True warm chocolate / coffee mixed liquor (MLSS 3000 mg/L)
         roughness: 0.16,
         metalness: 0.03,
         ior: 1.333,
-        clearcoat: 0.92,
-        clearcoatRoughness: 0.06,
-        transmission: 0.12,
-        normalMap: aerationNormalMap,
-        normalScale: new THREE.Vector2(0.65, 0.65),
+        clearcoat: 0.90,
+        clearcoatRoughness: 0.05,
+        normalMap: directionalNormalMap,
+        normalScale: new THREE.Vector2(0.25, 0.25),
         transparent: true,
-        opacity: 0.95,
-        depthWrite: false
+        opacity: 0.96,
+        depthWrite: true
+      }),
+      // STAGE 2: BIOLOGICAL MIXED LIQUOR AERATION WATER & FOAM (Real chocolate-brown activated sludge)
+      aerationWater: new THREE.MeshPhysicalMaterial({
+        color: '#ffffff', // Let mixedLiquorMap drive authentic chocolate MLSS and creamy buff foam
+        map: mixedLiquorMap,
+        roughness: 0.18,
+        metalness: 0.02,
+        ior: 1.333,
+        clearcoat: 0.95,
+        clearcoatRoughness: 0.04,
+        transmission: 0.06,
+        normalMap: aerationNormalMap,
+        normalScale: new THREE.Vector2(0.25, 0.25),
+        transparent: true,
+        opacity: 0.96,
+        depthWrite: true
       }),
       aerationFoam: new THREE.MeshStandardMaterial({
-        map: biologicalFoamMap,
+        map: mixedLiquorMap,
         transparent: true,
-        opacity: 0.82, // Realistic dense creamy buff/khaki biological foam blankets
+        opacity: 0.85,
         roughness: 0.35,
         metalness: 0.01,
-        depthWrite: false,
-        polygonOffset: true,
-        polygonOffsetFactor: -1,
-        polygonOffsetUnits: -1
+        depthWrite: false
       }),
       // STAGE 3: SECONDARY CLARIFIED WATER (Translucent olive-tea fluid with settling sludge blanket)
       clarifierWater: new THREE.MeshPhysicalMaterial({
-        color: '#264a3a', // Rich translucent olive-tea clarified liquor
+        color: '#ffffff',
         map: clarifierRadialMap,
-        roughness: 0.05,
-        metalness: 0.05,
+        roughness: 0.03,
+        metalness: 0.02,
         ior: 1.333,
         clearcoat: 1.0,
-        clearcoatRoughness: 0.03,
-        transmission: 0.65,
+        clearcoatRoughness: 0.02,
+        transmission: 0.70,
         normalMap: waterNormalMap,
-        normalScale: new THREE.Vector2(0.28, 0.28),
+        normalScale: new THREE.Vector2(0.18, 0.18),
         transparent: true,
-        opacity: 0.86,
+        opacity: 0.88,
         depthWrite: false
       }),
       // STAGE 4A: TERTIARY DUAL-MEDIA SAND FILTER BED & SHALLOW WATER
@@ -2348,58 +2365,56 @@
         color: '#38bdf8',
         emissive: '#4f46e5',
         emissiveIntensity: 0.72,
-        roughness: 0.04,
-        metalness: 0.04,
+        roughness: 0.03,
+        metalness: 0.02,
         ior: 1.333,
         clearcoat: 1.0,
-        clearcoatRoughness: 0.03,
-        transmission: 0.88,
+        clearcoatRoughness: 0.02,
+        transmission: 0.90,
         normalMap: directionalNormalMap,
-        normalScale: new THREE.Vector2(0.25, 0.25),
+        normalScale: new THREE.Vector2(0.20, 0.20),
         transparent: true,
-        opacity: 0.82,
+        opacity: 0.80,
         depthWrite: false
       }),
       // STAGE 5A: PRISTINE TREATED CLEAN EFFLUENT WATER (Parshall Flume)
       cleanEffluentWater: new THREE.MeshPhysicalMaterial({
-        color: '#0284c7',
+        color: '#38bdf8',
         roughness: 0.02,
-        metalness: 0.03,
+        metalness: 0.02,
         ior: 1.333,
         clearcoat: 1.0,
         clearcoatRoughness: 0.02,
-        transmission: 0.92,
+        transmission: 0.94,
         normalMap: directionalNormalMap,
-        normalScale: new THREE.Vector2(0.30, 0.30),
+        normalScale: new THREE.Vector2(0.20, 0.20),
         transparent: true,
-        opacity: 0.76,
+        opacity: 0.75,
         depthWrite: false
       }),
       // STAGE 5B: HIGH-SPEED AERATION CASCADE WATERFALL STEPS
       cleanWaterfall: new THREE.MeshStandardMaterial({
         color: '#f0f9ff',
         map: waterfallMap,
-        roughness: 0.10,
-        metalness: 0.08,
-        bumpMap: foamTexture,
-        bumpScale: 0.12,
+        roughness: 0.08,
+        metalness: 0.04,
         transparent: true,
         opacity: 0.92,
         depthWrite: false
       }),
       // STAGE 5C: RETENTION WETLAND POLISHING LAGOON
       pondWater: new THREE.MeshPhysicalMaterial({
-        color: '#0d444e', // Deep natural aquatic emerald-cyan
-        roughness: 0.04,
-        metalness: 0.05,
+        color: '#0b3a40', // Deep natural aquatic emerald-cyan
+        roughness: 0.03,
+        metalness: 0.02,
         ior: 1.333,
         clearcoat: 1.0,
-        clearcoatRoughness: 0.04,
-        transmission: 0.80,
+        clearcoatRoughness: 0.02,
+        transmission: 0.85,
         normalMap: waterNormalMap,
-        normalScale: new THREE.Vector2(0.38, 0.38),
+        normalScale: new THREE.Vector2(0.20, 0.20),
         transparent: true,
-        opacity: 0.84,
+        opacity: 0.86,
         depthWrite: false
       }),
       // REALISTIC BIOGAS FLARE MATERIALS (Incandescent methane plume with bloom activation)
@@ -2675,8 +2690,6 @@
 
     // 3D Stormwater Retention Wetland Lagoon (Dynamic Wave Displaced Surface)
     const pondGeom = new THREE.CircleGeometry(8.5, 64, 24);
-    materials.pondWater.bumpMap = foamTexture;
-    materials.pondWater.bumpScale = 0.035;
     const pondMesh = new THREE.Mesh(pondGeom, materials.pondWater);
     pondMesh.name = "Stormwater Retention Lagoon Surface";
     pondMesh.userData = { subsystem: "Stormwater Retention Basin", spec: "Natural environmental buffer lagoon (dia 17m) receiving clean effluent" };
@@ -3457,15 +3470,6 @@
     dirtyWaterMesh.position.set(0, 0.72, 0);
     headworksGroup.add(dirtyWaterMesh);
 
-    // Churning organic foam scum
-    const scumRaft = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.6, 2.0),
-      new THREE.MeshStandardMaterial({ color: '#543b1e', roughness: 0.85, bumpMap: foamTexture, bumpScale: 0.12, transparent: true, opacity: 0.8 })
-    );
-    scumRaft.rotation.x = -Math.PI / 2;
-    scumRaft.position.set(0, 0.73, 0.5);
-    headworksGroup.add(scumRaft);
-
     // Animated water plunge cascade from incoming pipe
     const rawPlunge = new THREE.Mesh(new THREE.PlaneGeometry(0.68, 0.42, 8, 8), materials.dirtyInfluentWater);
     rawPlunge.position.set(0, 0.76, 1.72);
@@ -3639,20 +3643,13 @@
     // Aeration Water Mesh
     const waterGeomW = basinL - wallT * 2;
     const waterGeomD = basinW - wallT * 2;
-    const aerationWaterGeom = new THREE.PlaneGeometry(waterGeomW, waterGeomD, 64, 32);
+    const aerationWaterGeom = new THREE.PlaneGeometry(waterGeomW, waterGeomD, 48, 24);
     const aerationWaterMesh = new THREE.Mesh(aerationWaterGeom, materials.aerationWater);
     aerationWaterMesh.name = "Biological Mixed Liquor (Aeration Water)";
     aerationWaterMesh.rotation.x = -Math.PI / 2;
     aerationWaterMesh.position.set(0, basinH * 0.78, 0);
     aerationWaterMesh.receiveShadow = true;
     aerationGroup.add(aerationWaterMesh);
-
-    // Active Surface Aeration Foam & Boiling Bubbles Layer (Shares water geometry to eliminate clipping)
-    const aerationFoamMesh = new THREE.Mesh(aerationWaterGeom, materials.aerationFoam);
-    aerationFoamMesh.name = "Aeration Boiling Surface Foam & Bubble Raft";
-    aerationFoamMesh.rotation.x = -Math.PI / 2;
-    aerationFoamMesh.position.set(0, basinH * 0.78 + 0.003, 0);
-    aerationGroup.add(aerationFoamMesh);
 
     // Floor Fine-Bubble Disc Diffusers Grid (EPDM membrane aerators)
     const diffuserGeom = new THREE.CylinderGeometry(0.18, 0.18, 0.04, 16);
@@ -6379,10 +6376,10 @@
 
           // Animate Stage 1: Fast Directional Current on Raw Influent Wastewater
           if (typeof rawInfluentMap !== 'undefined') {
-            rawInfluentMap.offset.y = -(elapsed * 0.22) % 1;
+            rawInfluentMap.offset.y = -(elapsed * 0.12) % 1;
           }
           if (typeof directionalNormalMap !== 'undefined') {
-            directionalNormalMap.offset.y = -(elapsed * 0.38) % 1;
+            directionalNormalMap.offset.y = -(elapsed * 0.18) % 1;
           }
 
           // Animate Stage 2: Aeration Basin Boiling Plumes & Diffuser Simmer
@@ -6390,23 +6387,26 @@
             const vx = aPosAttr.getX(i);
             const vy = aPosAttr.getY(i);
             // 4 diffuser header rows across width
-            const rowEffect = 1.0 + Math.cos(vy * 3.14) * 0.45;
-            // High-frequency fine-bubble bursting simmer + large rolling fluid boil
-            const simmer = Math.sin(vx * 7.2 + elapsed * 5.0) * 0.006
-                         + Math.cos(vy * 6.5 - elapsed * 4.4) * 0.005;
-            const boilRoll = Math.sin(vx * 1.8 + elapsed * 1.8) * Math.cos(vy * 2.4 + elapsed * 1.5) * 0.013 * rowEffect;
-            aPosAttr.setZ(i, origWaterZ[i] + simmer + boilRoll);
+            const rowEffect = 1.0 + Math.cos(vy * 3.14) * 0.35;
+            // Smooth natural rolling fluid boil & micro simmer (no sharp grid facets)
+            const boilRoll = Math.sin(vx * 1.5 + elapsed * 1.6) * Math.cos(vy * 1.8 + elapsed * 1.3) * 0.007 * rowEffect;
+            const microSimmer = Math.sin(vx * 3.7 + vy * 2.2 + elapsed * 3.2) * 0.0025;
+            aPosAttr.setZ(i, origWaterZ[i] + boilRoll + microSimmer);
           }
           aPosAttr.needsUpdate = true;
 
-          // Animate Biological Foam Raft Drift & Micro-expansion
-          if (typeof biologicalFoamMap !== 'undefined') {
-            biologicalFoamMap.offset.x = (elapsed * 0.008) % 1;
-            biologicalFoamMap.offset.y = Math.sin(elapsed * 0.22) * 0.012;
+          // Animate Mixed Liquor Foam Drift & Normal Motion
+          if (typeof mixedLiquorMap !== 'undefined') {
+            mixedLiquorMap.offset.x = (elapsed * 0.006) % 1;
+            mixedLiquorMap.offset.y = Math.sin(elapsed * 0.15) * 0.006;
           }
           if (typeof aerationNormalMap !== 'undefined') {
-            aerationNormalMap.offset.x = (elapsed * 0.042) % 1;
-            aerationNormalMap.offset.y = (elapsed * 0.035) % 1;
+            aerationNormalMap.offset.x = (elapsed * 0.018) % 1;
+            aerationNormalMap.offset.y = (elapsed * 0.014) % 1;
+          }
+          if (typeof waterNormalMap !== 'undefined') {
+            waterNormalMap.offset.x = (elapsed * 0.010) % 1;
+            waterNormalMap.offset.y = (elapsed * 0.007) % 1;
           }
 
           // Animate Stage 5: High-Speed Effluent Waterfall Plunge
@@ -6671,6 +6671,7 @@
     window.cameraPresets = cameraPresets;
     window.scene = scene;
     window.facilityGroup = facilityGroup;
+    window.setShadingMode = setShadingMode;
 
     function smoothTransitionCamera(preset) {
       const isMobile = window.innerWidth <= 768 || (window.innerWidth / window.innerHeight) < 1.0;
