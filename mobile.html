@@ -1915,13 +1915,49 @@
     scene.add(mobilePlantGroup);
     window.mobilePlantGroup = mobilePlantGroup;
 
+    // CAD Blueprint & Diagnostic Shading Materials
+    const cadWireMat = new THREE.MeshBasicMaterial({ color: '#fbbf24', wireframe: true });
+    const cadGroundSolid = new THREE.MeshBasicMaterial({ color: '#18110b' });
+    const cadClayMat = new THREE.MeshStandardMaterial({ color: '#f5f5f4', roughness: 0.9, metalness: 0.05 });
+
     const originalMeshMaterials = new Map();
+    function isMaterialInstance(m) {
+      if (!m) return false;
+      if (Array.isArray(m)) return m.length > 0 && m.every(x => x && Boolean(x.isMaterial));
+      return Boolean(m.isMaterial);
+    }
     function registerMeshMaterial(mesh) {
       if (!mesh || !mesh.isMesh) return;
-      if (!mesh.userData.originalMaterial) {
-        mesh.userData.originalMaterial = mesh.material;
+      if (originalMeshMaterials.has(mesh)) {
+        const stored = originalMeshMaterials.get(mesh);
+        if (isMaterialInstance(stored)) {
+          if (!isMaterialInstance(mesh.userData.originalMaterial)) {
+            mesh.userData.originalMaterial = stored;
+          }
+          return;
+        }
       }
-      originalMeshMaterials.set(mesh, mesh.userData.originalMaterial);
+
+      if (!isMaterialInstance(mesh.userData.originalMaterial)) {
+        delete mesh.userData.originalMaterial;
+      }
+
+      const isTemporaryShadingMat = (mat) => {
+        if (!mat) return false;
+        if (Array.isArray(mat)) return mat.some(isTemporaryShadingMat);
+        if (mat.wireframe === true) return true;
+        if (mat.type === 'MeshNormalMaterial') return true;
+        if (mat === cadWireMat || mat === cadGroundSolid || mat === cadClayMat) return true;
+        return false;
+      };
+
+      if (!isMaterialInstance(mesh.userData.originalMaterial) && isMaterialInstance(mesh.material) && !isTemporaryShadingMat(mesh.material)) {
+        mesh.userData.originalMaterial = Array.isArray(mesh.material) ? mesh.material.slice() : mesh.material;
+      }
+
+      if (isMaterialInstance(mesh.userData.originalMaterial)) {
+        originalMeshMaterials.set(mesh, mesh.userData.originalMaterial);
+      }
     }
 
     // 1. Graded Red-Clay & Caliche Terrain Pad (240m x 240m) with Natural Desert Micro-Topography
@@ -4361,7 +4397,7 @@
 
     // 2. Photorealistic Operations Field Engineer (arms relaxed down by his sides)
     gltfLoader.load('assets/models/field_engineer.glb', (gltf) => {
-      const engTruck = gltf.scene;
+      const engTruck = gltf.scene.clone(true);
       engTruck.position.set(-4.10, 0, -7.50);
       engTruck.rotation.y = 0.45;
       engTruck.name = "Engineer_truck";
@@ -4369,7 +4405,16 @@
         if (c.isMesh) {
           c.castShadow = true;
           c.receiveShadow = true;
-          if (c.material) c.material.envMapIntensity = 1.2;
+          if (c.material) {
+            if (Array.isArray(c.material)) {
+              c.material = c.material.map(m => m.clone());
+              c.material.forEach(m => { m.envMapIntensity = 1.2; });
+            } else {
+              c.material = c.material.clone();
+              c.material.envMapIntensity = 1.2;
+            }
+          }
+          delete c.userData.originalMaterial;
           if (typeof registerMeshMaterial === 'function') registerMeshMaterial(c);
         }
       });
@@ -4382,7 +4427,7 @@
 
     // 3. Photorealistic Lead Field Engineer beside Pod 1
     gltfLoader.load('assets/models/field_engineer.glb', (gltf) => {
-      const engLead = gltf.scene.clone();
+      const engLead = gltf.scene.clone(true);
       engLead.position.set(-3.25, 0, 2.10);
       engLead.rotation.y = 0.40;
       engLead.name = "Engineer_lead";
@@ -4390,7 +4435,16 @@
         if (c.isMesh) {
           c.castShadow = true;
           c.receiveShadow = true;
-          if (c.material) c.material.envMapIntensity = 1.2;
+          if (c.material) {
+            if (Array.isArray(c.material)) {
+              c.material = c.material.map(m => m.clone());
+              c.material.forEach(m => { m.envMapIntensity = 1.2; });
+            } else {
+              c.material = c.material.clone();
+              c.material.envMapIntensity = 1.2;
+            }
+          }
+          delete c.userData.originalMaterial;
           if (typeof registerMeshMaterial === 'function') registerMeshMaterial(c);
         }
       });
@@ -4784,9 +4838,6 @@
 
     mobilePlantGroup.traverse(registerMeshMaterial);
 
-    const cadWireMat = new THREE.MeshBasicMaterial({ color: '#fbbf24', wireframe: true });
-    const cadGroundSolid = new THREE.MeshBasicMaterial({ color: '#18110b' });
-
     function setShadingMode(mode) {
       currentShadingMode = mode;
       const modeBadge = document.getElementById('render-mode-badge');
@@ -4810,8 +4861,11 @@
 
         mobilePlantGroup.traverse(obj => {
           if (obj.isMesh) {
-            const orig = obj.userData.originalMaterial || originalMeshMaterials.get(obj);
-            if (orig) {
+            let orig = obj.userData.originalMaterial;
+            if (!isMaterialInstance(orig)) {
+              orig = originalMeshMaterials.get(obj);
+            }
+            if (isMaterialInstance(orig)) {
               obj.material = orig;
             }
           }
