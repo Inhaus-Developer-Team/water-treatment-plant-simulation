@@ -2565,13 +2565,55 @@
     scene.add(facilityGroup);
     window.facilityGroup = facilityGroup;
 
+    // CAD Blueprint & Shading Materials (Declared early to prevent Temporal Dead Zone)
+    const cadSteelWire = new THREE.MeshBasicMaterial({ color: '#f8fafc', wireframe: true });
+    const cadPipeWire = new THREE.MeshBasicMaterial({ color: '#38bdf8', wireframe: true });
+    const cadYellowWire = new THREE.MeshBasicMaterial({ color: '#facc15', wireframe: true });
+    const cadWaterWire = new THREE.MeshBasicMaterial({ color: '#00f2fe', wireframe: true, transparent: true, opacity: 0.65 });
+    const cadGroundSolid = new THREE.MeshBasicMaterial({ color: '#090d14' });
+    const cadClayMat = new THREE.MeshStandardMaterial({ color: '#f1f5f9', roughness: 0.9, metalness: 0.05 });
+
     const originalMeshMaterials = new Map();
+    function isMaterialInstance(m) {
+      if (!m) return false;
+      if (Array.isArray(m)) return m.length > 0 && m.every(x => x && Boolean(x.isMaterial));
+      return Boolean(m.isMaterial);
+    }
     function registerMeshMaterial(mesh) {
       if (!mesh || !mesh.isMesh) return;
-      if (!mesh.userData.originalMaterial) {
-        mesh.userData.originalMaterial = mesh.material;
+      // If already registered with a valid Material instance, protect it
+      if (originalMeshMaterials.has(mesh)) {
+        const stored = originalMeshMaterials.get(mesh);
+        if (isMaterialInstance(stored)) {
+          if (!isMaterialInstance(mesh.userData.originalMaterial)) {
+            mesh.userData.originalMaterial = stored;
+          }
+          return;
+        }
       }
-      originalMeshMaterials.set(mesh, mesh.userData.originalMaterial);
+
+      // If userData.originalMaterial was corrupted into a plain JSON object by Three.js clone(), purge it
+      if (!isMaterialInstance(mesh.userData.originalMaterial)) {
+        delete mesh.userData.originalMaterial;
+      }
+
+      // Safeguard: Never register temporary shading-mode materials (CAD wireframe, normals, clay) as original materials
+      const isTemporaryShadingMat = (mat) => {
+        if (!mat) return false;
+        if (Array.isArray(mat)) return mat.some(isTemporaryShadingMat);
+        if (mat.wireframe === true) return true;
+        if (mat.type === 'MeshNormalMaterial') return true;
+        if (mat === cadSteelWire || mat === cadPipeWire || mat === cadYellowWire || mat === cadWaterWire || mat === cadGroundSolid || mat === cadClayMat) return true;
+        return false;
+      };
+
+      if (!isMaterialInstance(mesh.userData.originalMaterial) && isMaterialInstance(mesh.material) && !isTemporaryShadingMat(mesh.material)) {
+        mesh.userData.originalMaterial = Array.isArray(mesh.material) ? mesh.material.slice() : mesh.material;
+      }
+
+      if (isMaterialInstance(mesh.userData.originalMaterial)) {
+        originalMeshMaterials.set(mesh, mesh.userData.originalMaterial);
+      }
     }
 
     // --- (A1) Expansive Regional Horizon Topography & Rolling Countryside Skirt ---
@@ -4105,7 +4147,7 @@
       clarifierCenters.forEach((c, idx) => {
         const cGroup = facilityGroup.getObjectByName(c.name);
         if (!cGroup) return;
-        const bridgeClone = (idx === 0) ? gltf.scene : gltf.scene.clone();
+        const bridgeClone = gltf.scene.clone(true);
         bridgeClone.name = "ClarifierBridge_GLB_" + idx;
         bridgeClone.position.set(0, 0, 0);
         bridgeClone.scale.set(1.0, 1.0, 1.0);
@@ -4113,8 +4155,28 @@
           if (child.isMesh) {
             child.castShadow = true;
             child.receiveShadow = true;
-            if (child.material) child.material.envMapIntensity = 1.35;
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material = child.material.map(m => m.clone());
+                child.material.forEach(m => { m.envMapIntensity = 1.35; });
+              } else {
+                child.material = child.material.clone();
+                child.material.envMapIntensity = 1.35;
+              }
+            }
+            delete child.userData.originalMaterial;
             if (typeof registerMeshMaterial === 'function') registerMeshMaterial(child);
+
+            // If shading mode is currently wireframe/normals/clay when asset resolves, apply it immediately
+            if (typeof currentShadingMode !== 'undefined' && currentShadingMode !== 'pbr') {
+              if (currentShadingMode === 'wireframe' && typeof cadSteelWire !== 'undefined') {
+                child.material = cadSteelWire;
+              } else if (currentShadingMode === 'normals') {
+                child.material = new THREE.MeshNormalMaterial();
+              } else if (currentShadingMode === 'clay') {
+                child.material = new THREE.MeshStandardMaterial({ color: '#f1f5f9', roughness: 0.9, metalness: 0.05 });
+              }
+            }
           }
         });
         const oldBridge = cGroup.getObjectByName("ClarifierBridgeGroup");
@@ -4146,7 +4208,7 @@
       ];
       heroTreeLocations.forEach(([hx, hz], i) => {
         if (isTreeAllowed(hx, hz)) {
-          const tree = (i === 0) ? gltf.scene : gltf.scene.clone();
+          const tree = gltf.scene.clone(true);
           const s = 0.90 + (i % 3) * 0.15;
           tree.scale.set(s, s, s);
           tree.position.set(hx, 0, hz);
@@ -4155,7 +4217,16 @@
             if (c.isMesh) {
               c.castShadow = true;
               c.receiveShadow = true;
-              if (c.material) c.material.envMapIntensity = 1.15;
+              if (c.material) {
+                if (Array.isArray(c.material)) {
+                  c.material = c.material.map(m => m.clone());
+                  c.material.forEach(m => { m.envMapIntensity = 1.15; });
+                } else {
+                  c.material = c.material.clone();
+                  c.material.envMapIntensity = 1.15;
+                }
+              }
+              delete c.userData.originalMaterial;
               if (typeof registerMeshMaterial === 'function') registerMeshMaterial(c);
             }
           });
@@ -4695,7 +4766,7 @@
     });
 
     gltfLoader.load('assets/models/field_engineer.glb', (gltf) => {
-      const engLab = gltf.scene;
+      const engLab = gltf.scene.clone(true);
       engLab.name = "Municipal Operations Field Engineer";
       engLab.userData = { subsystem: "Plant Operations & QC", spec: "Certified Water Treatment Plant Operator in ANSI Class 2 PPE" };
       engLab.position.set(0.3, 0, 7.2);
@@ -4704,13 +4775,22 @@
         if (c.isMesh) {
           c.castShadow = true;
           c.receiveShadow = true;
-          if (c.material) c.material.envMapIntensity = 1.2;
+          if (c.material) {
+            if (Array.isArray(c.material)) {
+              c.material = c.material.map(m => m.clone());
+              c.material.forEach(m => { m.envMapIntensity = 1.2; });
+            } else {
+              c.material = c.material.clone();
+              c.material.envMapIntensity = 1.2;
+            }
+          }
+          delete c.userData.originalMaterial;
           if (typeof registerMeshMaterial === 'function') registerMeshMaterial(c);
         }
       });
       labGroup.add(engLab);
 
-      const engClarifier = gltf.scene.clone();
+      const engClarifier = gltf.scene.clone(true);
       engClarifier.name = "Process Inspection Engineer";
       engClarifier.userData = { subsystem: "Secondary Clarification Inspection", spec: "Process Engineer monitoring clarifier weir overflow and RAS turbidity" };
       engClarifier.position.set(0.5, 0, 3.1);
@@ -4719,7 +4799,16 @@
         if (c.isMesh) {
           c.castShadow = true;
           c.receiveShadow = true;
-          if (c.material) c.material.envMapIntensity = 1.2;
+          if (c.material) {
+            if (Array.isArray(c.material)) {
+              c.material = c.material.map(m => m.clone());
+              c.material.forEach(m => { m.envMapIntensity = 1.2; });
+            } else {
+              c.material = c.material.clone();
+              c.material.envMapIntensity = 1.2;
+            }
+          }
+          delete c.userData.originalMaterial;
           if (typeof registerMeshMaterial === 'function') registerMeshMaterial(c);
         }
       });
@@ -6092,12 +6181,6 @@
 
     facilityGroup.traverse(registerMeshMaterial);
 
-    const cadSteelWire = new THREE.MeshBasicMaterial({ color: '#f8fafc', wireframe: true });
-    const cadPipeWire = new THREE.MeshBasicMaterial({ color: '#38bdf8', wireframe: true });
-    const cadYellowWire = new THREE.MeshBasicMaterial({ color: '#facc15', wireframe: true });
-    const cadWaterWire = new THREE.MeshBasicMaterial({ color: '#00f2fe', wireframe: true, transparent: true, opacity: 0.65 });
-    const cadGroundSolid = new THREE.MeshBasicMaterial({ color: '#090d14' });
-
     function setShadingMode(mode) {
       currentShadingMode = mode;
       isWireframeActive = (mode === 'wireframe');
@@ -6141,8 +6224,13 @@
 
         facilityGroup.traverse((obj) => {
           if (obj.isMesh) {
-            const orig = obj.userData.originalMaterial || originalMeshMaterials.get(obj);
-            if (orig) obj.material = orig;
+            let orig = obj.userData.originalMaterial;
+            if (!isMaterialInstance(orig)) {
+              orig = originalMeshMaterials.get(obj);
+            }
+            if (isMaterialInstance(orig)) {
+              obj.material = orig;
+            }
           }
         });
       } else if (mode === 'wireframe') {
@@ -6160,7 +6248,10 @@
         facilityGroup.traverse((obj) => {
           if (!obj.isMesh) return;
           registerMeshMaterial(obj);
-          const orig = obj.userData.originalMaterial || originalMeshMaterials.get(obj);
+          let orig = obj.userData.originalMaterial;
+          if (!isMaterialInstance(orig)) {
+            orig = originalMeshMaterials.get(obj);
+          }
           if (obj === terrainMesh) {
             obj.material = cadGroundSolid;
           } else if (orig === materials.safetyYellow) {
@@ -6208,11 +6299,10 @@
         toggleAllVegetation(true);
         if (typeof regionalMesh !== 'undefined') regionalMesh.visible = true;
 
-        const clayMat = new THREE.MeshStandardMaterial({ color: '#f1f5f9', roughness: 0.9, metalness: 0.05 });
         facilityGroup.traverse((obj) => {
           if (obj.isMesh) {
             registerMeshMaterial(obj);
-            obj.material = clayMat;
+            obj.material = cadClayMat;
           }
         });
       }
@@ -6666,11 +6756,13 @@
       }
     };
 
+    window.THREE = THREE;
     window.camera = camera;
     window.controls = controls;
     window.cameraPresets = cameraPresets;
     window.scene = scene;
     window.facilityGroup = facilityGroup;
+    window.clarifierBridges = clarifierBridges;
     window.setShadingMode = setShadingMode;
 
     function smoothTransitionCamera(preset) {
