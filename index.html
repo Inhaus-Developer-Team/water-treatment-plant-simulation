@@ -1147,6 +1147,7 @@
     }
 
     // (C2) Stage 2: Unified Photorealistic Mixed Liquor & Biosurfactant Foam Texture (Single Mesh, Zero Z-Fighting)
+    // 100% Toroidal Seamlessness - No Boundary Cuts, Reduced Natural Foam Volume, Reveals Subsurface Bubbles
     function generateMixedLiquorTexture(w = 1024, h = 1024) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
@@ -1156,18 +1157,35 @@
       ctx.fillStyle = '#3e2b19';
       ctx.fillRect(0, 0, w, h);
 
-      // 2. Fluid turbidity & microbial concentration gradients
+      // 2. Fluid turbidity, microbial biomass swirls & continuous toroidal Perlin foam field
       const imgData = ctx.getImageData(0, 0, w, h);
       const d = imgData.data;
       for (let y = 0; y < h; y++) {
         const v = y / h;
         for (let x = 0; x < w; x++) {
           const u = x / w;
-          const n = waterNoise.fbm(u * 2, v * 2, 3, 2.0, 0.5);
+          // Organic MLSS fluid turbidity (periodic noise frequencies: 2, 4)
+          const nTurb = waterNoise.fbm(u * 2, v * 2, 3, 2.0, 0.5);
           const idx = (y * w + x) * 4;
-          const r = Math.min(255, Math.max(0, 62 + n * 24));
-          const g = Math.min(255, Math.max(0, 43 + n * 18));
-          const b = Math.min(255, Math.max(0, 25 + n * 12));
+          let r = Math.min(255, Math.max(0, 62 + nTurb * 24));
+          let g = Math.min(255, Math.max(0, 43 + nTurb * 18));
+          let b = Math.min(255, Math.max(0, 25 + nTurb * 12));
+
+          // Multi-octave toroidal noise field for organic biological foam windrows (~26-28% surface coverage)
+          // Uses integer coordinate multipliers (1, 2, 4, 8) ensuring u=0 matches u=1 with zero boundary discontinuities
+          const nFoam1 = waterNoise.fbm(u * 2, v * 4, 3, 2.0, 0.5);
+          const nFoam2 = waterNoise.noise2D(u * 4, v * 8, 1);
+          const foamVal = nFoam1 * 0.70 + nFoam2 * 0.30;
+
+          // Natural biological foam threshold: 0.08 yields ~28% organic froth rafts and windrows
+          if (foamVal > 0.08) {
+            const fT = Math.min(1.0, (foamVal - 0.08) / 0.22); // 0 to 1 foam intensity
+            // Foam color: warm creamy buff froth (#e6dbc9) blending naturally over chocolate liquor (#3e2b19)
+            r = Math.round(r * (1.0 - fT * 0.88) + 230 * (fT * 0.88));
+            g = Math.round(g * (1.0 - fT * 0.88) + 219 * (fT * 0.88));
+            b = Math.round(b * (1.0 - fT * 0.88) + 201 * (fT * 0.88));
+          }
+
           d[idx] = r;
           d[idx + 1] = g;
           d[idx + 2] = b;
@@ -1175,57 +1193,46 @@
       }
       ctx.putImageData(imgData, 0, 0);
 
-      // 3. Realistic Biological Foam Blankets (Naturally concentrated along channel passes & walls)
-      for (let pass = 0; pass < 4; pass++) {
-        const passCenterY = (pass + 0.5) * (h / 4);
-        for (let r = 0; r < 12; r++) {
-          const rx = (r / 12) * w + (Math.random() - 0.5) * 80;
-          const ry = passCenterY + (Math.random() - 0.5) * 75;
-          const rw = 90 + Math.random() * 140;
-          const rh = 40 + Math.random() * 65;
-
-          const grad = ctx.createRadialGradient(rx, ry, 8, rx, ry, rw);
-          grad.addColorStop(0.00, 'rgba(232, 222, 204, 0.88)'); // Warm creamy buff foam crest
-          grad.addColorStop(0.35, 'rgba(215, 202, 180, 0.72)');
-          grad.addColorStop(0.70, 'rgba(180, 164, 138, 0.40)');
-          grad.addColorStop(1.00, 'rgba(120, 104, 82, 0.00)');
-
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.ellipse(rx, ry, rw, rh, (Math.random() - 0.5) * 0.25, 0, Math.PI * 2);
-          ctx.fill();
+      // Helper for toroidal seamless dot drawing (wraps seamlessly across canvas boundaries)
+      function drawWrappingCircle(cx, cy, radius, fillStyle, strokeStyle = null, lineWidth = 1) {
+        for (let ox of [0, -w, w]) {
+          for (let oy of [0, -h, h]) {
+            const x = cx + ox;
+            const y = cy + oy;
+            if (x + radius >= 0 && x - radius <= w && y + radius >= 0 && y - radius <= h) {
+              ctx.beginPath();
+              ctx.arc(x, y, radius, 0, Math.PI * 2);
+              if (fillStyle) {
+                ctx.fillStyle = fillStyle;
+                ctx.fill();
+              }
+              if (strokeStyle) {
+                ctx.strokeStyle = strokeStyle;
+                ctx.lineWidth = lineWidth;
+                ctx.stroke();
+              }
+            }
+          }
         }
       }
 
-      // 4. Fine cellular micro-bubble honeycomb pores & foam froth clusters
-      for (let c = 0; c < 280; c++) {
+      // 3. Fine cellular micro-bubble honeycomb pores & foam froth clusters (Toroidally Wrapped)
+      for (let c = 0; c < 180; c++) {
         const cx = Math.random() * w;
         const cy = Math.random() * h;
-        const cr = 4 + Math.random() * 14;
-        ctx.strokeStyle = 'rgba(248, 242, 230, 0.45)';
-        ctx.lineWidth = 1.0;
-        ctx.beginPath();
-        ctx.arc(cx, cy, cr, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.fillStyle = 'rgba(255, 250, 240, 0.25)';
-        ctx.beginPath();
-        ctx.arc(cx - cr * 0.2, cy - cr * 0.2, cr * 0.35, 0, Math.PI * 2);
-        ctx.fill();
+        const cr = 3 + Math.random() * 8;
+        drawWrappingCircle(cx, cy, cr, null, 'rgba(248, 242, 230, 0.40)', 0.9);
+        drawWrappingCircle(cx - cr * 0.2, cy - cr * 0.2, cr * 0.35, 'rgba(255, 250, 240, 0.22)');
       }
 
-      // 5. Entrapped biological floc particulates (dark organic biomass) & micro-fizz dots
-      for (let i = 0; i < 3500; i++) {
+      // 4. Entrapped biological floc particulates & micro-fizz dots (Toroidally Wrapped)
+      for (let i = 0; i < 2200; i++) {
         const x = Math.random() * w;
         const y = Math.random() * h;
-        const r = 0.6 + Math.random() * 2.2;
-        const isFloc = Math.random() < 0.22;
-        ctx.fillStyle = isFloc
-          ? 'rgba(48, 32, 18, 0.65)'    // Organic sludge floc particle
-          : 'rgba(252, 246, 236, 0.75)'; // Popping micro-bubble dot
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
+        const r = 0.5 + Math.random() * 1.8;
+        const isFloc = Math.random() < 0.25;
+        const col = isFloc ? 'rgba(48, 32, 18, 0.65)' : 'rgba(252, 246, 236, 0.70)';
+        drawWrappingCircle(x, y, r, col);
       }
 
       const tex = new THREE.CanvasTexture(canvas);
@@ -2310,17 +2317,17 @@
       aerationWater: new THREE.MeshPhysicalMaterial({
         color: '#ffffff', // Let mixedLiquorMap drive authentic chocolate MLSS and creamy buff foam
         map: mixedLiquorMap,
-        roughness: 0.18,
+        roughness: 0.20,
         metalness: 0.02,
         ior: 1.333,
         clearcoat: 0.95,
-        clearcoatRoughness: 0.04,
-        transmission: 0.06,
+        clearcoatRoughness: 0.05,
+        transmission: 0.45,
         normalMap: aerationNormalMap,
         normalScale: new THREE.Vector2(0.25, 0.25),
         transparent: true,
-        opacity: 0.96,
-        depthWrite: true
+        opacity: 0.84,
+        depthWrite: false
       }),
       aerationFoam: new THREE.MeshStandardMaterial({
         map: mixedLiquorMap,
@@ -3714,17 +3721,17 @@
     diffusersInst.instanceMatrix.needsUpdate = true;
     aerationGroup.add(diffusersInst);
 
-    // 1000 Volumetric Rising Fine Air Bubbles (InstancedMesh - Realistic microbubble fizz)
-    const bubbleCount = 1000;
-    const bubbleGeom = new THREE.SphereGeometry(0.010, 6, 5);
+    // 1600 Volumetric Rising Fine Air Bubbles (InstancedMesh - High visibility through mixed liquor column)
+    const bubbleCount = 1600;
+    const bubbleGeom = new THREE.SphereGeometry(0.024, 7, 6);
     const bubbleMat = new THREE.MeshStandardMaterial({
-      color: '#f0f9ff',
-      roughness: 0.10,
-      metalness: 0.10,
+      color: '#ffffff',
+      roughness: 0.15,
+      metalness: 0.05,
       transparent: true,
-      opacity: 0.65,
-      emissive: '#dbeafe',
-      emissiveIntensity: 0.22,
+      opacity: 0.90,
+      emissive: '#ffffff',
+      emissiveIntensity: 0.75,
       depthWrite: false
     });
     const bubbleInst = new THREE.InstancedMesh(bubbleGeom, bubbleMat, bubbleCount);
@@ -6504,12 +6511,12 @@
             waterfallMap.offset.y = -(elapsed * 1.75) % 1;
           }
 
-          // Animate 1000 Volumetric Rising Fine Air Bubbles in Step 2 Aeration Basin
+          // Animate 1600 Volumetric Rising Fine Air Bubbles in Step 2 Aeration Basin
           if (typeof bubbleInst !== 'undefined' && typeof bubbleData !== 'undefined') {
             for (let i = 0; i < bubbleCount; i++) {
               const b = bubbleData[i];
               b.y += delta * b.speed;
-              if (b.y >= 1.23) {
+              if (b.y >= 1.255) {
                 b.y = 0.32 + Math.random() * 0.05;
                 b.x = (Math.random() - 0.5) * 12.6;
                 const isNorth = Math.random() > 0.5;
