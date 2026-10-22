@@ -1414,35 +1414,44 @@
       return tex;
     }
 
-    // (C5) Stage 5: High-Speed Cascading White-Water Waterfall Texture
+    // (C5) Stage 5: Silky Smooth Laminar-to-Cristaline Flowing Purified Water Texture
     function generateWaterfallTexture(w = 512, h = 1024) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
 
-      // Translucent aerated turquoise-white base
-      ctx.fillStyle = 'rgba(224, 242, 254, 0.80)';
-      ctx.fillRect(0, 0, w, h);
+      const imgData = ctx.createImageData(w, h);
+      const data = imgData.data;
 
-      // Vertical plunging aerated water streaks & white froth ribbons
-      for (let s = 0; s < 75; s++) {
-        const sx = Math.random() * w;
-        const sw = 3 + Math.random() * 12;
-        const alpha = 0.4 + Math.random() * 0.55;
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.fillRect(sx, 0, sw, h);
-      }
+      // Continuous, tileable multi-harmonic fluid wave field (zero rectangles, zero discrete dots)
+      for (let py = 0; py < h; py++) {
+        const v = (py / h) * Math.PI * 2;
+        for (let px = 0; px < w; px++) {
+          const u = (px / w) * Math.PI * 2;
 
-      // Hydraulic jump turbulent aeration froth at step foot
-      for (let b = 0; b < 2200; b++) {
-        const bx = Math.random() * w;
-        const by = Math.random() * h;
-        const br = 1.0 + Math.random() * 3.5;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-        ctx.beginPath();
-        ctx.arc(bx, by, br, 0, Math.PI * 2);
-        ctx.fill();
+          // Smooth longitudinal flow ribbons and gentle cross-stream caustics
+          const flowRibbon = Math.sin(u * 3.0 + Math.sin(v * 2.0) * 0.45) * 0.5 + 0.5;
+          const secondaryWave = Math.cos(u * 5.0 - v * 3.0 + Math.cos(u * 2.0) * 0.35) * 0.5 + 0.5;
+          const silkyShimmer = Math.sin(v * 4.0 + u * 2.0 + Math.sin(v * 1.0) * 0.6) * 0.5 + 0.5;
+          const fineHarmonic = Math.cos(u * 8.0 + v * 6.0) * 0.5 + 0.5;
+
+          const blend = flowRibbon * 0.38 + secondaryWave * 0.32 + silkyShimmer * 0.20 + fineHarmonic * 0.10;
+          const highlight = Math.pow(blend, 2.2);
+
+          // Pristine crystalline aqua-cyan to luminous aerated water sheen
+          const r = Math.round(68 + highlight * 172);
+          const g = Math.round(188 + highlight * 62);
+          const b = Math.round(226 + highlight * 29);
+          const a = Math.round(185 + highlight * 60);
+
+          const idx = (py * w + px) * 4;
+          data[idx] = r;
+          data[idx + 1] = g;
+          data[idx + 2] = b;
+          data[idx + 3] = a;
+        }
       }
+      ctx.putImageData(imgData, 0, 0);
 
       const tex = new THREE.CanvasTexture(canvas);
       tex.wrapS = THREE.RepeatWrapping;
@@ -1685,16 +1694,17 @@
       }
 
       // Helper function: World coordinates (X, Z) in meters to Canvas Pixels
-      // 120m site pad -> center (0,0) at (1024, 1024). 1m = 17.06 px
+      // 130m site pad -> center (0,0) at (1024, 1024). Exact scale: 2048 / 130 = 15.753846 px/m
+      const PX_PER_METER = 2048 / 130;
       function toPx(x, z) {
-        return { px: 1024 + x * 17.06, py: 1024 + z * 17.06 };
+        return { px: 1024 + x * PX_PER_METER, py: 1024 + z * PX_PER_METER };
       }
 
       // Helper function: Draw concrete equipment pads with authentic crushed stone ballast margins
       function drawConcretePad(x, z, width, depth) {
         const p = toPx(x - width/2, z - depth/2);
-        const pw = width * 17.06;
-        const pd = depth * 17.06;
+        const pw = width * PX_PER_METER;
+        const pd = depth * PX_PER_METER;
 
         // 1. Crushed stone gravel drainage ballast (28px = ~1.6m wide aggregate buffer)
         ctx.fillStyle = '#55544b';
@@ -1764,20 +1774,24 @@
       else ctx.rect(labBedP.px - 105, labBedP.py - 105, 210, 210);
       ctx.fill();
 
-      // Roadway path coordinates (Rerouted north road to py = 370 / Z = -38.3m to completely separate from lagoon)
+      // Roadway path coordinates (Aligned 1:1 with 130m terrain world coordinates)
+      const roadWestX = toPx(-33.65, 0).px;
+      const roadEastX = toPx(34.94, 0).px;
+      const roadNorthY = toPx(0, -38.34).py;
+      const roadSouthY = toPx(0, 30.83).py;
       const roadPath = () => {
         ctx.beginPath();
         ctx.moveTo(1024, 2048);
-        ctx.lineTo(1024, 1550);
-        ctx.lineTo(450, 1550);
-        ctx.lineTo(450, 370);
-        ctx.lineTo(1620, 370);
-        ctx.lineTo(1620, 1550);
-        ctx.lineTo(1024, 1550);
+        ctx.lineTo(1024, roadSouthY);
+        ctx.lineTo(roadWestX, roadSouthY);
+        ctx.lineTo(roadWestX, roadNorthY);
+        ctx.lineTo(roadEastX, roadNorthY);
+        ctx.lineTo(roadEastX, roadSouthY);
+        ctx.lineTo(1024, roadSouthY);
         // Spurs
-        ctx.moveTo(450, 1024 + 3.8 * 17.06);
-        ctx.lineTo(toPx(-9.5, 3.8).px, 1024 + 3.8 * 17.06);
-        ctx.moveTo(1620, 1024 + (-4.5) * 17.06);
+        ctx.moveTo(roadWestX, toPx(0, 3.8).py);
+        ctx.lineTo(toPx(-9.5, 3.8).px, toPx(-9.5, 3.8).py);
+        ctx.moveTo(roadEastX, toPx(0, -4.5).py);
         ctx.lineTo(toPx(11.5, -4.5).px, toPx(11.5, -4.5).py);
       };
 
@@ -1840,19 +1854,19 @@
         }
       }
       // Crosswalk across west access road to Operations Lab entrance sidewalk
-      drawCrosswalk(450, 1024 + 3.8 * 17.06, true);
+      drawCrosswalk(roadWestX, toPx(0, 3.8).py, true);
       // Crosswalk across south entrance road
-      drawCrosswalk(1024, 1620, false);
+      drawCrosswalk(1024, roadSouthY + 65, false);
 
       // 7. Painted "STOP" Bar & Stencil at Main Entrance
       ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-      ctx.fillRect(1024 - 36, 1595, 72, 8); // Stop bar
+      ctx.fillRect(1024 - 36, roadSouthY + 42, 72, 8); // Stop bar
       ctx.font = 'bold 16px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('STOP', 1024, 1630);
+      ctx.fillText('STOP', 1024, roadSouthY + 75);
 
       // 8. Angled Visitor & Operator Parking Stalls in front of Operations Lab (Z = +2.4m to +3.8m)
-      const roadSpurY = 1024 + 3.8 * 17.06;
+      const roadSpurY = toPx(0, 3.8).py;
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
       ctx.lineWidth = 3;
       [-16.5, -14.4, -12.3, -10.2].forEach(stallX => {
@@ -1871,50 +1885,55 @@
 
       // 9. Retention Wetland Naturalized Shoreline & Clear Water Bed Floor
       const pondP = toPx(0.5, -22.5);
-      const pondR = 8.5 * 17.06;
+      const pondR = 8.5 * PX_PER_METER;
 
-      // Draw an organic, natural lake shoreline curve (not geometric circles)
+      // Draw an organic, natural lake shoreline curve matching 3D pondMesh 1:1
       function drawNaturalShorelinePath(radiusOffset = 0, noiseScale = 1.0) {
         ctx.beginPath();
-        const steps = 72;
+        const steps = 96;
         for (let s = 0; s <= steps; s++) {
           const theta = (s / steps) * Math.PI * 2;
-          // Organic shoreline harmonic modulation
+          // Organic shoreline harmonic modulation (identical to 3D pondGeom)
           const rDelta = (Math.sin(theta * 3 + 0.4) * 0.045
                        + Math.cos(theta * 5 - 0.8) * 0.035
                        + Math.sin(theta * 7 + 1.2) * 0.020) * noiseScale;
           const currentR = (pondR + radiusOffset) * (1.0 + rDelta);
           const x = pondP.px + Math.cos(theta) * currentR;
-          const y = pondP.py + Math.sin(theta) * currentR;
+          // Note: 3D pondMesh has rotation.x = -Math.PI / 2, so local +vy maps to World -Z (-py)
+          const y = pondP.py - Math.sin(theta) * currentR;
           if (s === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         }
         ctx.closePath();
       }
 
-      // Outer riparian wet loam buffer with soft edge
-      ctx.fillStyle = '#3a4d26';
-      drawNaturalShorelinePath(24, 1.2);
+      // Outer riparian wet loam buffer with soft organic transition into turf
+      const outerShoreGrad = ctx.createRadialGradient(pondP.px, pondP.py, pondR * 0.90, pondP.px, pondP.py, pondR + 18);
+      outerShoreGrad.addColorStop(0.0, 'rgba(48, 74, 38, 0.70)');
+      outerShoreGrad.addColorStop(0.6, 'rgba(54, 82, 40, 0.45)');
+      outerShoreGrad.addColorStop(1.0, 'rgba(62, 92, 44, 0.0)');
+      ctx.fillStyle = outerShoreGrad;
+      drawNaturalShorelinePath(16, 1.0);
       ctx.fill();
 
-      // Sandy / river gravel natural littoral beach zone
-      const beachGrad = ctx.createRadialGradient(pondP.px, pondP.py, pondR * 0.70, pondP.px, pondP.py, pondR + 12);
-      beachGrad.addColorStop(0.0, 'rgba(84, 110, 80, 0.4)');
-      beachGrad.addColorStop(0.65, '#5c634c');
-      beachGrad.addColorStop(0.88, '#787358');
-      beachGrad.addColorStop(1.0, '#4a5332');
+      // Natural mossy river-stone littoral margin hugging the water edge (subtle 0.35m rim, no artificial grey ring)
+      const beachGrad = ctx.createRadialGradient(pondP.px, pondP.py, pondR * 0.92, pondP.px, pondP.py, pondR + 6);
+      beachGrad.addColorStop(0.0, '#1e5258');
+      beachGrad.addColorStop(0.55, '#3b5c47');
+      beachGrad.addColorStop(0.85, '#4b5e3c');
+      beachGrad.addColorStop(1.0, 'rgba(62, 86, 44, 0.0)');
       ctx.fillStyle = beachGrad;
-      drawNaturalShorelinePath(8, 1.0);
+      drawNaturalShorelinePath(5, 1.0);
       ctx.fill();
 
       // Natural sandy gravel lakebed visible through cristaline water
       const lakebedGrad = ctx.createRadialGradient(pondP.px, pondP.py, 10, pondP.px, pondP.py, pondR);
-      lakebedGrad.addColorStop(0.00, '#1c4a52'); // Deep pristine turquoise aquatic bed
-      lakebedGrad.addColorStop(0.45, '#22555e'); // Clear mid-depth littoral shelf
-      lakebedGrad.addColorStop(0.80, '#316264'); // Shallow sand bar
-      lakebedGrad.addColorStop(1.00, '#4e6d56'); // Natural greened shore margin
+      lakebedGrad.addColorStop(0.00, '#0f3d47'); // Deep pristine turquoise aquatic bed
+      lakebedGrad.addColorStop(0.55, '#174c57'); // Clear mid-depth littoral shelf
+      lakebedGrad.addColorStop(0.86, '#235a5e'); // Shallow aquatic shelf
+      lakebedGrad.addColorStop(1.00, '#365c49'); // Natural mossy shore edge
       ctx.fillStyle = lakebedGrad;
-      drawNaturalShorelinePath(0, 0.9);
+      drawNaturalShorelinePath(0, 1.0);
       ctx.fill();
 
       // Submerged organic silt and sand ripples on lagoon floor
@@ -2415,29 +2434,36 @@
         opacity: 0.80,
         depthWrite: false
       }),
-      // STAGE 5A: PRISTINE TREATED CLEAN EFFLUENT WATER (Parshall Flume)
+      // STAGE 5A: PRISTINE TREATED CLEAN EFFLUENT WATER (Parshall Flume & Continuous Spillway Stream)
       cleanEffluentWater: new THREE.MeshPhysicalMaterial({
-        color: '#38bdf8',
+        color: '#ffffff',
+        map: waterfallMap,
+        roughness: 0.015,
+        metalness: 0.01,
+        ior: 1.333,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.015,
+        transmission: 0.90,
+        normalMap: directionalNormalMap,
+        normalScale: new THREE.Vector2(0.24, 0.24),
+        transparent: true,
+        opacity: 0.80,
+        depthWrite: false
+      }),
+      // STAGE 5B: SILKY CRISTALINE OUTFALL SPILLWAY WATER SHEET
+      cleanWaterfall: new THREE.MeshPhysicalMaterial({
+        color: '#7dd3fc',
+        map: waterfallMap,
         roughness: 0.02,
-        metalness: 0.02,
+        metalness: 0.01,
         ior: 1.333,
         clearcoat: 1.0,
         clearcoatRoughness: 0.02,
-        transmission: 0.94,
+        transmission: 0.88,
         normalMap: directionalNormalMap,
-        normalScale: new THREE.Vector2(0.20, 0.20),
+        normalScale: new THREE.Vector2(0.22, 0.22),
         transparent: true,
-        opacity: 0.75,
-        depthWrite: false
-      }),
-      // STAGE 5B: HIGH-SPEED AERATION CASCADE WATERFALL STEPS
-      cleanWaterfall: new THREE.MeshStandardMaterial({
-        color: '#f0f9ff',
-        map: waterfallMap,
-        roughness: 0.08,
-        metalness: 0.04,
-        transparent: true,
-        opacity: 0.92,
+        opacity: 0.88,
         depthWrite: false
       }),
       // STAGE 5C: RETENTION WETLAND POLISHING LAGOON (Cristaline, sparkling, pure aquatic body)
@@ -2768,25 +2794,65 @@
     terrainMesh.receiveShadow = true;
     facilityGroup.add(terrainMesh);
 
-    // 3D Stormwater Retention Wetland Lagoon (Naturalized Organic Contour & Wave Surface)
-    const pondGeom = new THREE.CircleGeometry(8.5, 64, 24);
-    // Deform circular geometry into natural organic lake perimeter matching terrain shoreline
-    const pondPosAttrInit = pondGeom.attributes.position;
-    for (let i = 0; i < pondPosAttrInit.count; i++) {
-      const vx = pondPosAttrInit.getX(i);
-      const vy = pondPosAttrInit.getY(i);
-      const r = Math.hypot(vx, vy);
-      if (r > 0.2) {
-        const theta = Math.atan2(vy, vx);
-        const rDelta = Math.sin(theta * 3 + 0.4) * 0.045
-                     + Math.cos(theta * 5 - 0.8) * 0.035
-                     + Math.sin(theta * 7 + 1.2) * 0.020;
-        const deformFactor = Math.pow(r / 8.5, 1.5);
-        const newR = r * (1.0 + rDelta * deformFactor);
-        pondPosAttrInit.setXY(i, Math.cos(theta) * newR, Math.sin(theta) * newR);
+    // 3D Stormwater Retention Wetland Lagoon (Multi-Ring Radial Disk with 1:1 Organic Shoreline Contour & Wave Surface)
+    function createNaturalLagoonGeometry(baseRadius = 8.5, angularSegments = 96, radialRings = 28) {
+      const geom = new THREE.BufferGeometry();
+      const positions = [];
+      const uvs = [];
+      const indices = [];
+
+      // Center vertex (index 0)
+      positions.push(0, 0, 0);
+      uvs.push(0.5, 0.5);
+
+      for (let rIdx = 1; rIdx <= radialRings; rIdx++) {
+        const rFrac = rIdx / radialRings;
+        // Smooth radial distribution
+        const rBase = baseRadius * rFrac;
+        const deformFactor = Math.pow(rFrac, 1.35);
+
+        for (let s = 0; s <= angularSegments; s++) {
+          const theta = (s / angularSegments) * Math.PI * 2;
+          const rDelta = Math.sin(theta * 3 + 0.4) * 0.045
+                       + Math.cos(theta * 5 - 0.8) * 0.035
+                       + Math.sin(theta * 7 + 1.2) * 0.020;
+          const currentR = rBase * (1.0 + rDelta * deformFactor);
+          const vx = Math.cos(theta) * currentR;
+          const vy = Math.sin(theta) * currentR;
+
+          positions.push(vx, vy, 0);
+          uvs.push(0.5 + (vx / (baseRadius * 2.2)), 0.5 + (vy / (baseRadius * 2.2)));
+        }
       }
+
+      const ringStride = angularSegments + 1;
+      // Inner triangle fan (ring 1 to center vertex 0)
+      for (let s = 0; s < angularSegments; s++) {
+        indices.push(0, 1 + s, 1 + s + 1);
+      }
+
+      // Concentric quad rings
+      for (let rIdx = 1; rIdx < radialRings; rIdx++) {
+        const row1 = 1 + (rIdx - 1) * ringStride;
+        const row2 = 1 + rIdx * ringStride;
+        for (let s = 0; s < angularSegments; s++) {
+          const a = row1 + s;
+          const b = row1 + s + 1;
+          const c = row2 + s;
+          const d = row2 + s + 1;
+          indices.push(a, c, b);
+          indices.push(b, c, d);
+        }
+      }
+
+      geom.setIndex(indices);
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      geom.computeVertexNormals();
+      return geom;
     }
-    pondGeom.computeVertexNormals();
+
+    const pondGeom = createNaturalLagoonGeometry(8.5, 96, 28);
 
     const pondMesh = new THREE.Mesh(pondGeom, materials.pondWater);
     pondMesh.name = "Stormwater Retention Lagoon Surface";
@@ -2977,7 +3043,7 @@
       if (x >= 11.0 && x <= 30.0 && z >= -13.5 && z <= 1.5) return false;
       // Wetland pond
       const dPond = Math.hypot(x - 0.5, z - (-22.5));
-      if (dPond < 9.8) return false;
+      if (dPond < 9.15) return false;
       // Roads & shoulders
       if (Math.abs(x - 0.0) < 3.2 && z >= 28.0) return false; // South access road
       if (Math.abs(z - 30.83) < 3.5 && x >= -37.0 && x <= 38.0) return false; // South perimeter road
@@ -3302,7 +3368,8 @@
 
       // 5. Clear of lab, parking stalls, lagoon water & guardrails
       if (x >= -23.0 && x <= -8.0 && z >= -11.0 && z <= 7.0) return false;      // Lab building, entrance plaza & parking
-      if (Math.hypot(x - 0.5, z - (-22.5)) < 10.0) return false;                // Wetland lagoon water & bank
+      if (Math.hypot(x - 0.5, z - (-22.5)) < 12.2) return false;                // Wetland lagoon water, beach & riparian bank
+      if (Math.abs(x - 0.5) < 4.5 && z >= -20.0 && z <= -10.0) return false;    // Outfall spillway channel corridor
       if (Math.abs(z - (-35.2)) < 2.5 && x >= -18.5 && x <= 18.5) return false; // Guardrail
 
       return true;
@@ -3316,11 +3383,11 @@
       let tx, tz;
       const zone = placedDeciduous % 3;
       if (zone === 0) {
-        // Wetland lagoon riparian buffer (northeast and northwest banks)
-        const ang = Math.random() < 0.5 ? (0.15 + Math.random() * 1.05) : (1.95 + Math.random() * 1.05);
-        const r = 11.0 + Math.random() * 3.5;
+        // Wetland lagoon outer riparian woodland (northeast and northwest grassy banks outside shoreline)
+        const ang = Math.random() < 0.5 ? (0.12 + Math.random() * 0.90) : (2.12 + Math.random() * 0.90);
+        const r = 12.6 + Math.random() * 2.8;
         tx = 0.5 + Math.cos(ang) * r;
-        tz = -22.5 - Math.sin(ang) * (r * 0.72);
+        tz = -22.5 - Math.sin(ang) * (r * 0.85);
       } else if (zone === 1) {
         // Western lawn screening grove (between lab mulch and west road / west fence)
         tx = -22.0 - Math.random() * 8.0;
@@ -4881,18 +4948,18 @@
     outfallGroup.position.set(0.5, 0, -14.2);
     facilityGroup.add(outfallGroup);
 
-    const outFloor = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.22, 5.4), materials.concreteWall);
-    outFloor.position.set(0, 0.11, 0);
+    const outFloor = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.22, 4.7), materials.concreteWall);
+    outFloor.position.set(0, 0.11, 0.35);
     outFloor.castShadow = true;
     outfallGroup.add(outFloor);
 
-    // Tiled Floor Liner visible through crystal water
+    // Tiled Floor Liner visible through crystal water (extends full length of side walls so no concrete line shows)
     const outTileLiner = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.7, 5.2),
-      new THREE.MeshStandardMaterial({ color: '#7dd3fc', roughness: 0.25, metalness: 0.05 })
+      new THREE.PlaneGeometry(1.7, 5.38),
+      new THREE.MeshStandardMaterial({ color: '#1b6f8a', roughness: 0.25, metalness: 0.05 })
     );
     outTileLiner.rotation.x = -Math.PI / 2;
-    outTileLiner.position.set(0, 0.225, 0);
+    outTileLiner.position.set(0, 0.225, 0.0);
     outfallGroup.add(outTileLiner);
 
     const outLeftWall = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 5.4), materials.concreteWall);
@@ -4905,12 +4972,98 @@
     outRightWall.castShadow = true;
     outfallGroup.add(outRightWall);
 
-    // CRYSTAL-CLEAR SPARKLING TREATED WATER (High transparency, visible channel bottom!)
-    const cleanWaterGeom = new THREE.PlaneGeometry(1.7, 5.2, 32, 24);
+    // CONTINUOUS SILKY-SMOOTH 3D FLUID STREAM RIBBON (Parshall Flume -> Ogee Spillway -> Lagoon Entry)
+    // Replaces separate flat planes and blocky rectangles with one seamless curved hydro-surface
+    const flumeSegsX = 36;
+    const flumeSegsZ = 96;
+    const cleanWaterGeom = new THREE.BufferGeometry();
+    const cwPositions = [];
+    const cwUvs = [];
+    const cwColors = [];
+    const cwIndices = [];
+    const cwBaseCoords = []; // Store (u, v, baseX, baseY, baseZ) for smooth real-time wave animation
+
+    for (let iz = 0; iz <= flumeSegsZ; iz++) {
+      const v = iz / flumeSegsZ; // 0 at upstream (+2.68) -> 1 at downstream lagoon dispersion (-5.2)
+      const z = 2.68 - v * 7.88;
+
+      // Smooth ogee spillway elevation profile:
+      // z in [2.68, -2.55]: horizontal flume channel at y = 0.52 (stays inside concrete side walls until mouth at -2.70)
+      // z in [-2.55, -3.55]: smooth cosine ogee curve descending from y = 0.52 to y = 0.086
+      // z in [-3.55, -5.2]: glides seamlessly into lagoon surface (y = 0.086 down to 0.068)
+      let y = 0.52;
+      let width = 1.70;
+      if (z < -2.55 && z >= -3.55) {
+        const dropProg = (-2.55 - z) / 1.00; // 0 to 1
+        const smoothDrop = 0.5 - 0.5 * Math.cos(dropProg * Math.PI);
+        y = 0.52 - smoothDrop * (0.52 - 0.086);
+        width = 1.70 + Math.pow(dropProg, 2.0) * 0.16;
+      } else if (z < -3.55) {
+        const fanProg = Math.min(1.0, (-3.55 - z) / 1.65); // 0 to 1 into lagoon
+        const easeFan = 0.5 - 0.5 * Math.cos(fanProg * Math.PI);
+        y = 0.086 - easeFan * 0.018; // Dips smoothly just below lagoon surface (0.08) so tail disappears naturally
+        // Natural hydrodynamic plume widening as it merges with the calm lagoon
+        width = 1.86 + Math.sin(fanProg * Math.PI * 0.5) * 1.45;
+      }
+
+      for (let ix = 0; ix <= flumeSegsX; ix++) {
+        const u = ix / flumeSegsX; // 0 to 1 across width
+        const xNorm = (u - 0.5) * 2.0; // -1 to +1
+        const x = (u - 0.5) * width;
+
+        // Slight natural convex meniscus crown over the spillway
+        const crown = (1.0 - xNorm * xNorm) * 0.010;
+        // At the lagoon fan (z < -3.55), taper the lateral edges down slightly so side edges submerge smoothly into pondMesh
+        const edgeSubmerge = z < -3.55 ? (xNorm * xNorm * Math.min(1.0, (-3.55 - z) / 0.8) * 0.016) : 0.0;
+        const finalY = y + crown - edgeSubmerge;
+
+        cwPositions.push(x, finalY, z);
+        cwUvs.push(u, v * 3.5);
+        cwBaseCoords.push({ u, v, xNorm, baseX: x, baseY: finalY, baseZ: z });
+
+        // Vertex color drives subtle aeration sheen over the spillway crest and smooth merge into lagoon cyan
+        let rCol = 0.14, gCol = 0.62, bCol = 0.75;
+        if (z < -2.45 && z > -3.85) {
+          // Smooth bell curve of oxygenated aeration glow across the ogee drop
+          const crestDist = Math.abs(z - (-3.05)) / 0.65;
+          if (crestDist < 1.0) {
+            const aer = Math.pow(0.5 + 0.5 * Math.cos(crestDist * Math.PI), 1.4) * (1.0 - 0.35 * xNorm * xNorm);
+            rCol = THREE.MathUtils.lerp(rCol, 0.75, aer * 0.68);
+            gCol = THREE.MathUtils.lerp(gCol, 0.95, aer * 0.68);
+            bCol = THREE.MathUtils.lerp(bCol, 1.00, aer * 0.68);
+          }
+        } else if (z <= -3.85) {
+          const mergeProg = Math.min(1.0, (-3.85 - z) / 1.35);
+          // Blend seamlessly into pondWater deep turquoise-cyan
+          rCol = THREE.MathUtils.lerp(0.14, 0.08, mergeProg);
+          gCol = THREE.MathUtils.lerp(0.62, 0.51, mergeProg);
+          bCol = THREE.MathUtils.lerp(0.75, 0.59, mergeProg);
+        }
+        cwColors.push(rCol, gCol, bCol);
+      }
+    }
+
+    const cwStride = flumeSegsX + 1;
+    for (let iz = 0; iz < flumeSegsZ; iz++) {
+      for (let ix = 0; ix < flumeSegsX; ix++) {
+        const a = iz * cwStride + ix;
+        const b = a + 1;
+        const c = (iz + 1) * cwStride + ix;
+        const d = c + 1;
+        cwIndices.push(a, c, b);
+        cwIndices.push(b, c, d);
+      }
+    }
+
+    cleanWaterGeom.setIndex(cwIndices);
+    cleanWaterGeom.setAttribute('position', new THREE.Float32BufferAttribute(cwPositions, 3));
+    cleanWaterGeom.setAttribute('uv', new THREE.Float32BufferAttribute(cwUvs, 2));
+    cleanWaterGeom.setAttribute('color', new THREE.Float32BufferAttribute(cwColors, 3));
+    cleanWaterGeom.computeVertexNormals();
+
+    materials.cleanEffluentWater.vertexColors = true;
     const cleanWaterMesh = new THREE.Mesh(cleanWaterGeom, materials.cleanEffluentWater);
     cleanWaterMesh.name = "Pristine Treated Effluent Water Flow";
-    cleanWaterMesh.rotation.x = -Math.PI / 2;
-    cleanWaterMesh.position.set(0, 0.52, 0);
     outfallGroup.add(cleanWaterMesh);
 
     // Parshall Flume Gantry
@@ -4941,38 +5094,10 @@
     flowDisplay.position.set(1.0, 1.5, 0.5);
     outfallGroup.add(flowDisplay);
 
-    // 2-TIER STEPPED CASCADE WATERFALL INTO RETENTION LAGOON!
-    const step1 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.28, 0.35), materials.concreteWall);
-    step1.position.set(0, 0.14, -2.82);
-    outfallGroup.add(step1);
-
-    const cascade1 = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.34), materials.cleanWaterfall);
-    cascade1.position.set(0, 0.40, -2.68);
-    cascade1.rotation.x = 0.85;
-    outfallGroup.add(cascade1);
-
-    const cascade2 = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.38), materials.cleanWaterfall);
-    cascade2.position.set(0, 0.18, -3.02);
-    cascade2.rotation.x = 0.72;
-    outfallGroup.add(cascade2);
-
-    // Submerged stone energy dissipator sill at waterfall base
-    const dissipatorSill = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.10, 1.2), materials.concreteWall);
-    dissipatorSill.position.set(0, 0.05, -3.5);
+    // Submerged spillway apron deep beneath the lagoon surface
+    const dissipatorSill = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.04, 0.5), materials.concreteWall);
+    dissipatorSill.position.set(0, -0.04, -2.55);
     outfallGroup.add(dissipatorSill);
-
-    const splashGeom = new THREE.PlaneGeometry(2.4, 1.3, 16, 16);
-    const splashMat = new THREE.MeshStandardMaterial({
-      color: '#ffffff',
-      roughness: 0.15,
-      metalness: 0.1,
-      transparent: true,
-      opacity: 0.88
-    });
-    const splashMesh = new THREE.Mesh(splashGeom, splashMat);
-    splashMesh.rotation.x = -Math.PI / 2;
-    splashMesh.position.set(0, 0.10, -3.5);
-    outfallGroup.add(splashMesh);
 
     // Engineered Rip-Rap Boulder Training Wingwalls flanking the Outfall Spillway
     // (Protects canal banks from scouring while leaving the center mouth completely open to the lagoon)
@@ -5004,49 +5129,6 @@
     const outSign = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.42, 0.04), outSignMat);
     outSign.position.set(0, 0.7, 2.65);
     outfallGroup.add(outSign);
-
-    // =========================================================================
-    // DYNAMIC CRISTALINE WATER DISPERSION INTO NATURAL WETLAND LAGOON
-    // (Pristine transparent fluid dynamics seamlessly joining clean outfall to wetland)
-    // =========================================================================
-    // 1. Natural Plunge Pool Hydrodynamic Aeration / Sparkling Foam Streamlines
-    // (Soft organic effervescence where cascade enters the lagoon, fading into crystal water)
-    const plungeMistCount = 60;
-    const plungeMistGeom = new THREE.BufferGeometry();
-    const plungeMistPos = new Float32Array(plungeMistCount * 3);
-    const plungeMistData = [];
-
-    for (let m = 0; m < plungeMistCount; m++) {
-      const prog = Math.random();
-      const spread = (Math.random() - 0.5) * (1.2 + prog * 2.2);
-      const mx = 0.5 + spread;
-      const my = 0.088 + Math.random() * 0.015;
-      const mz = -17.3 - prog * 3.4;
-      plungeMistPos[m * 3] = mx;
-      plungeMistPos[m * 3 + 1] = my;
-      plungeMistPos[m * 3 + 2] = mz;
-      plungeMistData.push({
-        prog: prog,
-        spread: (Math.random() - 0.5) * 1.8,
-        speed: 0.35 + Math.random() * 0.25,
-        baseY: 0.088 + Math.random() * 0.012
-      });
-    }
-    plungeMistGeom.setAttribute('position', new THREE.BufferAttribute(plungeMistPos, 3));
-
-    const plungeMistMat = new THREE.PointsMaterial({
-      color: '#e0f2fe',
-      size: 0.16,
-      map: softParticleMap,
-      transparent: true,
-      opacity: 0.45,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    const plungeMist = new THREE.Points(plungeMistGeom, plungeMistMat);
-    plungeMist.name = "Lagoon Entry Effervescent Bubbles";
-    plungeMist.userData = { subsystem: "Effluent Outfall", spec: "Fine crystal aeration effervescence fading into calm lagoon" };
-    facilityGroup.add(plungeMist);
 
     // 2. Riparian Wetland Cattails (Typha latifolia) & Marsh Reeds
     const wetlandPlants = new THREE.Group();
@@ -7044,9 +7126,23 @@
             waterNormalMap.offset.y = (elapsed * 0.007) % 1;
           }
 
-          // Animate Stage 5: High-Speed Effluent Waterfall Plunge
+          // Animate Stage 5: Continuous Silky Purified Effluent Flow & Spillway Wave Ripples
           if (typeof waterfallMap !== 'undefined') {
-            waterfallMap.offset.y = -(elapsed * 1.75) % 1;
+            waterfallMap.offset.y = -(elapsed * 0.65) % 1;
+            waterfallMap.offset.x = Math.sin(elapsed * 0.4) * 0.015;
+          }
+          if (typeof cleanWaterGeom !== 'undefined' && typeof cwBaseCoords !== 'undefined') {
+            const cwAttr = cleanWaterGeom.attributes.position;
+            for (let i = 0; i < cwBaseCoords.length; i++) {
+              const c = cwBaseCoords[i];
+              // Smooth traveling laminar wave along channel and over ogee spillway
+              const flowWave = Math.sin(c.v * 18.0 - elapsed * 5.2 + c.xNorm * 1.4) * 0.0045
+                             + Math.cos(c.v * 28.0 - elapsed * 7.5 - c.xNorm * 2.1) * 0.0025;
+              // Dampen vertical displacement at far lagoon tail so it merges seamlessly with pondMesh
+              const tailFade = c.baseZ < -3.8 ? Math.max(0.0, 1.0 - (-3.8 - c.baseZ) / 1.2) : 1.0;
+              cwAttr.setY(i, c.baseY + flowWave * tailFade);
+            }
+            cwAttr.needsUpdate = true;
           }
 
           // Animate 1600 Volumetric Rising Fine Air Bubbles in Step 2 Aeration Basin
@@ -7097,26 +7193,14 @@
             const vy = pPosAttr.getY(i);
             // Local (0, -5.0) on rotated circle corresponds to World (0.5, -17.5) where outfall waterfall discharges
             const dist = Math.hypot(vx, vy - (-5.0));
-            // Subtle, crystalline, high-frequency natural water swell with organic damping
-            const wave = Math.sin(dist * 4.2 - elapsed * 3.6) * Math.exp(-dist * 0.28) * 0.022
-                       + Math.sin(vx * 1.2 + elapsed * 1.2) * Math.cos(vy * 1.2 - elapsed * 1.1) * 0.006;
+            const rEdge = Math.hypot(vx, vy);
+            const shoreDamp = Math.max(0.0, 1.0 - Math.pow(rEdge / 8.5, 4.0));
+            // Subtle, crystalline, high-frequency natural water swell with organic shoreline damping
+            const wave = (Math.sin(dist * 3.8 - elapsed * 3.2) * Math.exp(-dist * 0.25) * 0.016
+                       + Math.sin(vx * 1.1 + elapsed * 1.1) * Math.cos(vy * 1.1 - elapsed * 1.0) * 0.005) * shoreDamp;
             pPosAttr.setZ(i, origPondZ[i] + wave);
           }
           pPosAttr.needsUpdate = true;
-
-          // Animate Fine Effervescent Plunge Pool Bubbles
-          if (typeof plungeMist !== 'undefined' && typeof plungeMistData !== 'undefined') {
-            const mPosAttr = plungeMistGeom.attributes.position;
-            for (let m = 0; m < plungeMistCount; m++) {
-              const d = plungeMistData[m];
-              d.prog = (d.prog + delta * d.speed) % 1.0;
-              const mx = 0.5 + d.spread * (0.3 + d.prog * 0.7);
-              const mz = -17.3 - d.prog * 3.4;
-              const bob = Math.sin(d.prog * Math.PI * 3 + elapsed * 3) * 0.006;
-              mPosAttr.setXYZ(m, mx, d.baseY + bob, mz);
-            }
-            mPosAttr.needsUpdate = true;
-          }
 
           // Animate Photorealistic Procedural Water Surface Normal Wave Flow
           if (typeof waterNormalMap !== 'undefined') {
