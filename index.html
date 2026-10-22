@@ -1819,39 +1819,65 @@
         ctx.fill();
       });
 
-      // 9. Retention Wetland Pond Rim & Naturalized Shoreline
+      // 9. Retention Wetland Naturalized Shoreline & Clear Water Bed Floor
       const pondP = toPx(0.5, -22.5);
       const pondR = 8.5 * 17.06;
 
-      // River gravel & pebble shoreline buffer
-      ctx.fillStyle = '#645d4c';
-      ctx.beginPath();
-      ctx.arc(pondP.px, pondP.py, pondR + 34, 0, Math.PI * 2);
+      // Draw an organic, natural lake shoreline curve (not geometric circles)
+      function drawNaturalShorelinePath(radiusOffset = 0, noiseScale = 1.0) {
+        ctx.beginPath();
+        const steps = 72;
+        for (let s = 0; s <= steps; s++) {
+          const theta = (s / steps) * Math.PI * 2;
+          // Organic shoreline harmonic modulation
+          const rDelta = (Math.sin(theta * 3 + 0.4) * 0.045
+                       + Math.cos(theta * 5 - 0.8) * 0.035
+                       + Math.sin(theta * 7 + 1.2) * 0.020) * noiseScale;
+          const currentR = (pondR + radiusOffset) * (1.0 + rDelta);
+          const x = pondP.px + Math.cos(theta) * currentR;
+          const y = pondP.py + Math.sin(theta) * currentR;
+          if (s === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+      }
+
+      // Outer riparian wet loam buffer with soft edge
+      ctx.fillStyle = '#3a4d26';
+      drawNaturalShorelinePath(24, 1.2);
       ctx.fill();
 
-      // Sandy wet loam beach ring
-      ctx.fillStyle = '#82765e';
-      ctx.beginPath();
-      ctx.arc(pondP.px, pondP.py, pondR + 18, 0, Math.PI * 2);
+      // Sandy / river gravel natural littoral beach zone
+      const beachGrad = ctx.createRadialGradient(pondP.px, pondP.py, pondR * 0.70, pondP.px, pondP.py, pondR + 12);
+      beachGrad.addColorStop(0.0, 'rgba(84, 110, 80, 0.4)');
+      beachGrad.addColorStop(0.65, '#5c634c');
+      beachGrad.addColorStop(0.88, '#787358');
+      beachGrad.addColorStop(1.0, '#4a5332');
+      ctx.fillStyle = beachGrad;
+      drawNaturalShorelinePath(8, 1.0);
       ctx.fill();
 
-      // Deep lagoon basin floor
-      ctx.fillStyle = '#103f50';
-      ctx.beginPath();
-      ctx.arc(pondP.px, pondP.py, pondR, 0, Math.PI * 2);
+      // Natural sandy gravel lakebed visible through cristaline water
+      const lakebedGrad = ctx.createRadialGradient(pondP.px, pondP.py, 10, pondP.px, pondP.py, pondR);
+      lakebedGrad.addColorStop(0.00, '#1c4a52'); // Deep pristine turquoise aquatic bed
+      lakebedGrad.addColorStop(0.45, '#22555e'); // Clear mid-depth littoral shelf
+      lakebedGrad.addColorStop(0.80, '#316264'); // Shallow sand bar
+      lakebedGrad.addColorStop(1.00, '#4e6d56'); // Natural greened shore margin
+      ctx.fillStyle = lakebedGrad;
+      drawNaturalShorelinePath(0, 0.9);
       ctx.fill();
 
-      // Clean treated effluent hydrodynamic mixing entry gradient on terrain
-      const outfallP = toPx(0.5, -17.5);
-      const plumeGrad = ctx.createRadialGradient(outfallP.px, outfallP.py, 15, outfallP.px, outfallP.py, 110);
-      plumeGrad.addColorStop(0, 'rgba(56, 189, 248, 0.65)');
-      plumeGrad.addColorStop(0.35, 'rgba(14, 165, 233, 0.40)');
-      plumeGrad.addColorStop(0.80, 'rgba(14, 116, 144, 0.15)');
-      plumeGrad.addColorStop(1, 'rgba(22, 78, 99, 0)');
-      ctx.fillStyle = plumeGrad;
-      ctx.beginPath();
-      ctx.arc(pondP.px, pondP.py, pondR, 0, Math.PI * 2);
-      ctx.fill();
+      // Submerged organic silt and sand ripples on lagoon floor
+      for (let dot = 0; dot < 800; dot++) {
+        const ang = Math.random() * Math.PI * 2;
+        const rad = Math.sqrt(Math.random()) * (pondR - 12);
+        const gx = pondP.px + Math.cos(ang) * rad;
+        const gy = pondP.py + Math.sin(ang) * rad;
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(60, 110, 105, 0.35)' : 'rgba(25, 60, 65, 0.30)';
+        ctx.beginPath();
+        ctx.arc(gx, gy, 1.2 + Math.random() * 2.0, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       return new THREE.CanvasTexture(canvas);
     }
@@ -2010,63 +2036,12 @@
       return tex;
     }
 
-    // (G) Dynamic Effluent Mixing Plume Texture Generator (Lagoon Dispersion & Dilution Zone)
-    function generateMixingPlumeTexture(w = 512, h = 512) {
+    // (G) Lagoon Utility Function (Retained for compatibility)
+    function generateMixingPlumeTexture(w = 128, h = 128) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, w, h);
-
-      // Gradient from bottom (y=h, weir cascade plunge) to top (y=0, lagoon dispersion)
-      const grad = ctx.createLinearGradient(w / 2, h, w / 2, 0);
-      grad.addColorStop(0.0, 'rgba(255, 255, 255, 0.96)'); // Aerated plunge froth
-      grad.addColorStop(0.12, 'rgba(224, 242, 254, 0.88)'); // Dissolved oxygen bubbling zone
-      grad.addColorStop(0.35, 'rgba(56, 189, 248, 0.72)');  // Sparkling clean treated effluent
-      grad.addColorStop(0.70, 'rgba(14, 165, 233, 0.38)');  // Active dilution mixing zone
-      grad.addColorStop(1.0, 'rgba(14, 116, 144, 0.0)');   // Completely assimilated into wetland lagoon
-
-      // Draw hydrodynamic dispersion plume fan
-      ctx.save();
-      ctx.beginPath();
-      // Narrow neck at weir impact (bottom)
-      ctx.moveTo(w * 0.40, h);
-      ctx.lineTo(w * 0.60, h);
-      // Expanding curved fan outwards (towards top)
-      ctx.bezierCurveTo(w * 0.88, h * 0.65, w * 0.98, h * 0.25, w * 0.82, 0);
-      ctx.lineTo(w * 0.18, 0);
-      ctx.bezierCurveTo(w * 0.02, h * 0.25, w * 0.12, h * 0.65, w * 0.40, h);
-      ctx.closePath();
-      ctx.fillStyle = grad;
-      ctx.fill();
-      ctx.restore();
-
-      // Fluid streamlines & turbulence filaments
-      for (let s = 0; s < 36; s++) {
-        const startX = w * (0.44 + (Math.random() - 0.5) * 0.14);
-        const endX = w * (0.5 + (Math.random() - 0.5) * 0.78);
-        const midX = (startX + endX) / 2 + (Math.random() - 0.5) * 50;
-        const alpha = 0.2 + Math.random() * 0.45;
-        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.lineWidth = 1.5 + Math.random() * 2.5;
-        ctx.beginPath();
-        ctx.moveTo(startX, h);
-        ctx.quadraticCurveTo(midX, h * (0.4 + Math.random() * 0.3), endX, h * (Math.random() * 0.25));
-        ctx.stroke();
-      }
-
-      // Microbubbles in mixing core
-      for (let b = 0; b < 140; b++) {
-        const prog = Math.random();
-        const bx = w * (0.5 + (Math.random() - 0.5) * (0.18 + prog * 0.65));
-        const by = h * (1.0 - prog * 0.65);
-        const br = 1.2 + Math.random() * 3.5;
-        const bAlpha = (1.0 - prog) * (0.35 + Math.random() * 0.55);
-        ctx.fillStyle = `rgba(255, 255, 255, ${bAlpha})`;
-        ctx.beginPath();
-        ctx.arc(bx, by, br, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
       const tex = new THREE.CanvasTexture(canvas);
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.ClampToEdgeWrapping;
@@ -2415,19 +2390,19 @@
         opacity: 0.92,
         depthWrite: false
       }),
-      // STAGE 5C: RETENTION WETLAND POLISHING LAGOON
+      // STAGE 5C: RETENTION WETLAND POLISHING LAGOON (Cristaline, sparkling, pure aquatic body)
       pondWater: new THREE.MeshPhysicalMaterial({
-        color: '#0b3a40', // Deep natural aquatic emerald-cyan
-        roughness: 0.03,
-        metalness: 0.02,
+        color: '#158396', // Crisp sparkling aquatic cyan-aquamarine
+        roughness: 0.02,
+        metalness: 0.01,
         ior: 1.333,
         clearcoat: 1.0,
         clearcoatRoughness: 0.02,
-        transmission: 0.85,
+        transmission: 0.92, // Highly cristaline transmission revealing organic lakebed
         normalMap: waterNormalMap,
-        normalScale: new THREE.Vector2(0.20, 0.20),
+        normalScale: new THREE.Vector2(0.24, 0.24),
         transparent: true,
-        opacity: 0.86,
+        opacity: 0.78,
         depthWrite: false
       }),
       // REALISTIC BIOGAS FLARE MATERIALS (Incandescent methane plume with bloom activation)
@@ -2743,8 +2718,26 @@
     terrainMesh.receiveShadow = true;
     facilityGroup.add(terrainMesh);
 
-    // 3D Stormwater Retention Wetland Lagoon (Dynamic Wave Displaced Surface)
+    // 3D Stormwater Retention Wetland Lagoon (Naturalized Organic Contour & Wave Surface)
     const pondGeom = new THREE.CircleGeometry(8.5, 64, 24);
+    // Deform circular geometry into natural organic lake perimeter matching terrain shoreline
+    const pondPosAttrInit = pondGeom.attributes.position;
+    for (let i = 0; i < pondPosAttrInit.count; i++) {
+      const vx = pondPosAttrInit.getX(i);
+      const vy = pondPosAttrInit.getY(i);
+      const r = Math.hypot(vx, vy);
+      if (r > 0.2) {
+        const theta = Math.atan2(vy, vx);
+        const rDelta = Math.sin(theta * 3 + 0.4) * 0.045
+                     + Math.cos(theta * 5 - 0.8) * 0.035
+                     + Math.sin(theta * 7 + 1.2) * 0.020;
+        const deformFactor = Math.pow(r / 8.5, 1.5);
+        const newR = r * (1.0 + rDelta * deformFactor);
+        pondPosAttrInit.setXY(i, Math.cos(theta) * newR, Math.sin(theta) * newR);
+      }
+    }
+    pondGeom.computeVertexNormals();
+
     const pondMesh = new THREE.Mesh(pondGeom, materials.pondWater);
     pondMesh.name = "Stormwater Retention Lagoon Surface";
     pondMesh.userData = { subsystem: "Stormwater Retention Basin", spec: "Natural environmental buffer lagoon (dia 17m) receiving clean effluent" };
@@ -4963,86 +4956,49 @@
     outfallGroup.add(outSign);
 
     // =========================================================================
-    // DYNAMIC CLEAN WATER DISPERSION & WETLAND LAGOON MIXING SYSTEM
-    // (Visibly connects treated outfall directly into natural wetland water body)
+    // DYNAMIC CRISTALINE WATER DISPERSION INTO NATURAL WETLAND LAGOON
+    // (Pristine transparent fluid dynamics seamlessly joining clean outfall to wetland)
     // =========================================================================
-    // 1. Dynamic Effluent Mixing Plume (Aquamarine-to-Lagoon Dilution Fan)
-    const plumeTex = generateMixingPlumeTexture(512, 512);
-    const plumeMat = new THREE.MeshStandardMaterial({
-      map: plumeTex,
-      transparent: true,
-      opacity: 0.92,
-      roughness: 0.08,
-      metalness: 0.15,
-      depthWrite: false
-    });
-    const plumeGeom = new THREE.PlaneGeometry(6.6, 8.0, 24, 24);
-    const plumeMesh = new THREE.Mesh(plumeGeom, plumeMat);
-    plumeMesh.name = "Clean Effluent Lagoon Mixing Plume";
-    plumeMesh.userData = { subsystem: "Effluent Outfall", spec: "Active hydrodynamic dispersion & dilution plume mixing into environmental wetland" };
-    plumeMesh.rotation.x = -Math.PI / 2;
-    plumeMesh.position.set(0.5, 0.088, -21.3);
-    facilityGroup.add(plumeMesh);
+    // 1. Natural Plunge Pool Hydrodynamic Aeration / Sparkling Foam Streamlines
+    // (Soft organic effervescence where cascade enters the lagoon, fading into crystal water)
+    const plungeMistCount = 60;
+    const plungeMistGeom = new THREE.BufferGeometry();
+    const plungeMistPos = new Float32Array(plungeMistCount * 3);
+    const plungeMistData = [];
 
-    // 2. Concentric Hydraulic Mixing Shockwave Rings
-    const surgeRingGroup = new THREE.Group();
-    surgeRingGroup.position.set(0.5, 0.089, -17.4);
-    facilityGroup.add(surgeRingGroup);
-
-    const surgeRings = [];
-    for (let r = 0; r < 4; r++) {
-      const ringGeom = new THREE.RingGeometry(0.3, 0.52, 36);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: '#e0f2fe',
-        transparent: true,
-        opacity: 0.65,
-        side: THREE.DoubleSide,
-        depthWrite: false
-      });
-      const ringMesh = new THREE.Mesh(ringGeom, ringMat);
-      ringMesh.rotation.x = -Math.PI / 2;
-      surgeRingGroup.add(ringMesh);
-      surgeRings.push({ mesh: ringMesh, mat: ringMat, phase: r / 4 });
-    }
-
-    // 3. Active Effluent Fluid Current Particles (Streaming from outfall weir into lagoon)
-    const particleCount = 50;
-    const streamGeom = new THREE.BufferGeometry();
-    const streamPositions = new Float32Array(particleCount * 3);
-    const streamParticlesData = [];
-
-    for (let i = 0; i < particleCount; i++) {
+    for (let m = 0; m < plungeMistCount; m++) {
       const prog = Math.random();
-      const angle = (Math.random() - 0.5) * 1.35;
-      const dist = 0.2 + prog * 6.8;
-      const px = 0.5 + Math.sin(angle) * dist * 0.55;
-      const pz = -17.4 - Math.cos(angle) * dist;
-      streamPositions[i * 3] = px;
-      streamPositions[i * 3 + 1] = 0.092;
-      streamPositions[i * 3 + 2] = pz;
-      streamParticlesData.push({
+      const spread = (Math.random() - 0.5) * (1.2 + prog * 2.2);
+      const mx = 0.5 + spread;
+      const my = 0.088 + Math.random() * 0.015;
+      const mz = -17.3 - prog * 3.4;
+      plungeMistPos[m * 3] = mx;
+      plungeMistPos[m * 3 + 1] = my;
+      plungeMistPos[m * 3 + 2] = mz;
+      plungeMistData.push({
         prog: prog,
-        angle: angle,
-        speed: 0.22 + Math.random() * 0.18
+        spread: (Math.random() - 0.5) * 1.8,
+        speed: 0.35 + Math.random() * 0.25,
+        baseY: 0.088 + Math.random() * 0.012
       });
     }
-    streamGeom.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
+    plungeMistGeom.setAttribute('position', new THREE.BufferAttribute(plungeMistPos, 3));
 
-    const streamMat = new THREE.PointsMaterial({
-      color: '#bae6fd',
-      size: 0.38,
+    const plungeMistMat = new THREE.PointsMaterial({
+      color: '#e0f2fe',
+      size: 0.16,
       map: softParticleMap,
       transparent: true,
-      opacity: 0.78,
+      opacity: 0.45,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
-    const streamParticles = new THREE.Points(streamGeom, streamMat);
-    streamParticles.name = "Effluent Hydrodynamic Streamlines";
-    streamParticles.userData = { subsystem: "Effluent Outfall", spec: "Hydraulic current tracers showing active effluent dispersion into wetlands" };
-    facilityGroup.add(streamParticles);
+    const plungeMist = new THREE.Points(plungeMistGeom, plungeMistMat);
+    plungeMist.name = "Lagoon Entry Effervescent Bubbles";
+    plungeMist.userData = { subsystem: "Effluent Outfall", spec: "Fine crystal aeration effervescence fading into calm lagoon" };
+    facilityGroup.add(plungeMist);
 
-    // 4. Riparian Wetland Cattails (Typha latifolia) & Marsh Reeds
+    // 2. Riparian Wetland Cattails (Typha latifolia) & Marsh Reeds
     const wetlandPlants = new THREE.Group();
     wetlandPlants.name = "Wetland Emergent Riparian Vegetation";
     wetlandPlants.userData = { subsystem: "Environmental Buffer", spec: "Naturalized wetland vegetation (cattails, bulrushes, water lilies) sustained by high-purity clean effluent" };
@@ -6559,47 +6515,31 @@
           }
           dPosAttr.needsUpdate = true;
 
-          // 3D Concentric Propagating Waves on Wetland Lagoon Surface (Emanating from Outfall Plunge)
+          // 3D Concentric Propagating Gentle Ripples on Wetland Lagoon Surface (Emanating from Outfall Plunge)
           for (let i = 0; i < pPosAttr.count; i++) {
             const vx = pPosAttr.getX(i);
             const vy = pPosAttr.getY(i);
             // Local (0, -5.0) on rotated circle corresponds to World (0.5, -17.5) where outfall waterfall discharges
             const dist = Math.hypot(vx, vy - (-5.0));
-            const wave = Math.sin(dist * 3.8 - elapsed * 4.8) * Math.exp(-dist * 0.20) * 0.038
-                       + Math.sin(vx * 0.7 + elapsed * 1.6) * Math.cos(vy * 0.7 - elapsed * 1.3) * 0.010;
+            // Subtle, crystalline, high-frequency natural water swell with organic damping
+            const wave = Math.sin(dist * 4.2 - elapsed * 3.6) * Math.exp(-dist * 0.28) * 0.022
+                       + Math.sin(vx * 1.2 + elapsed * 1.2) * Math.cos(vy * 1.2 - elapsed * 1.1) * 0.006;
             pPosAttr.setZ(i, origPondZ[i] + wave);
           }
           pPosAttr.needsUpdate = true;
 
-          // Animate Effluent Mixing Plume Dynamics
-          if (typeof plumeTex !== 'undefined') {
-            plumeTex.offset.x = Math.sin(elapsed * 0.8) * 0.015;
-            plumeMat.opacity = 0.88 + Math.sin(elapsed * 2.2) * 0.06;
-          }
-
-          // Animate Concentric Shockwave Mixing Rings
-          if (typeof surgeRings !== 'undefined') {
-            surgeRings.forEach(ring => {
-              let p = (ring.phase + elapsed * 0.35) % 1.0;
-              const scale = 1.0 + p * 8.5;
-              ring.mesh.scale.set(scale, scale, 1.0);
-              ring.mesh.position.z = -p * 2.4;
-              ring.mat.opacity = (1.0 - p) * 0.65;
-            });
-          }
-
-          // Animate Effluent Dispersion Streamline Current Particles
-          if (typeof streamParticles !== 'undefined') {
-            const sPosAttr = streamGeom.attributes.position;
-            for (let i = 0; i < particleCount; i++) {
-              const data = streamParticlesData[i];
-              data.prog = (data.prog + delta * data.speed) % 1.0;
-              const dist = 0.1 + data.prog * 7.2;
-              const px = 0.5 + Math.sin(data.angle) * dist * 0.55;
-              const pz = -17.4 - Math.cos(data.angle) * dist;
-              sPosAttr.setXYZ(i, px, 0.092, pz);
+          // Animate Fine Effervescent Plunge Pool Bubbles
+          if (typeof plungeMist !== 'undefined' && typeof plungeMistData !== 'undefined') {
+            const mPosAttr = plungeMistGeom.attributes.position;
+            for (let m = 0; m < plungeMistCount; m++) {
+              const d = plungeMistData[m];
+              d.prog = (d.prog + delta * d.speed) % 1.0;
+              const mx = 0.5 + d.spread * (0.3 + d.prog * 0.7);
+              const mz = -17.3 - d.prog * 3.4;
+              const bob = Math.sin(d.prog * Math.PI * 3 + elapsed * 3) * 0.006;
+              mPosAttr.setXYZ(m, mx, d.baseY + bob, mz);
             }
-            sPosAttr.needsUpdate = true;
+            mPosAttr.needsUpdate = true;
           }
 
           // Animate Photorealistic Procedural Water Surface Normal Wave Flow
