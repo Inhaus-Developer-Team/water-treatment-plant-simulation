@@ -668,6 +668,9 @@
       <div style="margin-top: 10px; font-size: 10px; color: #94a3b8;">
         <strong>Deployment Applications:</strong> Emergency response • Construction infrastructure • Humanitarian & military missions • Remote communities & off-grid industrial wastewater.
       </div>
+      <div style="margin-top: 6px; font-size: 9.5px; color: #64748b;">
+        Desktop Navigation: WASD / Arrow keys to pan • Q/E to elevate • Shift to sprint • Scroll / Pinch to zoom
+      </div>
     </div>
   </div>
 
@@ -5435,25 +5438,85 @@
     });
 
     // =========================================================================
-    // 17. MAIN ANIMATION LOOP & TELEMETRY
+    // 17. MAIN ANIMATION LOOP, KEYBOARD NAVIGATION & TELEMETRY
     // =========================================================================
     const clock = new THREE.Clock();
     let frameCount = 0;
     let lastFpsUpdate = 0;
     const statFps = document.getElementById('stat-fps');
 
+    // Desktop WASD & Arrow Key Keyboard Navigation Engine
+    const keysDown = {
+      KeyW: false, KeyS: false, KeyA: false, KeyD: false,
+      ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
+      KeyQ: false, KeyE: false, ShiftLeft: false, ShiftRight: false
+    };
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+      if (e.code in keysDown) {
+        keysDown[e.code] = true;
+        if (e.code.startsWith('Arrow')) e.preventDefault();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.code in keysDown) {
+        keysDown[e.code] = false;
+      }
+    });
+
+    function updateKeyboardCamera(delta) {
+      const forward = keysDown.KeyW || keysDown.ArrowUp;
+      const backward = keysDown.KeyS || keysDown.ArrowDown;
+      const left = keysDown.KeyA || keysDown.ArrowLeft;
+      const right = keysDown.KeyD || keysDown.ArrowRight;
+      const up = keysDown.KeyE;
+      const down = keysDown.KeyQ;
+
+      if (!forward && !backward && !left && !right && !up && !down) return;
+
+      const isShift = keysDown.ShiftLeft || keysDown.ShiftRight;
+      const moveSpeed = (isShift ? 32.0 : 15.0) * delta;
+
+      const camDir = new THREE.Vector3();
+      camera.getWorldDirection(camDir);
+      camDir.y = 0;
+      camDir.normalize();
+
+      const camRight = new THREE.Vector3();
+      camRight.crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
+
+      const moveDelta = new THREE.Vector3();
+      if (forward) moveDelta.addScaledVector(camDir, moveSpeed);
+      if (backward) moveDelta.addScaledVector(camDir, -moveSpeed);
+      if (right) moveDelta.addScaledVector(camRight, moveSpeed);
+      if (left) moveDelta.addScaledVector(camRight, -moveSpeed);
+      if (up) moveDelta.y += moveSpeed * 0.75;
+      if (down) moveDelta.y -= moveSpeed * 0.75;
+
+      camera.position.add(moveDelta);
+      controls.target.add(moveDelta);
+
+      if (camera.position.y < 1.0) camera.position.y = 1.0;
+      if (controls.target.y < 0.2) controls.target.y = 0.2;
+    }
+
+    window.THREE = THREE;
     window.camera = camera;
     window.controls = controls;
     window.scene = scene;
     window.cameraPresets = cameraPresets;
     window.mobilePlantGroup = mobilePlantGroup;
     window.setShadingMode = setShadingMode;
+    window.keysDown = keysDown;
+    window.updateKeyboardCamera = updateKeyboardCamera;
 
     function animate() {
       requestAnimationFrame(animate);
 
-      const elapsed = clock.getElapsedTime();
       const delta = clock.getDelta();
+      const elapsed = clock.getElapsedTime();
 
       // Camera Smooth Interpolation
       if (isTransitioningCamera) {
@@ -5463,12 +5526,12 @@
 
         camera.position.lerpVectors(camStartPos, camEndPos, ease);
         controls.target.lerpVectors(lookStartPos, lookEndPos, ease);
-        controls.update();
 
         if (t >= 1.0) isTransitioningCamera = false;
-      } else {
-        controls.update();
       }
+
+      updateKeyboardCamera(delta);
+      controls.update();
 
       // Treatment Hardware Animations (DAF Scraper flight rotation & EC ionization sparks)
       if (isMotionActive) {

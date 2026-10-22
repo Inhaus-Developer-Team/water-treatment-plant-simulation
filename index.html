@@ -746,8 +746,8 @@
         <div class="info-stage-item"><strong>5. Cascade Outfall:</strong> Calibrated Parshall flume outfall tumbling over stone cascade into riparian wetlands at 99.4% purity.</div>
         <div class="info-stage-item"><strong>6. Anaerobic Digestion:</strong> Dual heated anaerobic digesters, biogas dome, waste gas flare stack and Operations Lab.</div>
       </div>
-      <div style="margin-top: 10px; font-size: 9.5px; color: #64748b; display: flex; justify-content: space-between;">
-        <span>Controls: 1 finger drag to rotate • 2 fingers pinch to zoom • Tap structure to inspect</span>
+      <div style="margin-top: 10px; font-size: 9.5px; color: #64748b; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
+        <span>Desktop: WASD / Arrow keys to pan • Q/E to elevate • Scroll / Pinch to zoom • Drag to orbit</span>
       </div>
     </div>
   </div>
@@ -6892,6 +6892,68 @@
     let frameCount = 0;
     let lastFpsTime = performance.now();
 
+    // Desktop WASD & Arrow Key Keyboard Navigation Engine
+    const keysDown = {
+      KeyW: false, KeyS: false, KeyA: false, KeyD: false,
+      ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
+      KeyQ: false, KeyE: false, ShiftLeft: false, ShiftRight: false
+    };
+
+    window.addEventListener('keydown', (e) => {
+      // Don't intercept if user is typing in an input or textarea
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+      if (e.code in keysDown) {
+        keysDown[e.code] = true;
+        // Prevent default browser scrolling on arrow keys and space
+        if (e.code.startsWith('Arrow')) e.preventDefault();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.code in keysDown) {
+        keysDown[e.code] = false;
+      }
+    });
+
+    function updateKeyboardCamera(delta) {
+      const forward = keysDown.KeyW || keysDown.ArrowUp;
+      const backward = keysDown.KeyS || keysDown.ArrowDown;
+      const left = keysDown.KeyA || keysDown.ArrowLeft;
+      const right = keysDown.KeyD || keysDown.ArrowRight;
+      const up = keysDown.KeyE;
+      const down = keysDown.KeyQ;
+
+      if (!forward && !backward && !left && !right && !up && !down) return;
+
+      // Speed multiplier (Hold Shift for sprint boost)
+      const isShift = keysDown.ShiftLeft || keysDown.ShiftRight;
+      const moveSpeed = (isShift ? 38.0 : 18.0) * delta;
+
+      // Direction vector relative to camera planar view
+      const camDir = new THREE.Vector3();
+      camera.getWorldDirection(camDir);
+      camDir.y = 0;
+      camDir.normalize();
+
+      const camRight = new THREE.Vector3();
+      camRight.crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
+
+      const moveDelta = new THREE.Vector3();
+      if (forward) moveDelta.addScaledVector(camDir, moveSpeed);
+      if (backward) moveDelta.addScaledVector(camDir, -moveSpeed);
+      if (right) moveDelta.addScaledVector(camRight, moveSpeed);
+      if (left) moveDelta.addScaledVector(camRight, -moveSpeed);
+      if (up) moveDelta.y += moveSpeed * 0.75;
+      if (down) moveDelta.y -= moveSpeed * 0.75;
+
+      camera.position.add(moveDelta);
+      controls.target.add(moveDelta);
+
+      // Keep camera above ground level
+      if (camera.position.y < 1.2) camera.position.y = 1.2;
+      if (controls.target.y < 0.2) controls.target.y = 0.2;
+    }
+
     const aPosAttr = aerationWaterGeom.attributes.position;
     const origWaterZ = new Float32Array(aPosAttr.count);
     for (let i = 0; i < aPosAttr.count; i++) {
@@ -7149,6 +7211,7 @@
       }
 
       updateAnnotationPins();
+      updateKeyboardCamera(delta);
       controls.update();
       updateSpatialEnvironmentalAudio(camera.position);
 
