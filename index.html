@@ -307,6 +307,48 @@
       align-items: center;
     }
 
+    /* Voice Narration Indicator & Waveform */
+    .voice-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #7dd3fc;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+    }
+    .voice-status-badge.muted {
+      background: rgba(148, 163, 184, 0.12);
+      border-color: rgba(148, 163, 184, 0.25);
+      color: #94a3b8;
+    }
+    .voice-bars {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 10px;
+    }
+    .voice-bars span {
+      display: block;
+      width: 2px;
+      height: 3px;
+      background: #38bdf8;
+      border-radius: 1px;
+      transition: height 0.15s ease;
+    }
+    .voice-status-badge.speaking .voice-bars span:nth-child(1) { animation: voiceWave 0.65s infinite ease-in-out 0.0s; }
+    .voice-status-badge.speaking .voice-bars span:nth-child(2) { animation: voiceWave 0.65s infinite ease-in-out 0.15s; }
+    .voice-status-badge.speaking .voice-bars span:nth-child(3) { animation: voiceWave 0.65s infinite ease-in-out 0.3s; }
+    .voice-status-badge.speaking .voice-bars span:nth-child(4) { animation: voiceWave 0.65s infinite ease-in-out 0.1s; }
+    @keyframes voiceWave {
+      0%, 100% { height: 3px; }
+      50% { height: 10px; }
+    }
+
     /* Top Right Stats Panel */
     .stats-panel {
       top: 16px;
@@ -727,6 +769,7 @@
 
     <button class="btn" id="btn-wireframe" title="Toggle Clean CAD Blueprint Wireframe">📐 CAD Wireframe</button>
     <button class="btn toggle-on" id="btn-text-labels" title="Toggle 3D Text & Annotations">🏷️ Text Pins: ON</button>
+    <button class="btn toggle-on" id="btn-audio-toggle" title="Toggle 3D Environmental Soundscape & British Voice Narration">🔊 Sound: ON</button>
     <button class="btn" id="btn-debug-toggle" title="Toggle Debug Telemetry & Helpers">🛠️ Debug HUD</button>
     <button class="btn" id="btn-animate">Pause Motion</button>
   </div>
@@ -734,11 +777,18 @@
   <!-- Guided Tour Drawer (Top Center on Desktop / Bottom Sheet on Mobile) -->
   <div class="hud-card tour-drawer" id="tour-drawer">
     <div class="tour-header">
-      <div class="tour-step-tag">
+      <div class="tour-step-tag" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
         <span class="badge tour" id="tour-badge-stage">STAGE 01 / 06</span>
         <span id="tour-stage-status" class="badge dirty">DIRTY WATER INLET</span>
+        <span class="voice-status-badge speaking" id="tour-voice-indicator" title="British Male Voice Narration">
+          <span class="voice-bars"><span></span><span></span><span></span><span></span></span>
+          <span id="tour-voice-label">🇬🇧 Voice</span>
+        </span>
       </div>
-      <button class="btn" id="btn-tour-close" style="padding:2px 8px; font-size:11px;">✕ Exit</button>
+      <div style="display:flex; align-items:center; gap:5px;">
+        <button class="btn" id="btn-tour-voice-mute" style="padding:2px 7px; font-size:10.5px;" title="Toggle British Voice Narration">🔊 Voice</button>
+        <button class="btn" id="btn-tour-close" style="padding:2px 8px; font-size:11px;">✕ Exit</button>
+      </div>
     </div>
     <div class="tour-title" id="tour-title">1. Raw Sewage Influent & Mechanical Headworks</div>
     <div class="tour-desc" id="tour-desc">
@@ -5953,8 +6003,464 @@
     }
 
     // =========================================================================
-    // 6. GUIDED PROCESS TOUR ENGINE (TUNED FOR NEW SPACIOUS LAYOUT)
+    // 6. GUIDED PROCESS TOUR ENGINE & 3D ENVIRONMENTAL SOUNDSCAPE
     // =========================================================================
+
+    // --- 3D SPATIAL ENVIRONMENTAL SOUNDSCAPE (Water, Fire, Wind, Nature) ---
+    let audioCtx = null;
+    let soundEnabled = true;
+    let voiceNarrationEnabled = true;
+    let masterAudioGain = null;
+    let envAudioGain = null;
+    let waterCascadeGain = null;
+    let waterAerationGain = null;
+    let fireFlareGain = null;
+    let windBedGain = null;
+    let natureBedGain = null;
+    let birdChirpTimer = null;
+
+    function initEnvironmentalAudio() {
+      if (audioCtx) {
+        if (audioCtx.state === 'suspended' && soundEnabled) {
+          audioCtx.resume().catch(() => {});
+        }
+        return;
+      }
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      audioCtx = new AudioContextClass();
+
+      masterAudioGain = audioCtx.createGain();
+      masterAudioGain.gain.value = soundEnabled ? 1.0 : 0.0;
+      masterAudioGain.connect(audioCtx.destination);
+
+      envAudioGain = audioCtx.createGain();
+      envAudioGain.gain.value = 0.85;
+      envAudioGain.connect(masterAudioGain);
+
+      // Generate a 5-second seamless Pink & Brown Noise stereo buffer for organic fluid/wind/fire synthesis
+      const sampleRate = audioCtx.sampleRate;
+      const bufLen = sampleRate * 5;
+      const pinkBuf = audioCtx.createBuffer(2, bufLen, sampleRate);
+      const brownBuf = audioCtx.createBuffer(2, bufLen, sampleRate);
+
+      for (let ch = 0; ch < 2; ch++) {
+        const pData = pinkBuf.getChannelData(ch);
+        const bData = brownBuf.getChannelData(ch);
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+        let lastBrown = 0;
+        for (let i = 0; i < bufLen; i++) {
+          const white = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          b3 = 0.86650 * b3 + white * 0.3104856;
+          b4 = 0.55000 * b4 + white * 0.5329522;
+          b5 = -0.7616 * b5 - white * 0.0168980;
+          pData[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.042;
+          b6 = white * 0.115926;
+
+          lastBrown = (lastBrown + (0.02 * white)) / 1.02;
+          bData[i] = lastBrown * 1.35;
+        }
+        // Seamless crossfade at loop boundary (last 0.15s)
+        const fadeSamples = Math.floor(sampleRate * 0.15);
+        for (let i = 0; i < fadeSamples; i++) {
+          const t = i / fadeSamples;
+          pData[bufLen - fadeSamples + i] = pData[bufLen - fadeSamples + i] * (1 - t) + pData[i] * t;
+          bData[bufLen - fadeSamples + i] = bData[bufLen - fadeSamples + i] * (1 - t) + bData[i] * t;
+        }
+      }
+
+      function createLoopSource(buf, offsetSec = 0) {
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+        src.start(0, offsetSec % 4.8);
+        return src;
+      }
+
+      // 1A. WATER (Clean Cascade Waterfall & Lagoon Stream)
+      waterCascadeGain = audioCtx.createGain();
+      waterCascadeGain.gain.value = 0.18;
+      waterCascadeGain.connect(envAudioGain);
+
+      const cascadePink = createLoopSource(pinkBuf, 0.3);
+      const cascadeBand = audioCtx.createBiquadFilter();
+      cascadeBand.type = 'bandpass';
+      cascadeBand.frequency.value = 1050;
+      cascadeBand.Q.value = 0.65;
+
+      const cascadeShimmer = createLoopSource(pinkBuf, 1.9);
+      const shimmerFilter = audioCtx.createBiquadFilter();
+      shimmerFilter.type = 'highpass';
+      shimmerFilter.frequency.value = 2400;
+      const shimmerGain = audioCtx.createGain();
+      shimmerGain.gain.value = 0.25;
+
+      // Subtle hydro LFO for rippling water movement
+      const waterLfo = audioCtx.createOscillator();
+      waterLfo.frequency.value = 0.38;
+      const waterLfoGain = audioCtx.createGain();
+      waterLfoGain.gain.value = 260;
+      waterLfo.connect(waterLfoGain);
+      waterLfoGain.connect(cascadeBand.frequency);
+      waterLfo.start();
+
+      cascadePink.connect(cascadeBand);
+      cascadeBand.connect(waterCascadeGain);
+      cascadeShimmer.connect(shimmerFilter);
+      shimmerFilter.connect(shimmerGain);
+      shimmerGain.connect(waterCascadeGain);
+
+      // 1B. WATER (Aeration Basin Turbulent Bubble Boil & Headworks Influent)
+      waterAerationGain = audioCtx.createGain();
+      waterAerationGain.gain.value = 0.16;
+      waterAerationGain.connect(envAudioGain);
+
+      const aerBrown = createLoopSource(brownBuf, 0.8);
+      const aerLow = audioCtx.createBiquadFilter();
+      aerLow.type = 'bandpass';
+      aerLow.frequency.value = 290;
+      aerLow.Q.value = 0.9;
+
+      const aerFroth = createLoopSource(pinkBuf, 2.7);
+      const aerFrothFilter = audioCtx.createBiquadFilter();
+      aerFrothFilter.type = 'bandpass';
+      aerFrothFilter.frequency.value = 680;
+      aerFrothFilter.Q.value = 1.4;
+      const aerFrothGain = audioCtx.createGain();
+      aerFrothGain.gain.value = 0.45;
+
+      const boilLfo = audioCtx.createOscillator();
+      boilLfo.frequency.value = 1.65;
+      const boilLfoGain = audioCtx.createGain();
+      boilLfoGain.gain.value = 95;
+      boilLfo.connect(boilLfoGain);
+      boilLfoGain.connect(aerLow.frequency);
+      boilLfo.start();
+
+      aerBrown.connect(aerLow);
+      aerLow.connect(waterAerationGain);
+      aerFroth.connect(aerFrothFilter);
+      aerFrothFilter.connect(aerFrothGain);
+      aerFrothGain.connect(waterAerationGain);
+
+      // 2. FIRE (Biogas Elevated Flare Stack Combustion & Flame Flutter)
+      fireFlareGain = audioCtx.createGain();
+      fireFlareGain.gain.value = 0.12;
+      fireFlareGain.connect(envAudioGain);
+
+      const fireRoarSrc = createLoopSource(brownBuf, 1.4);
+      const fireLowpass = audioCtx.createBiquadFilter();
+      fireLowpass.type = 'lowpass';
+      fireLowpass.frequency.value = 185;
+
+      const fireLickSrc = createLoopSource(pinkBuf, 3.1);
+      const fireBand = audioCtx.createBiquadFilter();
+      fireBand.type = 'bandpass';
+      fireBand.frequency.value = 460;
+      fireBand.Q.value = 1.6;
+      const fireLickGain = audioCtx.createGain();
+      fireLickGain.gain.value = 0.55;
+
+      // Turbulent combustion draft flutter LFO
+      const flameLfo = audioCtx.createOscillator();
+      flameLfo.frequency.value = 5.4;
+      const flameLfoGain = audioCtx.createGain();
+      flameLfoGain.gain.value = 130;
+      flameLfo.connect(flameLfoGain);
+      flameLfoGain.connect(fireBand.frequency);
+      flameLfo.start();
+
+      fireRoarSrc.connect(fireLowpass);
+      fireLowpass.connect(fireFlareGain);
+      fireLickSrc.connect(fireBand);
+      fireBand.connect(fireLickGain);
+      fireLickGain.connect(fireFlareGain);
+
+      // 3. WIND (Open-Air Atmospheric Breeze with Gentle Gust Swells)
+      windBedGain = audioCtx.createGain();
+      windBedGain.gain.value = 0.14;
+      windBedGain.connect(envAudioGain);
+
+      const windSrc = createLoopSource(pinkBuf, 2.2);
+      const windFilter = audioCtx.createBiquadFilter();
+      windFilter.type = 'bandpass';
+      windFilter.frequency.value = 340;
+      windFilter.Q.value = 2.8;
+
+      const windGustLfo = audioCtx.createOscillator();
+      windGustLfo.frequency.value = 0.13; // 7.7s natural breeze cycle
+      const windGustGain = audioCtx.createGain();
+      windGustGain.gain.value = 175;
+      windGustLfo.connect(windGustGain);
+      windGustGain.connect(windFilter.frequency);
+      windGustLfo.start();
+
+      windSrc.connect(windFilter);
+      windFilter.connect(windBedGain);
+
+      // 4. NATURE (Foliage Rustle & Riparian Wetland Songbirds)
+      natureBedGain = audioCtx.createGain();
+      natureBedGain.gain.value = 0.15;
+      natureBedGain.connect(envAudioGain);
+
+      const leafSrc = createLoopSource(pinkBuf, 3.8);
+      const leafFilter = audioCtx.createBiquadFilter();
+      leafFilter.type = 'bandpass';
+      leafFilter.frequency.value = 2850;
+      leafFilter.Q.value = 1.8;
+      const leafSubGain = audioCtx.createGain();
+      leafSubGain.gain.value = 0.16;
+
+      leafSrc.connect(leafFilter);
+      leafFilter.connect(leafSubGain);
+      leafSubGain.connect(natureBedGain);
+
+      // Melodic Riparian Bird Calls (Synthesized natural syrinx chirps)
+      function triggerSongbirdCall() {
+        if (!audioCtx || !soundEnabled || audioCtx.state !== 'running') return;
+        const now = audioCtx.currentTime;
+        const notes = 2 + Math.floor(Math.random() * 3);
+        const baseFreq = 2500 + Math.random() * 1100;
+
+        for (let n = 0; n < notes; n++) {
+          const t0 = now + n * (0.14 + Math.random() * 0.07);
+          const dur = 0.08 + Math.random() * 0.06;
+          const osc = audioCtx.createOscillator();
+          const cGain = audioCtx.createGain();
+          osc.type = 'sine';
+
+          const fStart = baseFreq + (n % 2 === 0 ? 0 : 420);
+          const fEnd = fStart + (Math.random() > 0.35 ? 680 : -480);
+
+          osc.frequency.setValueAtTime(fStart, t0);
+          osc.frequency.exponentialRampToValueAtTime(Math.max(900, fEnd), t0 + dur);
+
+          cGain.gain.setValueAtTime(0.0001, t0);
+          cGain.gain.linearRampToValueAtTime(0.065, t0 + dur * 0.25);
+          cGain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+          osc.connect(cGain);
+          cGain.connect(natureBedGain);
+          osc.start(t0);
+          osc.stop(t0 + dur + 0.02);
+        }
+
+        // Occasional subtle fire crackle pop when near flare
+        if (fireFlareGain && fireFlareGain.gain.value > 0.12 && Math.random() > 0.3) {
+          const cOsc = audioCtx.createOscillator();
+          const fPop = audioCtx.createGain();
+          cOsc.type = 'triangle';
+          cOsc.frequency.setValueAtTime(950 + Math.random() * 900, now + 0.2);
+          cOsc.frequency.exponentialRampToValueAtTime(180, now + 0.24);
+          fPop.gain.setValueAtTime(0.04, now + 0.2);
+          fPop.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+          cOsc.connect(fPop);
+          fPop.connect(fireFlareGain);
+          cOsc.start(now + 0.2);
+          cOsc.stop(now + 0.25);
+        }
+      }
+
+      function scheduleNextBird() {
+        if (birdChirpTimer) clearTimeout(birdChirpTimer);
+        birdChirpTimer = setTimeout(() => {
+          triggerSongbirdCall();
+          scheduleNextBird();
+        }, 2800 + Math.random() * 4200);
+      }
+      scheduleNextBird();
+    }
+
+    // Update 3D Spatial Audio Mix dynamically based on camera position
+    function updateSpatialEnvironmentalAudio(camPos) {
+      if (!audioCtx || !soundEnabled || audioCtx.state !== 'running') return;
+
+      // Duck environmental bed slightly while British tour narration is actively speaking
+      const isNarrating = tourActive && voiceNarrationEnabled && currentNarrationAudio && !currentNarrationAudio.paused;
+      const targetEnvMaster = isNarrating ? 0.38 : 0.90;
+      envAudioGain.gain.value += (targetEnvMaster - envAudioGain.gain.value) * 0.08;
+
+      // 1A. Clean Water Cascade & Lagoon (World: 0.5, 0.5, -18.5)
+      const distCascade = Math.hypot(camPos.x - 0.5, camPos.y - 1.0, camPos.z - (-18.5));
+      const targetCascade = Math.min(0.46, Math.max(0.06, 5.2 / (distCascade + 7.5)));
+      waterCascadeGain.gain.value += (targetCascade - waterCascadeGain.gain.value) * 0.08;
+
+      // 1B. Aeration Basins & Influent Headworks (World: 10.0, 1.2, 7.5)
+      const distAeration = Math.min(
+        Math.hypot(camPos.x - 6.0, camPos.y - 1.5, camPos.z - 7.5),
+        Math.hypot(camPos.x - 18.0, camPos.y - 1.2, camPos.z - 8.5)
+      );
+      const targetAeration = Math.min(0.42, Math.max(0.05, 4.8 / (distAeration + 8.0)));
+      waterAerationGain.gain.value += (targetAeration - waterAerationGain.gain.value) * 0.08;
+
+      // 2. Fire / Biogas Flare Stack (World: 26.5, 11.5, -5.0) & Digesters (20.5, 4.5, -6.5)
+      const distFlare = Math.min(
+        Math.hypot(camPos.x - 26.5, camPos.y - 10.5, camPos.z - (-5.0)),
+        Math.hypot(camPos.x - 21.0, camPos.y - 4.5, camPos.z - (-5.5)) * 1.15
+      );
+      const targetFire = Math.min(0.48, Math.max(0.03, 5.0 / (distFlare + 6.5)));
+      fireFlareGain.gain.value += (targetFire - fireFlareGain.gain.value) * 0.08;
+
+      // 3. Wind (Stronger at higher camera altitudes / aerial drone views)
+      const altFactor = Math.min(1.0, Math.max(0.0, (camPos.y - 2.0) / 28.0));
+      const targetWind = 0.09 + altFactor * 0.20;
+      windBedGain.gain.value += (targetWind - windBedGain.gain.value) * 0.08;
+
+      // 4. Nature (Stronger near wetland reeds, trees, and ground level)
+      const distWetland = Math.hypot(camPos.x - 0.5, camPos.z - (-22.5));
+      const natureProximity = Math.max(0.35, 1.0 - Math.min(1.0, distWetland / 45.0));
+      const targetNature = 0.10 + natureProximity * 0.22;
+      natureBedGain.gain.value += (targetNature - natureBedGain.gain.value) * 0.08;
+    }
+
+    // Unlock and start environmental audio on first user interaction
+    ['pointerdown', 'keydown', 'touchstart'].forEach(evtName => {
+      window.addEventListener(evtName, () => {
+        if (soundEnabled) initEnvironmentalAudio();
+      }, { once: false, passive: true });
+    });
+
+    // --- MALE BRITISH VOICE NARRATION ENGINE (Guided Process Tour) ---
+    let currentNarrationAudio = null;
+    const narrationCache = {};
+    const voiceIndicatorEl = document.getElementById('tour-voice-indicator');
+    const voiceLabelEl = document.getElementById('tour-voice-label');
+    const btnTourVoiceMute = document.getElementById('btn-tour-voice-mute');
+    const btnAudioToggle = document.getElementById('btn-audio-toggle');
+
+    function setVoiceIndicatorState(speaking) {
+      if (!voiceIndicatorEl) return;
+      if (!voiceNarrationEnabled || !soundEnabled) {
+        voiceIndicatorEl.classList.remove('speaking');
+        voiceIndicatorEl.classList.add('muted');
+        if (voiceLabelEl) voiceLabelEl.textContent = '🇬🇧 Muted';
+      } else if (speaking) {
+        voiceIndicatorEl.classList.remove('muted');
+        voiceIndicatorEl.classList.add('speaking');
+        if (voiceLabelEl) voiceLabelEl.textContent = '🇬🇧 Narrating';
+      } else {
+        voiceIndicatorEl.classList.remove('speaking', 'muted');
+        if (voiceLabelEl) voiceLabelEl.textContent = '🇬🇧 Ready';
+      }
+    }
+
+    function stopTourNarration() {
+      if (currentNarrationAudio) {
+        currentNarrationAudio.pause();
+        currentNarrationAudio.currentTime = 0;
+        currentNarrationAudio = null;
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      setVoiceIndicatorState(false);
+    }
+
+    function playStageNarration(stageIdx) {
+      stopTourNarration();
+      if (!tourActive || !soundEnabled || !voiceNarrationEnabled) {
+        resetAutoPlayTimer(11000);
+        return;
+      }
+
+      const stage = tourStages[stageIdx];
+      if (!stage || !stage.audioFile) return;
+
+      let audio = narrationCache[stage.audioFile];
+      if (!audio) {
+        audio = new Audio(stage.audioFile);
+        audio.preload = 'auto';
+        narrationCache[stage.audioFile] = audio;
+      }
+
+      currentNarrationAudio = audio;
+      audio.volume = 1.0;
+      audio.currentTime = 0;
+
+      audio.onplay = () => {
+        setVoiceIndicatorState(true);
+      };
+
+      audio.onloadedmetadata = () => {
+        if (tourActive && tourAutoPlay && Number.isFinite(audio.duration) && audio.duration > 0) {
+          resetAutoPlayTimer((audio.duration + 1.8) * 1000);
+        }
+      };
+
+      audio.onended = () => {
+        setVoiceIndicatorState(false);
+        if (tourActive && tourAutoPlay) {
+          resetAutoPlayTimer(1400);
+        }
+      };
+
+      // Preload next stage audio for zero-latency transition
+      const nextStage = tourStages[(stageIdx + 1) % tourStages.length];
+      if (nextStage && nextStage.audioFile && !narrationCache[nextStage.audioFile]) {
+        const nextAudio = new Audio(nextStage.audioFile);
+        nextAudio.preload = 'auto';
+        narrationCache[nextStage.audioFile] = nextAudio;
+      }
+
+      // Set conservative initial timer until metadata or onended fires
+      resetAutoPlayTimer(25000);
+
+      audio.play().catch(() => {
+        // Fallback to Web Speech API en-GB Male if MP3 playback is blocked
+        if ('speechSynthesis' in window) {
+          const utter = new SpeechSynthesisUtterance(`${stage.title}. ${stage.desc}`);
+          utter.lang = 'en-GB';
+          utter.rate = 0.96;
+          const voices = window.speechSynthesis.getVoices();
+          const gbMale = voices.find(v => v.lang.includes('GB') && /daniel|ryan|thomas|male|arthur|oliver/i.test(v.name))
+                      || voices.find(v => v.lang.includes('GB'));
+          if (gbMale) utter.voice = gbMale;
+          utter.onstart = () => setVoiceIndicatorState(true);
+          utter.onend = () => {
+            setVoiceIndicatorState(false);
+            if (tourActive && tourAutoPlay) resetAutoPlayTimer(1400);
+          };
+          window.speechSynthesis.speak(utter);
+        } else {
+          setVoiceIndicatorState(false);
+          resetAutoPlayTimer(11000);
+        }
+      });
+    }
+
+    if (btnAudioToggle) {
+      btnAudioToggle.addEventListener('click', () => {
+        initEnvironmentalAudio();
+        soundEnabled = !soundEnabled;
+        btnAudioToggle.classList.toggle('toggle-on', soundEnabled);
+        btnAudioToggle.textContent = soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+        if (masterAudioGain && audioCtx) {
+          masterAudioGain.gain.setTargetAtTime(soundEnabled ? 1.0 : 0.0, audioCtx.currentTime, 0.08);
+        }
+        if (!soundEnabled) {
+          stopTourNarration();
+        } else if (tourActive && voiceNarrationEnabled) {
+          playStageNarration(currentTourIndex);
+        }
+      });
+    }
+
+    if (btnTourVoiceMute) {
+      btnTourVoiceMute.addEventListener('click', () => {
+        initEnvironmentalAudio();
+        voiceNarrationEnabled = !voiceNarrationEnabled;
+        btnTourVoiceMute.textContent = voiceNarrationEnabled ? '🔊 Voice' : '🔇 Voice';
+        if (!voiceNarrationEnabled) {
+          stopTourNarration();
+        } else if (tourActive && soundEnabled) {
+          playStageNarration(currentTourIndex);
+        }
+      });
+    }
+
     const tourStages = [
       {
         step: "STAGE 01 / 06",
@@ -5962,6 +6468,7 @@
         status: "DIRTY WATER INLET",
         title: "1. Raw Sewage Influent & Mechanical Headworks",
         desc: "Raw untreated municipal wastewater enters the plant via the 600mm incoming sewer conduit from the underground interceptor vault. Heavy debris, plastics, and rags are extracted by mechanical bar screens, while vortex grit chambers drop dense sand before primary pumping.",
+        audioFile: "assets/audio/narration/muni_stage_01.mp3",
         turbidity: "340 NTU (Murky)",
         bod: "260 mg/L",
         eff: "0% (Raw Influent)",
@@ -5977,6 +6484,7 @@
         status: "BIOLOGICAL ACTIVATION",
         title: "2. Biological Aeration Basins (Activated Sludge)",
         desc: "Untreated liquor flows into 4 plug-flow channels. Billions of beneficial aerobic microorganisms digest dissolved organic matter, fueled by 450 m³/min of compressed air injected through fine-bubble bottom diffusers.",
+        audioFile: "assets/audio/narration/muni_stage_02.mp3",
         turbidity: "120 NTU (Turbulent MLSS)",
         bod: "75 mg/L (71% reduction)",
         eff: "71% Oxidized",
@@ -5992,6 +6500,7 @@
         status: "GRAVITY SEDIMENTATION",
         title: "3. Secondary Circular Clarifiers",
         desc: "Flow passes through the central distribution splitter to twin 16m radial clarifiers. Heavy biological floc settles to the tank floor, where continuous scraper bridges gather it for reuse as Return Activated Sludge (RAS).",
+        audioFile: "assets/audio/narration/muni_stage_03.mp3",
         turbidity: "18 NTU (Clarified)",
         bod: "22 mg/L (91% reduction)",
         eff: "91% Clarified",
@@ -6007,6 +6516,7 @@
         status: "TERTIARY POLISHING & UV",
         title: "4. Tertiary Sand Filtration & UV Disinfection",
         desc: "Clarifier overflow flumes directly feed the central Tertiary Complex. Dual-media rapid sand filters capture residual micro-particulates, followed by ultraviolet disinfection lamp banks neutralizing 99.9% of bacteria without toxic chemicals.",
+        audioFile: "assets/audio/narration/muni_stage_04.mp3",
         turbidity: "0.9 NTU (Ultra-Pure)",
         bod: "3.5 mg/L (98% reduction)",
         eff: "98.6% Disinfected",
@@ -6022,6 +6532,7 @@
         status: "CLEAN WATER OUTFLOW",
         title: "5. Pristine Treated Water Discharge Outfall & Wetlands",
         desc: "Disinfected crystal-clear treated effluent overflows into the calibrated Parshall flume outfall, tumbling over a stepped stone cascade directly into the wetland lagoon. Watch the dynamic aquamarine effluent plume disperse, propagate wave ripples, and nourish thriving riparian reeds and water lilies at 99.4% purity!",
+        audioFile: "assets/audio/narration/muni_stage_05.mp3",
         turbidity: "0.4 NTU (Pristine)",
         bod: "< 2.0 mg/L (99.4% Removal)",
         eff: "99.4% Pristine Outflow",
@@ -6037,6 +6548,7 @@
         status: "BIOGAS RECOVERY",
         title: "6. Anaerobic Digestion & Renewable Biogas",
         desc: "Concentrated solids from the clarifiers are pumped to twin anaerobic digester tanks on the eastern bio-pad, where thermophilic microbes convert organic sludge into stabilized fertilizer and renewable methane biogas.",
+        audioFile: "assets/audio/narration/muni_stage_06.mp3",
         turbidity: "Volatile Solids Destroyed: 58%",
         bod: "Methane Yield: 65% CH4",
         eff: "Closed Loop Complete",
@@ -6087,9 +6599,13 @@
 
       // Smooth camera fly (Responsive desktop/mobile framing)
       smoothTransitionCamera(stage);
+
+      // Trigger British Male Voice Narration for this stage
+      playStageNarration(idx);
     }
 
     function startTour() {
+      initEnvironmentalAudio();
       tourActive = true;
       tourDrawer.style.display = 'block';
       btnStartTour.classList.add('tour-active');
@@ -6099,7 +6615,6 @@
         if (typeof inspectorPanel !== 'undefined' && inspectorPanel) inspectorPanel.style.display = 'none';
       }
       applyTourStage(0);
-      resetAutoPlayTimer();
     }
 
     function exitTour() {
@@ -6107,26 +6622,25 @@
       tourDrawer.style.display = 'none';
       btnStartTour.classList.remove('tour-active');
       if (tourTimer) clearTimeout(tourTimer);
+      stopTourNarration();
     }
 
     function nextTourStage() {
       const nextIdx = (currentTourIndex + 1) % tourStages.length;
       applyTourStage(nextIdx);
-      resetAutoPlayTimer();
     }
 
     function prevTourStage() {
       const prevIdx = (currentTourIndex - 1 + tourStages.length) % tourStages.length;
       applyTourStage(prevIdx);
-      resetAutoPlayTimer();
     }
 
-    function resetAutoPlayTimer() {
+    function resetAutoPlayTimer(customDelayMs = 11000) {
       if (tourTimer) clearTimeout(tourTimer);
       if (tourActive && tourAutoPlay) {
         tourTimer = setTimeout(() => {
           nextTourStage();
-        }, 8500);
+        }, customDelayMs);
       }
     }
 
@@ -6636,6 +7150,7 @@
 
       updateAnnotationPins();
       controls.update();
+      updateSpatialEnvironmentalAudio(camera.position);
 
       renderer.info.reset();
       composer.render();

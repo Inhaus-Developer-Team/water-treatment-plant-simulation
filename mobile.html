@@ -321,6 +321,48 @@
       align-items: center;
     }
 
+    /* Voice Narration Indicator & Waveform */
+    .voice-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #7dd3fc;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+    }
+    .voice-status-badge.muted {
+      background: rgba(148, 163, 184, 0.12);
+      border-color: rgba(148, 163, 184, 0.25);
+      color: #94a3b8;
+    }
+    .voice-bars {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 10px;
+    }
+    .voice-bars span {
+      display: block;
+      width: 2px;
+      height: 3px;
+      background: #38bdf8;
+      border-radius: 1px;
+      transition: height 0.15s ease;
+    }
+    .voice-status-badge.speaking .voice-bars span:nth-child(1) { animation: voiceWave 0.65s infinite ease-in-out 0.0s; }
+    .voice-status-badge.speaking .voice-bars span:nth-child(2) { animation: voiceWave 0.65s infinite ease-in-out 0.15s; }
+    .voice-status-badge.speaking .voice-bars span:nth-child(3) { animation: voiceWave 0.65s infinite ease-in-out 0.3s; }
+    .voice-status-badge.speaking .voice-bars span:nth-child(4) { animation: voiceWave 0.65s infinite ease-in-out 0.1s; }
+    @keyframes voiceWave {
+      0%, 100% { height: 3px; }
+      50% { height: 10px; }
+    }
+
     /* Top Right Stats Panel */
     .stats-panel {
       top: 16px;
@@ -647,6 +689,7 @@
 
     <button class="btn" id="btn-wireframe" title="Toggle Clean CAD Blueprint Wireframe">📐 CAD Wireframe</button>
     <button class="btn toggle-on" id="btn-text-labels" title="Toggle 3D Text & Annotations">🏷️ Text Pins: ON</button>
+    <button class="btn toggle-on" id="btn-audio-toggle" title="Toggle 3D Environmental Soundscape & British Voice Narration">🔊 Sound: ON</button>
     <button class="btn" id="btn-debug-toggle" title="Toggle Debug Telemetry & Helpers">🛠️ Debug HUD</button>
     <button class="btn" id="btn-animate">Pause Motion</button>
   </div>
@@ -654,11 +697,18 @@
   <!-- Guided Tour Drawer -->
   <div class="hud-card tour-drawer" id="tour-drawer">
     <div class="tour-header">
-      <div class="tour-step-tag">
+      <div class="tour-step-tag" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
         <span class="badge tour" id="tour-badge-stage">STAGE 01 / 04</span>
         <span id="tour-stage-status" class="badge dirty">RAW INTAKE BUFFER</span>
+        <span class="voice-status-badge speaking" id="tour-voice-indicator" title="British Male Voice Narration">
+          <span class="voice-bars"><span></span><span></span><span></span><span></span></span>
+          <span id="tour-voice-label">🇬🇧 Voice</span>
+        </span>
       </div>
-      <button class="btn" id="btn-tour-close" style="padding:2px 8px; font-size:11px;">✕ Exit</button>
+      <div style="display:flex; align-items:center; gap:5px;">
+        <button class="btn" id="btn-tour-voice-mute" style="padding:2px 7px; font-size:10.5px;" title="Toggle British Voice Narration">🔊 Voice</button>
+        <button class="btn" id="btn-tour-close" style="padding:2px 8px; font-size:11px;">✕ Exit</button>
+      </div>
     </div>
     <div class="tour-title" id="tour-title">1. Raw Feed Equalization & Skid Pumping</div>
     <div class="tour-desc" id="tour-desc">
@@ -4562,8 +4612,351 @@
     });
 
     // =========================================================================
-    // 13. GUIDED PROCESS TOUR ENGINE (4 HIGH-YIELD STAGES)
+    // 13. GUIDED PROCESS TOUR ENGINE & 3D ENVIRONMENTAL SOUNDSCAPE
     // =========================================================================
+
+    // --- 3D SPATIAL ENVIRONMENTAL SOUNDSCAPE (Water, Fire/Combustion, Wind, Nature) ---
+    let audioCtx = null;
+    let soundEnabled = true;
+    let voiceNarrationEnabled = true;
+    let masterAudioGain = null;
+    let envAudioGain = null;
+    let waterFlowGain = null;
+    let fireCombustionGain = null;
+    let windBreezeGain = null;
+    let natureAmbientGain = null;
+    let birdCallTimer = null;
+
+    function initEnvironmentalAudio() {
+      if (audioCtx) {
+        if (audioCtx.state === 'suspended' && soundEnabled) {
+          audioCtx.resume().catch(() => {});
+        }
+        return;
+      }
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      audioCtx = new AudioContextClass();
+
+      masterAudioGain = audioCtx.createGain();
+      masterAudioGain.gain.value = soundEnabled ? 1.0 : 0.0;
+      masterAudioGain.connect(audioCtx.destination);
+
+      envAudioGain = audioCtx.createGain();
+      envAudioGain.gain.value = 0.85;
+      envAudioGain.connect(masterAudioGain);
+
+      const sampleRate = audioCtx.sampleRate;
+      const bufLen = sampleRate * 5;
+      const pinkBuf = audioCtx.createBuffer(2, bufLen, sampleRate);
+      const brownBuf = audioCtx.createBuffer(2, bufLen, sampleRate);
+
+      for (let ch = 0; ch < 2; ch++) {
+        const pData = pinkBuf.getChannelData(ch);
+        const bData = brownBuf.getChannelData(ch);
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+        let lastBrown = 0;
+        for (let i = 0; i < bufLen; i++) {
+          const white = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          b3 = 0.86650 * b3 + white * 0.3104856;
+          b4 = 0.55000 * b4 + white * 0.5329522;
+          b5 = -0.7616 * b5 - white * 0.0168980;
+          pData[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.042;
+          b6 = white * 0.115926;
+
+          lastBrown = (lastBrown + (0.02 * white)) / 1.02;
+          bData[i] = lastBrown * 1.35;
+        }
+        const fadeSamples = Math.floor(sampleRate * 0.15);
+        for (let i = 0; i < fadeSamples; i++) {
+          const t = i / fadeSamples;
+          pData[bufLen - fadeSamples + i] = pData[bufLen - fadeSamples + i] * (1 - t) + pData[i] * t;
+          bData[bufLen - fadeSamples + i] = bData[bufLen - fadeSamples + i] * (1 - t) + bData[i] * t;
+        }
+      }
+
+      function createLoopSource(buf, offsetSec = 0) {
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+        src.start(0, offsetSec % 4.8);
+        return src;
+      }
+
+      // 1. WATER (DAF Micro-Bubble Flotation, Pressurized Piping & Clean Outflow Stream)
+      waterFlowGain = audioCtx.createGain();
+      waterFlowGain.gain.value = 0.22;
+      waterFlowGain.connect(envAudioGain);
+
+      const waterPink = createLoopSource(pinkBuf, 0.4);
+      const waterBand = audioCtx.createBiquadFilter();
+      waterBand.type = 'bandpass';
+      waterBand.frequency.value = 920;
+      waterBand.Q.value = 0.8;
+
+      const waterLfo = audioCtx.createOscillator();
+      waterLfo.frequency.value = 0.45;
+      const waterLfoGain = audioCtx.createGain();
+      waterLfoGain.gain.value = 210;
+      waterLfo.connect(waterLfoGain);
+      waterLfoGain.connect(waterBand.frequency);
+      waterLfo.start();
+
+      waterPink.connect(waterBand);
+      waterBand.connect(waterFlowGain);
+
+      // 2. FIRE / THERMAL COMBUSTION & ELECTROCOAGULATION REACTOR (Pod 1 & Skid Thermal Exhaust)
+      fireCombustionGain = audioCtx.createGain();
+      fireCombustionGain.gain.value = 0.14;
+      fireCombustionGain.connect(envAudioGain);
+
+      const fireSrc = createLoopSource(brownBuf, 1.2);
+      const fireLow = audioCtx.createBiquadFilter();
+      fireLow.type = 'lowpass';
+      fireLow.frequency.value = 195;
+
+      const flameFlutter = audioCtx.createOscillator();
+      flameFlutter.frequency.value = 5.2;
+      const flameGain = audioCtx.createGain();
+      flameGain.gain.value = 55;
+      flameFlutter.connect(flameGain);
+      flameGain.connect(fireLow.frequency);
+      flameFlutter.start();
+
+      fireSrc.connect(fireLow);
+      fireLow.connect(fireCombustionGain);
+
+      // 3. WIND (Open Desert Canyon Breeze with Gust Modulation)
+      windBreezeGain = audioCtx.createGain();
+      windBreezeGain.gain.value = 0.16;
+      windBreezeGain.connect(envAudioGain);
+
+      const windSrc = createLoopSource(pinkBuf, 2.5);
+      const windBand = audioCtx.createBiquadFilter();
+      windBand.type = 'bandpass';
+      windBand.frequency.value = 350;
+      windBand.Q.value = 2.6;
+
+      const windLfo = audioCtx.createOscillator();
+      windLfo.frequency.value = 0.14;
+      const windLfoGain = audioCtx.createGain();
+      windLfoGain.gain.value = 180;
+      windLfo.connect(windLfoGain);
+      windLfoGain.connect(windBand.frequency);
+      windLfo.start();
+
+      windSrc.connect(windBand);
+      windBand.connect(windBreezeGain);
+
+      // 4. NATURE (Desert Scrub Rustle & Distant Canyon Birds)
+      natureAmbientGain = audioCtx.createGain();
+      natureAmbientGain.gain.value = 0.14;
+      natureAmbientGain.connect(envAudioGain);
+
+      const scrubSrc = createLoopSource(pinkBuf, 3.6);
+      const scrubFilter = audioCtx.createBiquadFilter();
+      scrubFilter.type = 'bandpass';
+      scrubFilter.frequency.value = 2900;
+      scrubFilter.Q.value = 1.9;
+      const scrubGain = audioCtx.createGain();
+      scrubGain.gain.value = 0.15;
+
+      scrubSrc.connect(scrubFilter);
+      scrubFilter.connect(scrubGain);
+      scrubGain.connect(natureAmbientGain);
+
+      function triggerNaturalCall() {
+        if (!audioCtx || !soundEnabled || audioCtx.state !== 'running') return;
+        const now = audioCtx.currentTime;
+        const notes = 2 + Math.floor(Math.random() * 2);
+        const baseFreq = 2400 + Math.random() * 900;
+        for (let n = 0; n < notes; n++) {
+          const t0 = now + n * 0.16;
+          const dur = 0.09 + Math.random() * 0.05;
+          const osc = audioCtx.createOscillator();
+          const cGain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(baseFreq + n * 280, t0);
+          osc.frequency.exponentialRampToValueAtTime(baseFreq - 220, t0 + dur);
+          cGain.gain.setValueAtTime(0.0001, t0);
+          cGain.gain.linearRampToValueAtTime(0.055, t0 + dur * 0.25);
+          cGain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+          osc.connect(cGain);
+          cGain.connect(natureAmbientGain);
+          osc.start(t0);
+          osc.stop(t0 + dur + 0.02);
+        }
+      }
+
+      function scheduleBird() {
+        if (birdCallTimer) clearTimeout(birdCallTimer);
+        birdCallTimer = setTimeout(() => {
+          triggerNaturalCall();
+          scheduleBird();
+        }, 3400 + Math.random() * 4500);
+      }
+      scheduleBird();
+    }
+
+    function updateSpatialEnvironmentalAudio(camPos) {
+      if (!audioCtx || !soundEnabled || audioCtx.state !== 'running') return;
+      const isNarrating = tourActive && voiceNarrationEnabled && currentNarrationAudio && !currentNarrationAudio.paused;
+      const targetEnvMaster = isNarrating ? 0.36 : 0.88;
+      envAudioGain.gain.value += (targetEnvMaster - envAudioGain.gain.value) * 0.08;
+
+      const distPods = Math.hypot(camPos.x, camPos.y - 1.5, camPos.z);
+      const targetWater = Math.min(0.42, Math.max(0.08, 4.2 / (distPods + 6.0)));
+      waterFlowGain.gain.value += (targetWater - waterFlowGain.gain.value) * 0.08;
+
+      const distEC = Math.hypot(camPos.x - (-2.5), camPos.y - 1.5, camPos.z - 1.5);
+      const targetFire = Math.min(0.36, Math.max(0.05, 3.4 / (distEC + 5.5)));
+      fireCombustionGain.gain.value += (targetFire - fireCombustionGain.gain.value) * 0.08;
+
+      const altFactor = Math.min(1.0, Math.max(0.0, (camPos.y - 1.8) / 20.0));
+      const targetWind = 0.11 + altFactor * 0.20;
+      windBreezeGain.gain.value += (targetWind - windBreezeGain.gain.value) * 0.08;
+    }
+
+    ['pointerdown', 'keydown', 'touchstart'].forEach(evtName => {
+      window.addEventListener(evtName, () => {
+        if (soundEnabled) initEnvironmentalAudio();
+      }, { once: false, passive: true });
+    });
+
+    // --- MALE BRITISH VOICE NARRATION ENGINE ---
+    let currentNarrationAudio = null;
+    const narrationCache = {};
+    const voiceIndicatorEl = document.getElementById('tour-voice-indicator');
+    const voiceLabelEl = document.getElementById('tour-voice-label');
+    const btnTourVoiceMute = document.getElementById('btn-tour-voice-mute');
+    const btnAudioToggle = document.getElementById('btn-audio-toggle');
+
+    function setVoiceIndicatorState(speaking) {
+      if (!voiceIndicatorEl) return;
+      if (!voiceNarrationEnabled || !soundEnabled) {
+        voiceIndicatorEl.classList.remove('speaking');
+        voiceIndicatorEl.classList.add('muted');
+        if (voiceLabelEl) voiceLabelEl.textContent = '🇬🇧 Muted';
+      } else if (speaking) {
+        voiceIndicatorEl.classList.remove('muted');
+        voiceIndicatorEl.classList.add('speaking');
+        if (voiceLabelEl) voiceLabelEl.textContent = '🇬🇧 Narrating';
+      } else {
+        voiceIndicatorEl.classList.remove('speaking', 'muted');
+        if (voiceLabelEl) voiceLabelEl.textContent = '🇬🇧 Ready';
+      }
+    }
+
+    function stopTourNarration() {
+      if (currentNarrationAudio) {
+        currentNarrationAudio.pause();
+        currentNarrationAudio.currentTime = 0;
+        currentNarrationAudio = null;
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      setVoiceIndicatorState(false);
+    }
+
+    function playStageNarration(stageIdx) {
+      stopTourNarration();
+      if (!tourActive || !soundEnabled || !voiceNarrationEnabled) {
+        resetAutoPlayTimer(11000);
+        return;
+      }
+
+      const stage = tourStages[stageIdx];
+      if (!stage || !stage.audioFile) return;
+
+      let audio = narrationCache[stage.audioFile];
+      if (!audio) {
+        audio = new Audio(stage.audioFile);
+        audio.preload = 'auto';
+        narrationCache[stage.audioFile] = audio;
+      }
+
+      currentNarrationAudio = audio;
+      audio.volume = 1.0;
+      audio.currentTime = 0;
+
+      audio.onplay = () => setVoiceIndicatorState(true);
+      audio.onloadedmetadata = () => {
+        if (tourActive && tourAutoPlay && Number.isFinite(audio.duration) && audio.duration > 0) {
+          resetAutoPlayTimer((audio.duration + 1.8) * 1000);
+        }
+      };
+      audio.onended = () => {
+        setVoiceIndicatorState(false);
+        if (tourActive && tourAutoPlay) {
+          resetAutoPlayTimer(1400);
+        }
+      };
+
+      const nextStage = tourStages[(stageIdx + 1) % tourStages.length];
+      if (nextStage && nextStage.audioFile && !narrationCache[nextStage.audioFile]) {
+        const nextAudio = new Audio(nextStage.audioFile);
+        nextAudio.preload = 'auto';
+        narrationCache[nextStage.audioFile] = nextAudio;
+      }
+
+      resetAutoPlayTimer(24000);
+
+      audio.play().catch(() => {
+        if ('speechSynthesis' in window) {
+          const utter = new SpeechSynthesisUtterance(`${stage.title}. ${stage.desc}`);
+          utter.lang = 'en-GB';
+          utter.rate = 0.96;
+          const voices = window.speechSynthesis.getVoices();
+          const gbMale = voices.find(v => v.lang.includes('GB') && /daniel|ryan|thomas|male|arthur|oliver/i.test(v.name))
+                      || voices.find(v => v.lang.includes('GB'));
+          if (gbMale) utter.voice = gbMale;
+          utter.onstart = () => setVoiceIndicatorState(true);
+          utter.onend = () => {
+            setVoiceIndicatorState(false);
+            if (tourActive && tourAutoPlay) resetAutoPlayTimer(1400);
+          };
+          window.speechSynthesis.speak(utter);
+        } else {
+          setVoiceIndicatorState(false);
+          resetAutoPlayTimer(11000);
+        }
+      });
+    }
+
+    if (btnAudioToggle) {
+      btnAudioToggle.addEventListener('click', () => {
+        initEnvironmentalAudio();
+        soundEnabled = !soundEnabled;
+        btnAudioToggle.classList.toggle('toggle-on', soundEnabled);
+        btnAudioToggle.textContent = soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+        if (masterAudioGain && audioCtx) {
+          masterAudioGain.gain.setTargetAtTime(soundEnabled ? 1.0 : 0.0, audioCtx.currentTime, 0.08);
+        }
+        if (!soundEnabled) {
+          stopTourNarration();
+        } else if (tourActive && voiceNarrationEnabled) {
+          playStageNarration(currentTourIndex);
+        }
+      });
+    }
+
+    if (btnTourVoiceMute) {
+      btnTourVoiceMute.addEventListener('click', () => {
+        initEnvironmentalAudio();
+        voiceNarrationEnabled = !voiceNarrationEnabled;
+        btnTourVoiceMute.textContent = voiceNarrationEnabled ? '🔊 Voice' : '🔇 Voice';
+        if (!voiceNarrationEnabled) {
+          stopTourNarration();
+        } else if (tourActive && soundEnabled) {
+          playStageNarration(currentTourIndex);
+        }
+      });
+    }
+
     const tourStages = [
       {
         step: "STAGE 01 / 04",
@@ -4571,6 +4964,7 @@
         badgeClass: "badge dirty",
         title: "1. Raw Feed Equalization & Skid Pumping",
         desc: "Raw wastewater arrives into the 45 m³ horizontal buffer vessel and passes through the vertical poly feed tank. The PC-10 pump skid draws influent through duplex strainers, damping hydraulic surges before treatment.",
+        audioFile: "assets/audio/narration/mobile_stage_01.mp3",
         turbidity: "420 NTU",
         tss: "850 mg/L",
         eff: "0% (Raw Feed)",
@@ -4583,6 +4977,7 @@
         badgeClass: "badge flow",
         title: "2. Electrocoagulation & AOP Reactor (Pod 1)",
         desc: "Influent enters Pod 1 containing high-amperage sacrificial electrolytic cells. In-situ generated electrons break oil emulsions, destabilize heavy metals, and generate hydroxyl radicals without toxic bulk chemicals.",
+        audioFile: "assets/audio/narration/mobile_stage_02.mp3",
         turbidity: "110 NTU (Destabilized)",
         tss: "240 mg/L (71% clumped)",
         eff: "72% Destabilized",
@@ -4595,6 +4990,7 @@
         badgeClass: "badge flow",
         title: "3. Dissolved Air Flotation & Sludge Separation (Pod 2)",
         desc: "Coagulated liquor transfers across the containment aisle to Pod 2. Millions of 20-40µm micro-bubbles lift suspended flocs to the surface for automated mechanical skimming into the concentrated sludge collector.",
+        audioFile: "assets/audio/narration/mobile_stage_03.mp3",
         turbidity: "8.5 NTU (Clarified)",
         tss: "18 mg/L (97% removed)",
         eff: "97.8% Clarified",
@@ -4607,6 +5003,7 @@
         badgeClass: "badge clean",
         title: "4. Multi-Barrier Polishing & Ultra-Clean Outflow (Pods 3 & 4)",
         desc: "Clarified water passes through Pod 3's pressurized deep-bed media and granular activated carbon columns, receiving final pathogen disinfection from Pod 4. Pristine treated effluent discharges at <0.6 NTU purity!",
+        audioFile: "assets/audio/narration/mobile_stage_04.mp3",
         turbidity: "0.4 NTU (Pristine)",
         tss: "< 2.0 mg/L (99.8%)",
         eff: "99.8% Ultra-Pure Outflow",
@@ -4652,14 +5049,17 @@
 
       // Smooth camera transition
       smoothTransitionCamera(stage.camPos, stage.camTarget);
+
+      // Play British Male Voice Narration
+      playStageNarration(idx);
     }
 
     function startTour() {
+      initEnvironmentalAudio();
       tourActive = true;
       tourDrawer.style.display = 'block';
       btnStartTour.classList.add('tour-active');
       applyTourStage(0);
-      resetAutoPlayTimer();
     }
 
     function exitTour() {
@@ -4667,30 +5067,31 @@
       tourDrawer.style.display = 'none';
       btnStartTour.classList.remove('tour-active');
       if (tourTimer) clearTimeout(tourTimer);
+      stopTourNarration();
     }
 
     function nextTourStage() {
       const nextIdx = (currentTourIndex + 1) % tourStages.length;
       applyTourStage(nextIdx);
-      resetAutoPlayTimer();
     }
 
     function prevTourStage() {
       const prevIdx = (currentTourIndex - 1 + tourStages.length) % tourStages.length;
       applyTourStage(prevIdx);
-      resetAutoPlayTimer();
     }
 
-    function resetAutoPlayTimer() {
+    function resetAutoPlayTimer(customDelayMs = 11000) {
       if (tourTimer) clearTimeout(tourTimer);
       if (tourActive && tourAutoPlay) {
         tourTimer = setTimeout(() => {
           nextTourStage();
-        }, 8500);
+        }, customDelayMs);
       }
     }
 
-    btnStartTour.addEventListener('click', startTour);
+    btnStartTour.addEventListener('click', () => {
+      if (!tourActive) startTour(); else exitTour();
+    });
     btnTourClose.addEventListener('click', exitTour);
     btnTourNext.addEventListener('click', nextTourStage);
     btnTourPrev.addEventListener('click', prevTourStage);
@@ -4796,7 +5197,7 @@
 
     function setActiveBtn(btnId) {
       document.querySelectorAll('.hud-controls .btn').forEach(b => {
-        if (!b.classList.contains('tour-btn') && b.id !== 'btn-wireframe' && b.id !== 'btn-text-labels' && b.id !== 'btn-debug-toggle' && b.id !== 'btn-animate') {
+        if (!b.classList.contains('tour-btn') && b.id !== 'btn-wireframe' && b.id !== 'btn-text-labels' && b.id !== 'btn-audio-toggle' && b.id !== 'btn-debug-toggle' && b.id !== 'btn-animate') {
           b.classList.remove('active');
         }
       });
@@ -5112,6 +5513,7 @@
       }
 
       updateAnnotationPins();
+      updateSpatialEnvironmentalAudio(camera.position);
       composer.render();
 
       // Telemetry HUD updates
