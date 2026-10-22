@@ -810,8 +810,8 @@
     </div>
   </div>
 
-  <!-- Top Right Stats Panel -->
-  <div class="hud-card stats-panel" id="stats-panel">
+  <!-- Top Right Stats Panel (Hidden by default) -->
+  <div class="hud-card stats-panel hidden" id="stats-panel">
     <div class="panel-header-row">
       <span style="font-weight: 700; color: #fbbf24; font-size: 11px;">Mobile SCADA Telemetry</span>
       <button class="btn btn-close" id="btn-stats-close" title="Close Panel">✕</button>
@@ -5212,16 +5212,29 @@
     });
 
     const statsPanel = document.getElementById('stats-panel');
-    document.getElementById('btn-mobile-stats').addEventListener('click', () => {
-      statsPanel.classList.toggle('open');
-      statsPanel.classList.toggle('hidden');
-    });
+    const btnDebugToggle = document.getElementById('btn-debug-toggle');
+    const btnMobileStats = document.getElementById('btn-mobile-stats');
+
+    function toggleMobileStats() {
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        statsPanel.classList.toggle('open');
+        statsPanel.classList.toggle('hidden');
+      } else {
+        statsPanel.classList.toggle('hidden');
+      }
+      const isVis = isMobile ? statsPanel.classList.contains('open') : !statsPanel.classList.contains('hidden');
+      if (btnDebugToggle) btnDebugToggle.classList.toggle('active', isVis);
+      if (btnMobileStats) btnMobileStats.classList.toggle('active', isVis);
+    }
+
+    if (btnMobileStats) btnMobileStats.addEventListener('click', toggleMobileStats);
+    if (btnDebugToggle) btnDebugToggle.addEventListener('click', toggleMobileStats);
     document.getElementById('btn-stats-close').addEventListener('click', () => {
       statsPanel.classList.add('hidden');
       statsPanel.classList.remove('open');
-    });
-    document.getElementById('btn-debug-toggle').addEventListener('click', () => {
-      statsPanel.classList.toggle('hidden');
+      if (btnDebugToggle) btnDebugToggle.classList.remove('active');
+      if (btnMobileStats) btnMobileStats.classList.remove('active');
     });
 
     // Raycaster for 3D Click Interaction
