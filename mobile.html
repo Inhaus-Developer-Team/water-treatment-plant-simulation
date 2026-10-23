@@ -5022,18 +5022,19 @@
 
       currentNarrationAudio = audio;
       audio.volume = 1.0;
+      audio.playbackRate = 1.0;
       audio.currentTime = 0;
 
       audio.onplay = () => setVoiceIndicatorState(true);
       audio.onloadedmetadata = () => {
         if (tourActive && tourAutoPlay && Number.isFinite(audio.duration) && audio.duration > 0) {
-          resetAutoPlayTimer((audio.duration + 1.8) * 1000);
+          resetAutoPlayTimer((audio.duration + 2.5) * 1000);
         }
       };
       audio.onended = () => {
         setVoiceIndicatorState(false);
         if (tourActive && tourAutoPlay) {
-          resetAutoPlayTimer(1400);
+          resetAutoPlayTimer(2500);
         }
       };
 
@@ -5044,13 +5045,14 @@
         narrationCache[nextStage.audioFile] = nextAudio;
       }
 
-      resetAutoPlayTimer(24000);
+      resetAutoPlayTimer(35000);
 
       audio.play().catch(() => {
         if ('speechSynthesis' in window) {
-          const utter = new SpeechSynthesisUtterance(`${stage.title}. ${stage.desc}`);
+          const speechText = stage.spokenText || `${stage.title}. ${stage.desc}`;
+          const utter = new SpeechSynthesisUtterance(speechText);
           utter.lang = 'en-GB';
-          utter.rate = 0.96;
+          utter.rate = 0.88;
           const voices = window.speechSynthesis.getVoices();
           const gbMale = voices.find(v => v.lang.includes('GB') && /daniel|ryan|thomas|male|arthur|oliver/i.test(v.name))
                       || voices.find(v => v.lang.includes('GB'));
@@ -5058,7 +5060,7 @@
           utter.onstart = () => setVoiceIndicatorState(true);
           utter.onend = () => {
             setVoiceIndicatorState(false);
-            if (tourActive && tourAutoPlay) resetAutoPlayTimer(1400);
+            if (tourActive && tourAutoPlay) resetAutoPlayTimer(2500);
           };
           window.speechSynthesis.speak(utter);
         } else {
@@ -5105,6 +5107,7 @@
         badgeClass: "badge dirty",
         title: "1. Raw Feed Equalization & Skid Pumping",
         desc: "Raw wastewater arrives into the 45 m³ horizontal buffer vessel and passes through the vertical poly feed tank. The PC-10 pump skid draws influent through duplex strainers, damping hydraulic surges before treatment.",
+        spokenText: "Stage one: Raw Feed Equalization and Skid Pumping. Raw wastewater arrives into the forty-five cubic metre horizontal buffer vessel and passes through the vertical poly feed tank. The P C ten pump skid draws influent through duplex strainers, damping hydraulic surges before treatment.",
         audioFile: "assets/audio/narration/mobile_stage_01.mp3",
         turbidity: "420 NTU",
         tss: "850 mg/L",
@@ -5118,6 +5121,7 @@
         badgeClass: "badge flow",
         title: "2. Electrocoagulation & AOP Reactor (Pod 1)",
         desc: "Influent enters Pod 1 containing high-amperage sacrificial electrolytic cells. In-situ generated electrons break oil emulsions, destabilize heavy metals, and generate hydroxyl radicals without toxic bulk chemicals.",
+        spokenText: "Stage two: Electrocoagulation and A O P Reactor, Pod One. Influent enters Pod One, containing high-amperage sacrificial electrolytic cells. In-situ generated electrons break oil emulsions, destabilize heavy metals, and generate hydroxyl radicals without toxic bulk chemicals.",
         audioFile: "assets/audio/narration/mobile_stage_02.mp3",
         turbidity: "110 NTU (Destabilized)",
         tss: "240 mg/L (71% clumped)",
@@ -5131,6 +5135,7 @@
         badgeClass: "badge flow",
         title: "3. Dissolved Air Flotation & Sludge Separation (Pod 2)",
         desc: "Coagulated liquor transfers across the containment aisle to Pod 2. Millions of 20-40µm micro-bubbles lift suspended flocs to the surface for automated mechanical skimming into the concentrated sludge collector.",
+        spokenText: "Stage three: Dissolved Air Flotation and Sludge Separation, Pod Two. Coagulated liquor transfers across the containment aisle to Pod Two. Millions of twenty to forty micrometre micro-bubbles lift suspended flocs to the surface for automated mechanical skimming into the concentrated sludge collector.",
         audioFile: "assets/audio/narration/mobile_stage_03.mp3",
         turbidity: "8.5 NTU (Clarified)",
         tss: "18 mg/L (97% removed)",
@@ -5144,6 +5149,7 @@
         badgeClass: "badge clean",
         title: "4. Multi-Barrier Polishing & Ultra-Clean Outflow (Pods 3 & 4)",
         desc: "Clarified water passes through Pod 3's pressurized deep-bed media and granular activated carbon columns, receiving final pathogen disinfection from Pod 4. Pristine treated effluent discharges at <0.6 NTU purity!",
+        spokenText: "Stage four: Multi-Barrier Polishing and Ultra-Clean Outflow, Pods Three and Four. Clarified water passes through Pod Three's pressurized deep-bed media and granular activated carbon columns, receiving final pathogen disinfection from Pod Four. Pristine treated effluent discharges at less than zero point six N T U purity.",
         audioFile: "assets/audio/narration/mobile_stage_04.mp3",
         turbidity: "0.4 NTU (Pristine)",
         tss: "< 2.0 mg/L (99.8%)",
@@ -5662,6 +5668,8 @@
     window.setShadingMode = setShadingMode;
     window.keysDown = keysDown;
     window.updateKeyboardCamera = updateKeyboardCamera;
+    window.tourStages = tourStages;
+    window.getNarrationAudio = () => currentNarrationAudio;
 
     function animate() {
       requestAnimationFrame(animate);
