@@ -6550,6 +6550,7 @@
 
       currentNarrationAudio = audio;
       audio.volume = 1.0;
+      audio.playbackRate = 1.0;
       audio.currentTime = 0;
 
       audio.onplay = () => {
@@ -6558,14 +6559,14 @@
 
       audio.onloadedmetadata = () => {
         if (tourActive && tourAutoPlay && Number.isFinite(audio.duration) && audio.duration > 0) {
-          resetAutoPlayTimer((audio.duration + 1.8) * 1000);
+          resetAutoPlayTimer((audio.duration + 2.5) * 1000);
         }
       };
 
       audio.onended = () => {
         setVoiceIndicatorState(false);
         if (tourActive && tourAutoPlay) {
-          resetAutoPlayTimer(1400);
+          resetAutoPlayTimer(2500);
         }
       };
 
@@ -6578,14 +6579,15 @@
       }
 
       // Set conservative initial timer until metadata or onended fires
-      resetAutoPlayTimer(25000);
+      resetAutoPlayTimer(35000);
 
       audio.play().catch(() => {
         // Fallback to Web Speech API en-GB Male if MP3 playback is blocked
         if ('speechSynthesis' in window) {
-          const utter = new SpeechSynthesisUtterance(`${stage.title}. ${stage.desc}`);
+          const speechText = stage.spokenText || `${stage.title}. ${stage.desc}`;
+          const utter = new SpeechSynthesisUtterance(speechText);
           utter.lang = 'en-GB';
-          utter.rate = 0.96;
+          utter.rate = 0.88;
           const voices = window.speechSynthesis.getVoices();
           const gbMale = voices.find(v => v.lang.includes('GB') && /daniel|ryan|thomas|male|arthur|oliver/i.test(v.name))
                       || voices.find(v => v.lang.includes('GB'));
@@ -6593,7 +6595,7 @@
           utter.onstart = () => setVoiceIndicatorState(true);
           utter.onend = () => {
             setVoiceIndicatorState(false);
-            if (tourActive && tourAutoPlay) resetAutoPlayTimer(1400);
+            if (tourActive && tourAutoPlay) resetAutoPlayTimer(2500);
           };
           window.speechSynthesis.speak(utter);
         } else {
@@ -6640,6 +6642,7 @@
         status: "DIRTY WATER INLET",
         title: "1. Raw Sewage Influent & Mechanical Headworks",
         desc: "Raw untreated municipal wastewater enters the plant via the 600mm incoming sewer conduit from the underground interceptor vault. Heavy debris, plastics, and rags are extracted by mechanical bar screens, while vortex grit chambers drop dense sand before primary pumping.",
+        spokenText: "Stage one: Raw Sewage Influent and Mechanical Headworks. Raw untreated municipal wastewater enters the plant via the six hundred millimetre incoming sewer conduit from the underground interceptor vault. Heavy debris, plastics, and rags are extracted by mechanical bar screens, while vortex grit chambers drop dense sand before primary pumping.",
         audioFile: "assets/audio/narration/muni_stage_01.mp3",
         turbidity: "340 NTU (Murky)",
         bod: "260 mg/L",
@@ -6656,6 +6659,7 @@
         status: "BIOLOGICAL ACTIVATION",
         title: "2. Biological Aeration Basins (Activated Sludge)",
         desc: "Untreated liquor flows into 4 plug-flow channels. Billions of beneficial aerobic microorganisms digest dissolved organic matter, fueled by 450 m³/min of compressed air injected through fine-bubble bottom diffusers.",
+        spokenText: "Stage two: Biological Aeration Basins, Activated Sludge. Untreated liquor flows into four plug-flow channels. Billions of beneficial aerobic microorganisms digest dissolved organic matter, fueled by four hundred and fifty cubic metres per minute of compressed air, injected through fine-bubble bottom diffusers.",
         audioFile: "assets/audio/narration/muni_stage_02.mp3",
         turbidity: "120 NTU (Turbulent MLSS)",
         bod: "75 mg/L (71% reduction)",
@@ -6672,6 +6676,7 @@
         status: "GRAVITY SEDIMENTATION",
         title: "3. Secondary Circular Clarifiers",
         desc: "Flow passes through the central distribution splitter to twin 16m radial clarifiers. Heavy biological floc settles to the tank floor, where continuous scraper bridges gather it for reuse as Return Activated Sludge (RAS).",
+        spokenText: "Stage three: Secondary Circular Clarifiers. Flow passes through the central distribution splitter to twin sixteen metre radial clarifiers. Heavy biological floc settles to the tank floor, where continuous scraper bridges gather it for reuse as Return Activated Sludge, or R A S.",
         audioFile: "assets/audio/narration/muni_stage_03.mp3",
         turbidity: "18 NTU (Clarified)",
         bod: "22 mg/L (91% reduction)",
@@ -6688,6 +6693,7 @@
         status: "TERTIARY POLISHING & UV",
         title: "4. Tertiary Sand Filtration & UV Disinfection",
         desc: "Clarifier overflow flumes directly feed the central Tertiary Complex. Dual-media rapid sand filters capture residual micro-particulates, followed by ultraviolet disinfection lamp banks neutralizing 99.9% of bacteria without toxic chemicals.",
+        spokenText: "Stage four: Tertiary Sand Filtration and U V Disinfection. Clarifier overflow flumes directly feed the central Tertiary Complex. Dual-media rapid sand filters capture residual micro-particulates, followed by ultraviolet disinfection lamp banks neutralizing ninety-nine point nine percent of bacteria without toxic chemicals.",
         audioFile: "assets/audio/narration/muni_stage_04.mp3",
         turbidity: "0.9 NTU (Ultra-Pure)",
         bod: "3.5 mg/L (98% reduction)",
@@ -6704,6 +6710,7 @@
         status: "CLEAN WATER OUTFLOW",
         title: "5. Pristine Treated Water Discharge Outfall & Wetlands",
         desc: "Disinfected crystal-clear treated effluent overflows into the calibrated Parshall flume outfall, tumbling over a stepped stone cascade directly into the wetland lagoon. Watch the dynamic aquamarine effluent plume disperse, propagate wave ripples, and nourish thriving riparian reeds and water lilies at 99.4% purity!",
+        spokenText: "Stage five: Pristine Treated Water Discharge Outfall and Wetlands. Disinfected crystal-clear treated effluent overflows into the calibrated Parshall flume outfall, tumbling over a stepped stone cascade directly into the wetland lagoon. Watch the dynamic aquamarine effluent plume disperse, propagate wave ripples, and nourish thriving riparian reeds and water lilies at ninety-nine point four percent purity.",
         audioFile: "assets/audio/narration/muni_stage_05.mp3",
         turbidity: "0.4 NTU (Pristine)",
         bod: "< 2.0 mg/L (99.4% Removal)",
@@ -6720,6 +6727,7 @@
         status: "BIOGAS RECOVERY",
         title: "6. Anaerobic Digestion & Renewable Biogas",
         desc: "Concentrated solids from the clarifiers are pumped to twin anaerobic digester tanks on the eastern bio-pad, where thermophilic microbes convert organic sludge into stabilized fertilizer and renewable methane biogas.",
+        spokenText: "Stage six: Anaerobic Digestion and Renewable Biogas. Concentrated solids from the clarifiers are pumped to twin anaerobic digester tanks on the eastern bio-pad, where thermophilic microbes convert organic sludge into stabilized fertilizer and renewable methane biogas.",
         audioFile: "assets/audio/narration/muni_stage_06.mp3",
         turbidity: "Volatile Solids Destroyed: 58%",
         bod: "Methane Yield: 65% CH4",
@@ -7469,6 +7477,8 @@
     window.facilityGroup = facilityGroup;
     window.clarifierBridges = clarifierBridges;
     window.setShadingMode = setShadingMode;
+    window.tourStages = tourStages;
+    window.getNarrationAudio = () => currentNarrationAudio;
 
     function smoothTransitionCamera(preset) {
       const isMobile = window.innerWidth <= 768 || (window.innerWidth / window.innerHeight) < 1.0;
